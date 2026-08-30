@@ -1,0 +1,669 @@
+<title>WatIs?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+/>
+<style>
+  :root {
+    --paper: #eff2f0;
+    --surface: #ffffff;
+    --ink: #101c1a;
+    --muted: #55655f;
+    --hairline: #d3dbd7;
+    --teal: #0e7c6f;
+    --teal-ink: #0a5c52;
+    --ochre: #8a5714;
+    --ochre-bg: #f5ecdc;
+    --shadow: 0 1px 2px rgba(16, 28, 26, 0.06), 0 8px 24px -12px rgba(16, 28, 26, 0.18);
+    --on-teal: #ffffff;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --paper: #0c1513;
+      --surface: #16221f;
+      --ink: #e2ebe7;
+      --muted: #8ba099;
+      --hairline: #26332f;
+      --teal: #3fd0ba;
+      --teal-ink: #7ee6d4;
+      --ochre: #e0ac5c;
+      --ochre-bg: #2a2216;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+      --on-teal: #06110f;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --paper: #0c1513;
+    --surface: #16221f;
+    --ink: #e2ebe7;
+    --muted: #8ba099;
+    --hairline: #26332f;
+    --teal: #3fd0ba;
+    --teal-ink: #7ee6d4;
+    --ochre: #e0ac5c;
+    --ochre-bg: #2a2216;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --on-teal: #06110f;
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family:
+      'Archivo',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      system-ui,
+      sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--hairline);
+    padding: 2.5rem 0 2rem;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+  }
+
+  .mark {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 11px;
+    background: var(--teal);
+    display: grid;
+    place-items: center;
+  }
+
+  .mark svg {
+    width: 26px;
+    height: 26px;
+    display: block;
+  }
+
+  .wordmark {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .thesis {
+    margin: 1.75rem 0 0;
+    max-width: 34ch;
+    font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.032em;
+    text-wrap: balance;
+  }
+
+  .thesis em {
+    font-style: normal;
+    color: var(--teal);
+  }
+
+  .standfirst {
+    margin: 1rem 0 0;
+    max-width: 58ch;
+    color: var(--muted);
+    font-size: 1.0625rem;
+  }
+
+  /* ---------- download ---------- */
+
+  .download {
+    margin: 2.5rem 0 3rem;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  @media (max-width: 46rem) {
+    .download {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .download-action {
+    padding: 1.75rem;
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 46rem) {
+    .download-action {
+      border-right: none;
+      border-bottom: 1px solid var(--hairline);
+    }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: var(--teal);
+    color: var(--on-teal);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    padding: 0.8125rem 1.375rem;
+    border-radius: 3px;
+    transition:
+      transform 0.12s ease,
+      filter 0.12s ease;
+  }
+
+  .btn:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  .btn svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+  }
+
+  .btn-secondary {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.8125rem;
+    color: var(--teal-ink);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+  }
+
+  .btn-secondary:hover {
+    color: var(--ink);
+  }
+
+  .download-meta {
+    padding: 1.75rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.8125rem;
+  }
+
+  .meta-row {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.3125rem 0;
+  }
+
+  .meta-row dt {
+    color: var(--muted);
+  }
+
+  .meta-row dd {
+    margin: 0;
+  }
+
+  /* ---------- sections ---------- */
+
+  section {
+    padding: 2.75rem 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  h2 {
+    margin: 0 0 1.5rem;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .spec {
+    display: grid;
+    gap: 0;
+  }
+
+  .spec-row {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 0.9375rem 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .spec-row:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  @media (max-width: 40rem) {
+    .spec-row {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+
+  .spec-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 0.25rem;
+  }
+
+  .spec-value {
+    max-width: 62ch;
+  }
+
+  .spec-value strong {
+    font-weight: 600;
+  }
+
+  .spec-value code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.8125em;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    padding: 0.1em 0.35em;
+  }
+
+  /* the limits section carries the same weight as the features - that is the point */
+  .limits .spec-label {
+    color: var(--ochre);
+  }
+
+  .limits {
+    background: var(--ochre-bg);
+  }
+
+  .limits h2 {
+    color: var(--ochre);
+  }
+
+  /* ---------- steps ---------- */
+
+  ol.steps {
+    counter-reset: step;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.125rem;
+    max-width: 62ch;
+  }
+
+  ol.steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.875rem;
+  }
+
+  ol.steps li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--teal);
+    padding-top: 0.28rem;
+  }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    border-top: 1px solid var(--hairline);
+    padding: 2rem 0 3rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  footer a {
+    color: var(--teal-ink);
+  }
+
+  .disclaimer {
+    max-width: 62ch;
+    margin: 0 0 1.25rem;
+  }
+
+  .colophon {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-8.2L6 20.5l1-4.5H4.5A1.5 1.5 0 0 1 3 14.5V7a1.5 1.5 0 0 1 1.5-1.5Z"
+            fill="#fff"
+          />
+        </svg>
+      </span>
+      <div>
+        <div class="wordmark">WatIs?</div>
+        <div class="eyebrow">Desktop-Client für WhatsApp Web · Windows</div>
+      </div>
+    </div>
+
+    <h1 class="thesis">Ab heute geht <em>nichts mehr verloren.</em></h1>
+    <p class="standfirst">
+      Ein eigener Desktop-Client, der WhatsApp Web hostet und drumherum baut, was die offizielle App
+      nicht kann: Tray mit echtem Zähler, Benachrichtigungen, die den richtigen Chat öffnen, Dateien
+      ohne Dialog im richtigen Ordner. Installation ohne Adminrechte. Alles bleibt auf deinem
+      Rechner.
+    </p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="download">
+    <div class="download-action">
+      <a
+        class="btn"
+        href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Für Windows herunterladen
+      </a>
+      <a class="btn-secondary" href="https://github.com/phish3144/watis/releases/latest"
+        >Alle Dateien und Versionshinweise →</a
+      >
+      <a
+        class="btn-secondary"
+        href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
+        >Portable Fassung, ohne Installation →</a
+      >
+    </div>
+
+    <dl class="download-meta">
+      <div class="meta-row">
+        <dt>Datei</dt>
+        <dd>WatIs-Setup-x64.exe</dd>
+      </div>
+      <div class="meta-row">
+        <dt>System</dt>
+        <dd>Windows 10 / 11, 64 Bit</dd>
+      </div>
+      <div class="meta-row">
+        <dt>Installiert nach</dt>
+        <dd>%LOCALAPPDATA%\Programs\WatIs</dd>
+      </div>
+      <div class="meta-row">
+        <dt>Adminrechte</dt>
+        <dd>keine, keine UAC-Abfrage</dd>
+      </div>
+      <div class="meta-row">
+        <dt>Signatur</dt>
+        <dd>keine — siehe Schritt 2</dd>
+      </div>
+      <div class="meta-row">
+        <dt>macOS</dt>
+        <dd>wird gebaut, noch nicht veröffentlicht</dd>
+      </div>
+    </dl>
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <h2>Was es kann</h2>
+    <div class="spec">
+      <div class="spec-row">
+        <div class="spec-label">Session</div>
+        <div class="spec-value">
+          Bleibt erhalten. Nach einem Update oder Neustart <strong>kein neuer QR-Code</strong>. Der
+          Sitzungsordner wird vom Updater nicht angefasst.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Tray</div>
+        <div class="spec-value">
+          Schließen minimiert in den Tray, die App läuft weiter. Der Zähler kommt aus WhatsApps
+          eigener Datenbank, nicht aus dem Fenstertitel — er stimmt also auch dann, wenn das Fenster
+          zu ist.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Benachrichtigungen</div>
+        <div class="spec-value">
+          Ein Klick öffnet den <strong>richtigen Chat</strong>, nicht nur das Fenster. Kein Ping für
+          den Chat, den du gerade liest. Bei vielen Gruppen eine Sammelmeldung pro Chat statt einer
+          Flut. Ruhezeit mit Zeitplan, Pausieren im Tray.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Dateien</div>
+        <div class="spec-value">
+          Kein Speichern-Dialog. Alles landet unter
+          <code>~/Downloads/WhatsApp/&lt;Chat&gt;/2026-08-30_Angebot.pdf</code>. Umlaute und Emoji
+          im Dateinamen bleiben erhalten — Electron würde sie sonst zu
+          <code>download</code> verkürzen.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Darstellung</div>
+        <div class="spec-value">
+          Kompaktmodus, Schriftgröße, eigene CSS-Datei. Kanäle, „Aktuelles" und Meta AI lassen sich
+          einzeln ausblenden. Zoomstufe wird gemerkt.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Eingabe</div>
+        <div class="spec-value">
+          Enter kann einen Zeilenumbruch einfügen statt zu senden. Natives Kontextmenü mit
+          Rechtschreibvorschlägen.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Datenschutz</div>
+        <div class="spec-value">
+          Keine Telemetrie, kein Konto, keine Cloud. Netzwerkverkehr nur zu WhatsApp und zu GitHub
+          für Updates. Keine offenen Ports.
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="limits">
+  <div class="wrap">
+    <section style="border-top: none">
+      <h2>Was es nicht kann</h2>
+      <div class="spec">
+        <div class="spec-row">
+          <div class="spec-label">Alte Nachrichten</div>
+          <div class="spec-value">
+            <strong>WhatsApp Web liefert höchstens 90 Tage rückwirkend.</strong> Das ist eine Grenze
+            im Client von WhatsApp, keine Einstellung — einen Massenabruf gibt es für Web-Clients
+            gar nicht. Was vor der Installation liegt, bleibt draußen. Der Nutzen liegt darin, dass
+            ab dem Installationstag nichts mehr verschwindet.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Archiv und Suche</div>
+          <div class="spec-value">
+            Noch nicht enthalten. Das durchsuchbare Archiv, die Volltextsuche und der Inhaltsindex
+            (Text in Bildern, PDFs, Sprachnachrichten) sind gebaut, aber noch nicht ausgeliefert.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Senden</div>
+          <div class="spec-value">
+            Die App schreibt nichts über WhatsApps interne Schnittstellen — sie liest nur. Du
+            schreibst wie gewohnt im WhatsApp-Fenster.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Signatur</div>
+          <div class="spec-value">
+            Die Installationsdatei ist nicht signiert. Windows zeigt beim ersten Start eine
+            SmartScreen-Warnung. Sie lässt sich ohne Adminrechte bestätigen, sieht aber nach mehr
+            aus, als sie ist.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Auf Firmengeräten</div>
+          <div class="spec-value">
+            AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden. Und ein
+            lokales Archiv privater Nachrichten auf einem verwalteten Gerät liegt auf fremder
+            Infrastruktur — „läuft lokal" heißt dort nicht „nur du kommst dran".
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <h2>Installieren</h2>
+    <ol class="steps">
+      <li>
+        <div>
+          <strong>Herunterladen und starten.</strong> Es gibt keine UAC-Abfrage und keinen
+          Installationsassistenten — die App installiert sich in dein Benutzerprofil und startet
+          danach von selbst.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>SmartScreen bestätigen.</strong> Erscheint „Der Computer wurde durch Windows
+          geschützt", auf <em>Weitere Informationen</em> klicken und dann auf
+          <em>Trotzdem ausführen</em>. Das braucht keine Adminrechte.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>QR-Code scannen</strong>, wie bei WhatsApp Web. Danach nie wieder — die Sitzung
+          bleibt über Updates hinweg erhalten.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Einstellungen öffnen</strong> mit <code>Strg</code> + <code>,</code> oder über das
+          Tray-Symbol. Dort liegen alle Schalter.
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Technische Daten</h2>
+    <div class="spec">
+      <div class="spec-row">
+        <div class="spec-label">Unterbau</div>
+        <div class="spec-value">Electron 44 · Chromium 152 · Node 24</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Daten</div>
+        <div class="spec-value">
+          <code>%LOCALAPPDATA%\watis\</code> — nie im Roaming-Profil, damit ein Domänen-Konto keine
+          Gigabytes synchronisiert
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Updates</div>
+        <div class="spec-value">
+          Automatisch über GitHub Releases, ohne Adminrechte. Sitzung und Archiv bleiben unberührt.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Deinstallation</div>
+        <div class="spec-value">
+          Über die Windows-Einstellungen. Deine Daten bleiben erhalten und müssen separat gelöscht
+          werden.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Lizenz</div>
+        <div class="spec-value">MIT · Quelltext offen</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p class="disclaimer">
+      WatIs? ist kein offizielles WhatsApp-Produkt und steht in keiner Verbindung zu Meta. WhatsApp
+      ist eine Marke von Meta Platforms, Inc. Der Client hängt an internen Strukturen von WhatsApp
+      Web; ein Update dort kann Teile davon jederzeit brechen. Nutzung auf eigenes Risiko.
+    </p>
+    <div class="colophon">
+      <a href="https://github.com/phish3144/watis">Quelltext</a>
+      <a href="https://github.com/phish3144/watis/blob/HEAD/docs/backfill-findings.md"
+        >Warum 90 Tage</a
+      >
+      <a href="https://github.com/phish3144/watis/issues">Fehler melden</a>
+      <span>MIT</span>
+    </div>
+  </div>
+</footer>
