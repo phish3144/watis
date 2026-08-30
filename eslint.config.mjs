@@ -46,13 +46,57 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   {
-    // The house rule from CLAUDE.md and ADR 0004 C, enforced by the linter rather than by
-    // review: the WhatsApp bridge is read-only, and the one send path lives in a single module.
+    // House rules from CLAUDE.md, enforced by the linter rather than by review: nothing anywhere
+    // opens a listening socket, and the WhatsApp bridge is read-only with exactly one send path
+    // (ADR 0004 C).
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          // A listening socket triggers a Windows Firewall prompt, and dismissing that prompt
+          // needs administrator rights — which this project does not have and will not ask for.
+          selector: "CallExpression > MemberExpression[property.name='listen']",
+          message:
+            'No listening sockets (CLAUDE.md, "Keine Adminrechte"). A firewall prompt needs admin rights.',
+        },
+        {
+          selector: 'CallExpression > MemberExpression[property.name=/^create(Server|Socket)$/]',
+          message:
+            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+        },
+        {
+          selector: 'CallExpression[callee.name=/^create(Server|Socket)$/]',
+          message:
+            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+        },
+      ],
+    },
+  },
+  {
+    // Everywhere except the one module allowed to type into WhatsApp's visible composer.
     files: ['src/**/*.ts'],
     ignores: ['src/main/outgoing/**'],
     rules: {
       'no-restricted-syntax': [
         'error',
+        {
+          // A listening socket triggers a Windows Firewall prompt, and dismissing that prompt
+          // needs administrator rights — which this project does not have and will not ask for.
+          selector: "CallExpression > MemberExpression[property.name='listen']",
+          message:
+            'No listening sockets (CLAUDE.md, "Keine Adminrechte"). A firewall prompt needs admin rights.',
+        },
+        {
+          selector: 'CallExpression > MemberExpression[property.name=/^create(Server|Socket)$/]',
+          message:
+            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+        },
+        {
+          selector: 'CallExpression[callee.name=/^create(Server|Socket)$/]',
+          message:
+            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+        },
         {
           selector:
             'CallExpression > MemberExpression[property.name=/^(sendMessage|sendText|sendSeen|markComposing|deleteMessage|revokeMessage|blockContact|addParticipant|removeParticipant|setSubject|sendReaction)$/]',
