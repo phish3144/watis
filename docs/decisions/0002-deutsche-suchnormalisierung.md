@@ -10,13 +10,13 @@ PLAN.md §5.4 sieht `tokenize='unicode61 remove_diacritics 2'` vor. Das reicht f
 Gemessen mit better-sqlite3 13.0.3 (SQLite 3.53.4):
 
 | Suchbegriff | findet „München Grüße Straße Käse Öl" | findet „Muenchen Gruesse Strasse Kaese Oel" |
-|---|---|---|
-| `münchen` | ja | **nein** |
-| `muenchen` | **nein** | ja |
-| `straße` | ja | **nein** |
-| `strasse` | **nein** | ja |
-| `grüße` | ja | **nein** |
-| `gruesse` | **nein** | ja |
+| ----------- | ------------------------------------- | ------------------------------------------- |
+| `münchen`   | ja                                    | **nein**                                    |
+| `muenchen`  | **nein**                              | ja                                          |
+| `straße`    | ja                                    | **nein**                                    |
+| `strasse`   | **nein**                              | ja                                          |
+| `grüße`     | ja                                    | **nein**                                    |
+| `gruesse`   | **nein**                              | ja                                          |
 
 `remove_diacritics 2` faltet `ü → u`, aber niemand tippt „Munchen". Getippt wird entweder „München" oder
 „Muenchen" – und genau zwischen diesen beiden Schreibweisen ist der Index blind. `ß` ist zudem gar kein
@@ -36,7 +36,7 @@ Zweistufige Normalisierung, angewandt **symmetrisch auf Index und Anfrage**:
 3. **Die Anfrage wird gleich behandelt** und als `("form1" OR "form2")` gestellt.
 
 ```ts
-const UMLAUT: Record<string, string> = { 'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue' }
+const UMLAUT: Record<string, string> = { ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue' }
 const HAS_UMLAUT = /[äöüÄÖÜ]/
 
 const foldEszett = (s: string): string => s.replace(/ß/g, 'ss').replace(/ẞ/g, 'SS')

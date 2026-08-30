@@ -31,19 +31,19 @@ Entscheidung ausgeschlossen werden. Installation und Updates laufen ohne Adminis
 
 ## 1. Ziele (messbar)
 
-| Ziel | Kriterium |
-|---|---|
-| Stabil als Tagesclient | Läuft 7 Tage ohne Neustart, Session bleibt erhalten, kein erneutes QR-Scannen |
-| Dateien ohne Reibung | Download landet ohne Dialog im richtigen Ordner; Doppelklick öffnet; Drag-out funktioniert |
-| Suche | Volltext über alle Chats < 200 ms bei 5 Mio. Nachrichten (typische Anfrage); Filter Absender/Chat/Datum/Medientyp/Quelle |
-| Inhaltsindex | Text in Bildern (OCR), PDF/DOCX und Sprachnachrichten ist durchsuchbar; Treffer zeigen Quelle und Vorschau |
-| Skalierung | Mengengerüst aus §3.1 ohne spürbare Verzögerung; Main-Prozess blockiert nie länger als 16 ms; Index läuft nur im Leerlauf |
-| Plattform | Läuft auf Windows 10/11 (x64); macOS-Build (arm64 + x64) ist in CI ab Phase 0 grün, auch wenn er erst später veröffentlicht wird |
-| Installation | Installer und Auto-Update laufen auf einem Standardbenutzer-Konto ohne UAC-Abfrage durch; kein Systemdienst, kein HKLM, kein offener Port |
-| History | Backfill füllt Archiv chatweise so weit, wie das Handy liefert; fortsetzbar nach Abbruch |
-| Backup | Vollständiger Export (JSON + Medien) reproduzierbar; inkrementell; per restic/rsync sicherbar |
-| Robustheit | Fällt die Internals-Bridge aus, bleibt alles andere nutzbar (Degradation statt Bruch) |
-| Ressourcen | Ein Chromium-Renderer für WA Web, kein zweiter für Tray/Menüs; RAM im Bereich eines Chrome-Tabs |
+| Ziel                   | Kriterium                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Stabil als Tagesclient | Läuft 7 Tage ohne Neustart, Session bleibt erhalten, kein erneutes QR-Scannen                                                             |
+| Dateien ohne Reibung   | Download landet ohne Dialog im richtigen Ordner; Doppelklick öffnet; Drag-out funktioniert                                                |
+| Suche                  | Volltext über alle Chats < 200 ms bei 5 Mio. Nachrichten (typische Anfrage); Filter Absender/Chat/Datum/Medientyp/Quelle                  |
+| Inhaltsindex           | Text in Bildern (OCR), PDF/DOCX und Sprachnachrichten ist durchsuchbar; Treffer zeigen Quelle und Vorschau                                |
+| Skalierung             | Mengengerüst aus §3.1 ohne spürbare Verzögerung; Main-Prozess blockiert nie länger als 16 ms; Index läuft nur im Leerlauf                 |
+| Plattform              | Läuft auf Windows 10/11 (x64); macOS-Build (arm64 + x64) ist in CI ab Phase 0 grün, auch wenn er erst später veröffentlicht wird          |
+| Installation           | Installer und Auto-Update laufen auf einem Standardbenutzer-Konto ohne UAC-Abfrage durch; kein Systemdienst, kein HKLM, kein offener Port |
+| History                | Backfill füllt Archiv chatweise so weit, wie das Handy liefert; fortsetzbar nach Abbruch                                                  |
+| Backup                 | Vollständiger Export (JSON + Medien) reproduzierbar; inkrementell; per restic/rsync sicherbar                                             |
+| Robustheit             | Fällt die Internals-Bridge aus, bleibt alles andere nutzbar (Degradation statt Bruch)                                                     |
+| Ressourcen             | Ein Chromium-Renderer für WA Web, kein zweiter für Tray/Menüs; RAM im Bereich eines Chrome-Tabs                                           |
 
 ---
 
@@ -116,29 +116,29 @@ Nachrichten pro Stunde, ≥ 20.000 offene Index-Jobs nach dem Erstimport.
 
 Gesammelt aus Reviews, Foren und Issue-Trackern zur WebView2-Version und zu WhatsApp Web allgemein.
 
-| # | Kritikpunkt | Maßnahme | Phase |
-|---|---|---|---|
-| 1 | RAM 2–3 GB, viele Hintergrundprozesse | Ein Renderer, eigene UI ohne zweites Chromium, Cache-Limits, Hintergrund-Throttling aus (sonst Notifications-Verzögerung) | 0–1 |
-| 2 | Nach Updates erneut QR scannen, Session weg | Persistente Partition, Storage nie löschen, Session-Verzeichnis vom Updater ausnehmen | 0 |
-| 3 | Notifications unzuverlässig, keine Direktantwort, Ping trotz offenem Fenster | Native Notifications, Fokus-Logik (kein Ping für sichtbaren Chat), Direktantwort als eng begrenzte Ausnahme nach [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) C (Electron 44 kann Inline-Reply auf beiden OS), DND-Zeitplan | 1 |
-| 4 | Kein Close-to-Tray, kein minimierter Autostart, Fensterposition vergessen | Tray mit Badge, Autostart minimiert, Fenster-Bounds merken, globaler Show/Hide-Shortcut | 1 |
-| 5 | Kein Zoom in Fotos, browserartiges Kontextmenü, Audio-Glitches bei Sprachnachrichten | Eigener Medien-Viewer (Zoom/Pan/Tastatur), natives Kontextmenü (Copy/Save/Spellcheck), Audio-Ausgabegerät wählbar | 1 |
-| 6 | Kein Multi-Account | Tabs mit getrennten Sessions (`persist:acct-<n>`) | 8 |
-| 7 | Kein Backup/Export am Desktop | Archiv + Export (JSON/HTML/TXT), inkrementell | 3, 6 |
-| 8 | Suche nur über lokal vorhandene, junge History; „Nutze dein Telefon für ältere Nachrichten" | Backfill vom Handy + eigene FTS-Suche + Archivansicht mit Endlos-Scroll und Datumssprung | 3–5 |
-| 9 | Download-Dialog bei jeder Datei, kein Zielordner, kein Drag-out, Öffnen umständlich | Download-Hook, Ordnerschema, Öffnen mit System-App, Drag-out, Auto-Archiv-Regeln | 2 |
-| 10 | Kaum Anpassung (Theme, Schrift, Dichte) | CSS-Layer: Kompaktmodus, Schriftgröße, Themes, eigene CSS-Datei des Nutzers | 1 |
-| 11 | Channels, Status/„Aktuelles" (inkl. Werbung), Meta AI nicht ausblendbar | Declutter-Schalter pro Element | 1 |
-| 12 | Lange Sprachnachrichten, keine Transkription am Desktop | Lokale Transkription mit whisper.cpp, Ergebnis ins Archiv (durchsuchbar) | 7 |
-| 13 | Chat mit nicht gespeicherter Nummer umständlich | „Chat mit Nummer"-Dialog, `whatsapp://`- und `wa.me`-Links werden von der App übernommen | 8 |
-| 14 | Links öffnen im falschen Kontext / neues Fenster | Externe Links immer im Standardbrowser | 0 |
-| 15 | Enter vs. Shift+Enter nicht konfigurierbar | Umschaltbar (Enter = Zeilenumbruch) | 1 |
-| 16 | Bildschirmfreigabe/Anrufe ruckelig, Quellenwahl fehlt | Permission-Handler für Mic/Cam, eigener Display-Media-Picker (Fenster/Screen) | 1 |
-| 17 | Rechtschreibprüfung nur eine Sprache | Mehrere Wörterbücher (DE + EN) | 1 |
-| 18 | Kein Überblick über Speicherverbrauch, keine Bereinigung | Storage-Übersicht (Session-Cache, Archiv, Blob-Store, Index-Queue) + selektive Bereinigung | 9 |
-| 19 | Mobil-exklusive Funktionen fehlen am Desktop | Nicht lösbar (serverseitig). Wird ehrlich als bekannt dokumentiert, nicht nachgebaut | – |
-| 20 | Suche findet nichts in Bildern, PDFs oder Sprachnachrichten | Inhaltsindex: OCR (PP-OCRv5), PDF/DOCX-Textextraktion, Whisper-Transkription – alles im Suchindex mit Quellenanzeige | 7 |
-| 21 | Bei vielen Gruppen und Dateien wird alles zäh, Speicher läuft voll | Skalierungsvorgaben §3.1: eigene Prozesse, Batches, Sharding, Dedupe, Quota, Pagination | 0, 3 |
+| #   | Kritikpunkt                                                                                 | Maßnahme                                                                                                                                                                                                                                       | Phase |
+| --- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | RAM 2–3 GB, viele Hintergrundprozesse                                                       | Ein Renderer, eigene UI ohne zweites Chromium, Cache-Limits, Hintergrund-Throttling aus (sonst Notifications-Verzögerung)                                                                                                                      | 0–1   |
+| 2   | Nach Updates erneut QR scannen, Session weg                                                 | Persistente Partition, Storage nie löschen, Session-Verzeichnis vom Updater ausnehmen                                                                                                                                                          | 0     |
+| 3   | Notifications unzuverlässig, keine Direktantwort, Ping trotz offenem Fenster                | Native Notifications, Fokus-Logik (kein Ping für sichtbaren Chat), Direktantwort als eng begrenzte Ausnahme nach [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) C (Electron 44 kann Inline-Reply auf beiden OS), DND-Zeitplan | 1     |
+| 4   | Kein Close-to-Tray, kein minimierter Autostart, Fensterposition vergessen                   | Tray mit Badge, Autostart minimiert, Fenster-Bounds merken, globaler Show/Hide-Shortcut                                                                                                                                                        | 1     |
+| 5   | Kein Zoom in Fotos, browserartiges Kontextmenü, Audio-Glitches bei Sprachnachrichten        | Eigener Medien-Viewer (Zoom/Pan/Tastatur), natives Kontextmenü (Copy/Save/Spellcheck), Audio-Ausgabegerät wählbar                                                                                                                              | 1     |
+| 6   | Kein Multi-Account                                                                          | Tabs mit getrennten Sessions (`persist:acct-<n>`)                                                                                                                                                                                              | 8     |
+| 7   | Kein Backup/Export am Desktop                                                               | Archiv + Export (JSON/HTML/TXT), inkrementell                                                                                                                                                                                                  | 3, 6  |
+| 8   | Suche nur über lokal vorhandene, junge History; „Nutze dein Telefon für ältere Nachrichten" | Backfill vom Handy + eigene FTS-Suche + Archivansicht mit Endlos-Scroll und Datumssprung                                                                                                                                                       | 3–5   |
+| 9   | Download-Dialog bei jeder Datei, kein Zielordner, kein Drag-out, Öffnen umständlich         | Download-Hook, Ordnerschema, Öffnen mit System-App, Drag-out, Auto-Archiv-Regeln                                                                                                                                                               | 2     |
+| 10  | Kaum Anpassung (Theme, Schrift, Dichte)                                                     | CSS-Layer: Kompaktmodus, Schriftgröße, Themes, eigene CSS-Datei des Nutzers                                                                                                                                                                    | 1     |
+| 11  | Channels, Status/„Aktuelles" (inkl. Werbung), Meta AI nicht ausblendbar                     | Declutter-Schalter pro Element                                                                                                                                                                                                                 | 1     |
+| 12  | Lange Sprachnachrichten, keine Transkription am Desktop                                     | Lokale Transkription mit whisper.cpp, Ergebnis ins Archiv (durchsuchbar)                                                                                                                                                                       | 7     |
+| 13  | Chat mit nicht gespeicherter Nummer umständlich                                             | „Chat mit Nummer"-Dialog, `whatsapp://`- und `wa.me`-Links werden von der App übernommen                                                                                                                                                       | 8     |
+| 14  | Links öffnen im falschen Kontext / neues Fenster                                            | Externe Links immer im Standardbrowser                                                                                                                                                                                                         | 0     |
+| 15  | Enter vs. Shift+Enter nicht konfigurierbar                                                  | Umschaltbar (Enter = Zeilenumbruch)                                                                                                                                                                                                            | 1     |
+| 16  | Bildschirmfreigabe/Anrufe ruckelig, Quellenwahl fehlt                                       | Permission-Handler für Mic/Cam, eigener Display-Media-Picker (Fenster/Screen)                                                                                                                                                                  | 1     |
+| 17  | Rechtschreibprüfung nur eine Sprache                                                        | Mehrere Wörterbücher (DE + EN)                                                                                                                                                                                                                 | 1     |
+| 18  | Kein Überblick über Speicherverbrauch, keine Bereinigung                                    | Storage-Übersicht (Session-Cache, Archiv, Blob-Store, Index-Queue) + selektive Bereinigung                                                                                                                                                     | 9     |
+| 19  | Mobil-exklusive Funktionen fehlen am Desktop                                                | Nicht lösbar (serverseitig). Wird ehrlich als bekannt dokumentiert, nicht nachgebaut                                                                                                                                                           | –     |
+| 20  | Suche findet nichts in Bildern, PDFs oder Sprachnachrichten                                 | Inhaltsindex: OCR (PP-OCRv5), PDF/DOCX-Textextraktion, Whisper-Transkription – alles im Suchindex mit Quellenanzeige                                                                                                                           | 7     |
+| 21  | Bei vielen Gruppen und Dateien wird alles zäh, Speicher läuft voll                          | Skalierungsvorgaben §3.1: eigene Prozesse, Batches, Sharding, Dedupe, Quota, Pagination                                                                                                                                                        | 0, 3  |
 
 ---
 
@@ -274,19 +274,19 @@ search_fts USING fts5(text, source UNINDEXED, chat_id UNINDEXED,
 
 ### 5.6 Trade-offs (bewusst getroffen)
 
-| Entscheidung | Warum | Preis |
-|---|---|---|
-| Electron statt Tauri | Page-Internals, Download-Hooks, DevTools-Protokoll und einheitliches Chromium auf allen OS; unter Linux ist WebKitGTK für WA Web problematisch | Größeres Bundle; RAM-Vorteil gegenüber Store-App ohnehin gering, weil WA Web selbst der Brocken ist |
-| Eigenes Archiv statt Zugriff auf IndexedDB-Dateien | IndexedDB ist inzwischen at rest verschlüsselt (Schlüsselableitung braucht ein Server-Salt) | Bridge-Abhängigkeit |
-| better-sqlite3 (synchron) | Einfach, schnell, FTS5 + Trigram dabei; seit v13 N-API mit Prebuilds im Tarball – kein `electron-rebuild` (ADR 0003) | Synchron und ohne Progress-Callback: lange Abfragen blockieren den Prozess, der die DB geöffnet hat – deshalb **nie** im Main |
-| React für eigene UI | Vorhandene Next.js-Erfahrung, schnelle Iteration | Zweiter Renderer-Prozess (klein) |
-| Read-only-Bridge | Ban-Risiko minimal halten | Keine Komfortfunktionen, die senden |
-| Archiv/Index als `utilityProcess` statt im Main | Main darf nie blockieren; better-sqlite3 ist synchron; OCR/Whisper rechnen minutenlang | IPC-Overhead, zwei zusätzliche Node-Prozesse |
-| Content-addressed Blob-Store statt Chat-Ordner | Dedupe bei vielen Dateien, Sharding, frei verschiebbar | Nicht menschenlesbar – Export (Phase 6) materialisiert Chat-Ordner |
-| PP-OCRv5 über ONNX Runtime statt Tesseract | Deutlich genauer auf Fotos, Screenshots, Belegen; CPU reicht | Community-Ports, Wartung prüfen; Modelle nachladen; Engine hinter Interface kapseln |
-| Ein gemeinsamer Suchindex statt einer FTS pro Quelle | Eine Anfrage, ein Ranking, Filter per `source` | Trigger-Logik etwas komplexer |
-| Electron bringt eigenes Chromium mit (kein WebView2-Runtime nötig) | Keine Abhängigkeit von einer systemweiten Runtime, die ohne Adminrechte fehlen oder veraltet sein könnte | ~100 MB mehr Installationsgröße |
-| Per-User-Installer (NSIS, `%LOCALAPPDATA%\Programs`) statt Per-Machine/MSIX | Installation und Auto-Update ohne UAC; Protokoll-Handler und Autostart per HKCU | Nur für den installierenden Benutzer; unsigniert zeigt SmartScreen eine Warnung |
+| Entscheidung                                                                | Warum                                                                                                                                          | Preis                                                                                                                         |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Electron statt Tauri                                                        | Page-Internals, Download-Hooks, DevTools-Protokoll und einheitliches Chromium auf allen OS; unter Linux ist WebKitGTK für WA Web problematisch | Größeres Bundle; RAM-Vorteil gegenüber Store-App ohnehin gering, weil WA Web selbst der Brocken ist                           |
+| Eigenes Archiv statt Zugriff auf IndexedDB-Dateien                          | IndexedDB ist inzwischen at rest verschlüsselt (Schlüsselableitung braucht ein Server-Salt)                                                    | Bridge-Abhängigkeit                                                                                                           |
+| better-sqlite3 (synchron)                                                   | Einfach, schnell, FTS5 + Trigram dabei; seit v13 N-API mit Prebuilds im Tarball – kein `electron-rebuild` (ADR 0003)                           | Synchron und ohne Progress-Callback: lange Abfragen blockieren den Prozess, der die DB geöffnet hat – deshalb **nie** im Main |
+| React für eigene UI                                                         | Vorhandene Next.js-Erfahrung, schnelle Iteration                                                                                               | Zweiter Renderer-Prozess (klein)                                                                                              |
+| Read-only-Bridge                                                            | Ban-Risiko minimal halten                                                                                                                      | Keine Komfortfunktionen, die senden                                                                                           |
+| Archiv/Index als `utilityProcess` statt im Main                             | Main darf nie blockieren; better-sqlite3 ist synchron; OCR/Whisper rechnen minutenlang                                                         | IPC-Overhead, zwei zusätzliche Node-Prozesse                                                                                  |
+| Content-addressed Blob-Store statt Chat-Ordner                              | Dedupe bei vielen Dateien, Sharding, frei verschiebbar                                                                                         | Nicht menschenlesbar – Export (Phase 6) materialisiert Chat-Ordner                                                            |
+| PP-OCRv5 über ONNX Runtime statt Tesseract                                  | Deutlich genauer auf Fotos, Screenshots, Belegen; CPU reicht                                                                                   | Community-Ports, Wartung prüfen; Modelle nachladen; Engine hinter Interface kapseln                                           |
+| Ein gemeinsamer Suchindex statt einer FTS pro Quelle                        | Eine Anfrage, ein Ranking, Filter per `source`                                                                                                 | Trigger-Logik etwas komplexer                                                                                                 |
+| Electron bringt eigenes Chromium mit (kein WebView2-Runtime nötig)          | Keine Abhängigkeit von einer systemweiten Runtime, die ohne Adminrechte fehlen oder veraltet sein könnte                                       | ~100 MB mehr Installationsgröße                                                                                               |
+| Per-User-Installer (NSIS, `%LOCALAPPDATA%\Programs`) statt Per-Machine/MSIX | Installation und Auto-Update ohne UAC; Protokoll-Handler und Autostart per HKCU                                                                | Nur für den installierenden Benutzer; unsigniert zeigt SmartScreen eine Warnung                                               |
 
 ---
 
@@ -323,27 +323,38 @@ Aufwand: S = Stunden, M = 1–2 Tage, L = 3–5 Tage. Reihenfolge ist verbindlic
 
 Ziel: Fenster, das WA Web lädt, mit persistenter Session und sauberer Basis.
 
-- [ ] Repo-Setup: electron-vite, TS strict, ESLint/Prettier, vitest, Playwright-Grundgerüst, CI
-- [ ] `BaseWindow` + `WebContentsView` „wa" mit `partition: 'persist:wa'`
-- [ ] User-Agent auf reguläres Chrome setzen (Electron-Token entfernen), Chrome-Version passend zur gebündelten Chromium-Version
-- [ ] `setWindowOpenHandler`: alle externen Links → `shell.openExternal`, nie neue Fenster
-- [ ] `setPermissionRequestHandler`: Notifications, Mic, Cam, Clipboard erlauben; alles andere ablehnen
-- [ ] Hintergrund-Throttling für „wa" aus (`backgroundThrottling: false`)
-- [ ] Single-Instance-Lock (zweiter Start fokussiert das Fenster)
-- [ ] Prozessgerüst: `utilityProcess` „archive" und „index" starten, Health-Ping, sauberes Beenden,
-      Neustart bei Absturz; typisierte MessagePort-Kanäle mit zod
-- [ ] Event-Loop-Lag-Watchdog im Main (Warnung im Log ab 16 ms), damit Blockaden früh auffallen
-- [ ] Pfade: `userData`/`sessionData` beim Start nach `%LOCALAPPDATA%\wawrap\` setzen (macOS: Application Support);
-      nichts Großes im Roaming-Profil
-- [ ] `platform/`-Interface mit Windows-Implementierung und macOS-Stub (Notifications, Autostart, Badge,
-      Protokoll-Handler, „Im Ordner zeigen", Sidecar-Pfade)
-- [ ] `app.setAppUserModelId` + Startmenü-Verknüpfung durch den Installer (Voraussetzung für Windows-Toasts)
-- [ ] Installer: NSIS per-user, Portable-Build, Auto-Update-Grundgerüst; Test auf einem Windows-Konto ohne
-      Adminrechte: Installation, Start, Update, Deinstallation – alles ohne UAC
-- [ ] Keine lokalen Ports/Listener im gesamten Projekt (vermeidet Firewall-Prompts, die Adminrechte bräuchten)
-- [ ] CI: Windows-Build als Release-Artefakt, macOS-Build unsigniert als Pflicht-Check
-- [ ] Fenster-Bounds/Maximiert-Zustand speichern und wiederherstellen
-- [ ] Logging (electron-log) mit Rotation, Crash-Reporter nur lokal
+- [x] Repo-Setup: electron-vite, TS strict, ESLint/Prettier, vitest, Playwright-Grundgerüst, CI
+- [x] `BaseWindow` + `WebContentsView` „wa" mit `partition: 'persist:wa'`
+- [x] User-Agent auf reguläres Chrome setzen (Electron-Token entfernen), Chrome-Version passend zur gebündelten Chromium-Version
+      – auf `Chrome/152.0.0.0` reduziert, OS-Token bleibt ehrlich; per E2E geprüft
+- [x] `setWindowOpenHandler`: alle externen Links → `shell.openExternal`, nie neue Fenster
+- [x] `setPermissionRequestHandler` **und** `setPermissionCheckHandler`: Notifications, Mic, Cam, Clipboard
+      erlauben; alles andere ablehnen. Beide sind nötig – WhatsApp fragt den Check-Handler synchron ab und
+      verhält sich still falsch, wenn er fehlt
+- [x] Hintergrund-Throttling für „wa" aus (`backgroundThrottling: false`)
+- [x] Single-Instance-Lock (zweiter Start fokussiert das Fenster)
+- [x] Prozessgerüst: `utilityProcess` „archive" und „index" starten, Health-Ping, sauberes Beenden,
+      Neustart bei Absturz mit exponentiellem Backoff; typisierte MessagePort-Kanäle mit zod
+- [x] Event-Loop-Lag-Watchdog im Main (Warnung im Log ab 16 ms), damit Blockaden früh auffallen
+- [x] Pfade: `userData`/`sessionData` beim Start nach `%LOCALAPPDATA%\watis\` setzen (macOS: Application Support);
+      nichts Großes im Roaming-Profil. Eine Startzusicherung bricht hart ab, wenn die Umleitung nicht
+      gegriffen hat – sonst schreibt die Session still weiter ins alte Verzeichnis
+- [x] `platform/`-Interface mit Windows-Implementierung und macOS-Implementierung (Notifications, Autostart,
+      Badge, Protokoll-Handler, „Im Ordner zeigen", Sidecar-Pfade). Zwei dokumentierte macOS-Stubs:
+      Autostart und Protokoll-Handler brauchen Signierung + Notarisierung
+- [x] `app.setAppUserModelId` + Startmenü-Verknüpfung durch den Installer (Voraussetzung für Windows-Toasts);
+      ein Unit-Test hält `appId` und `productName` mit der Installer-Konfiguration in Deckung
+- [~] Installer: NSIS per-user, Portable-Build, Auto-Update-Grundgerüst **fertig konfiguriert**
+      (`oneClick:true` + `perMachine:false` + `packElevateHelper:false`; `npm run verify:no-elevate` ist
+      Release-Gate). **Offen: der Test auf dem verwalteten Zielrechner** – Installation, Start, Update,
+      Deinstallation ohne UAC, und ob AppLocker/SRP die Ausführung aus `%LOCALAPPDATA%\Programs\WatIs`
+      zulässt. Das kann nur auf dem echten Gerät laufen
+- [x] Keine lokalen Ports/Listener im gesamten Projekt (vermeidet Firewall-Prompts, die Adminrechte bräuchten)
+- [x] CI: Lint/Typecheck/Unit + E2E auf Linux und Windows; Windows-Build als Release-Artefakt,
+      macOS-Build unsigniert als Pflicht-Check; Smoke-Test, dass better-sqlite3 ohne Rebuild lädt
+- [x] Fenster-Bounds/Maximiert-Zustand speichern und wiederherstellen (mit Prüfung, dass das Fenster nach
+      einem Monitorwechsel nicht außerhalb des sichtbaren Bereichs öffnet)
+- [x] Logging (electron-log) mit Rotation, Crash-Reporter nur lokal
 
 **DoD:** QR scannen, Chat schreiben, App schließen und neu starten → eingeloggt ohne QR. Externe Links im Browser.
 Installer läuft auf einem Standardbenutzer-Konto ohne UAC durch; macOS-Build in CI grün.
@@ -538,26 +549,26 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 ## 9. Risiken & Gegenmaßnahmen
 
-| Risiko | Wahrscheinlichkeit | Maßnahme |
-|---|---|---|
-| WA-Web-Update bricht Bridge | **hoch – gemessen 9,9 WA-Web-Builds/Tag, Spitze 14** (nicht „mehrmals pro Jahr", siehe [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) A) | Healthcheck, Feature-Flags, Degradation, `bridge-map.md`, Smoke-Checkliste; Modulauflösung an genau einer Stelle; Phasen 0–2 bleiben ohne Bridge vollwertig; kein Termin für Phase 3 |
-| Account-Warnung/Sperre | niedrig bei Read-only | Nie senden/löschen über Internals; Backfill in menschlichem Tempo; keine Massenaktionen |
-| UA-/Browser-Gate („WhatsApp funktioniert mit Chrome 60+") | mittel | Chrome-konformer UA, Chromium-Version aktuell halten |
-| Session-Verlust durch Update/Cache-Clear | mittel | Partition nie anfassen, Update-E2E-Test, Bereinigung nur selektiv |
-| Klartext-Archiv auf dem Rechner | – | Bewusste Entscheidung; Option SQLCipher (`better-sqlite3-multiple-ciphers`) oder Verlass auf OS-Verschlüsselung (BitLocker/FileVault) |
-| ~~Native Module (better-sqlite3) vs. Electron-Version~~ | ~~mittel~~ **entfällt** | better-sqlite3 13 ist N-API mit Prebuilds für alle Zielplattformen im npm-Tarball; ABI-unabhängig. Statt `electron-rebuild` nur ein CI-Smoke-Test, der eine Regression zu einem Source-Build sofort meldet (ADR 0003) |
-| Backfill lädt weniger zurück als erhofft | unbekannt | Früh empirisch testen (Phase 5 vor Phase 6 abschließen, Erwartung anpassen) |
-| Notifications-Direktantwort unter Windows | mittel | Spike in Phase 1, sauberer Fallback |
-| Blob-Store frisst die Platte (viele Dateien, Videos) | hoch | Dedupe, Quota mit Warnung, Videos nur manuell, Speicherort verschiebbar (Laufwerk/NAS) |
-| OCR/Transkription bremsen den Rechner | mittel | Leerlauf-Steuerung, Parallelität begrenzt, nur an Netzstrom, Pause im Tray |
-| Community-OCR-Ports werden nicht gepflegt | mittel | Engine hinter Interface; onnxruntime-node und Modelle bleiben, Port ist austauschbar; tesseract.js als Fallback |
-| Archiv wächst über das Mengengerüst hinaus | mittel | Vorgaben §3.1, Lasttest als Release-Gate, Keyset-Pagination, external-content-FTS; bei Bedarf Archiv nach Jahr partitionieren |
-| Index-Lawine nach Modellwechsel | niedrig | Neu-Indizierung pro Quelle, gedrosselt, mit Zeitbudget; alte Ergebnisse bleiben bis zum Ersatz gültig |
-| Firmen-Policy (AppLocker/SRP) blockiert Ausführen aus `%LOCALAPPDATA%` | unbekannt | In Phase 0 auf dem echten Zielrechner testen; Ausweg: signiertes Paket oder IT-Freigabe – dann früh wissen, nicht in Phase 9 |
-| Roaming-Profil synchronisiert Gigabytes | mittel (Domänen-Konto) | Alle Daten nach `%LOCALAPPDATA%` (Phase 0), Prüfung im Installer-Test |
-| SmartScreen-Warnung schreckt ab / Defender verdächtigt unsignierte Sidecars | mittel | Dokumentierter Klickweg; Signierung als Option in Phase 9; Sidecars aus offiziellen Releases mit Hash-Prüfung |
-| Windows-Pfadlänge/Dateinamen brechen Downloads oder Export | mittel | Sanitizing-Modul (Phase 2), Tests mit Extremfällen |
-| macOS wird nebenbei kaputtgebaut | mittel | mac-Build ist Pflicht-Check in CI; `platform/`-Interface; keine Windows-API im Feature-Code |
+| Risiko                                                                      | Wahrscheinlichkeit                                                                                                                                        | Maßnahme                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WA-Web-Update bricht Bridge                                                 | **hoch – gemessen 9,9 WA-Web-Builds/Tag, Spitze 14** (nicht „mehrmals pro Jahr", siehe [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) A) | Healthcheck, Feature-Flags, Degradation, `bridge-map.md`, Smoke-Checkliste; Modulauflösung an genau einer Stelle; Phasen 0–2 bleiben ohne Bridge vollwertig; kein Termin für Phase 3                                  |
+| Account-Warnung/Sperre                                                      | niedrig bei Read-only                                                                                                                                     | Nie senden/löschen über Internals; Backfill in menschlichem Tempo; keine Massenaktionen                                                                                                                               |
+| UA-/Browser-Gate („WhatsApp funktioniert mit Chrome 60+")                   | mittel                                                                                                                                                    | Chrome-konformer UA, Chromium-Version aktuell halten                                                                                                                                                                  |
+| Session-Verlust durch Update/Cache-Clear                                    | mittel                                                                                                                                                    | Partition nie anfassen, Update-E2E-Test, Bereinigung nur selektiv                                                                                                                                                     |
+| Klartext-Archiv auf dem Rechner                                             | –                                                                                                                                                         | Bewusste Entscheidung; Option SQLCipher (`better-sqlite3-multiple-ciphers`) oder Verlass auf OS-Verschlüsselung (BitLocker/FileVault)                                                                                 |
+| ~~Native Module (better-sqlite3) vs. Electron-Version~~                     | ~~mittel~~ **entfällt**                                                                                                                                   | better-sqlite3 13 ist N-API mit Prebuilds für alle Zielplattformen im npm-Tarball; ABI-unabhängig. Statt `electron-rebuild` nur ein CI-Smoke-Test, der eine Regression zu einem Source-Build sofort meldet (ADR 0003) |
+| Backfill lädt weniger zurück als erhofft                                    | unbekannt                                                                                                                                                 | Früh empirisch testen (Phase 5 vor Phase 6 abschließen, Erwartung anpassen)                                                                                                                                           |
+| Notifications-Direktantwort unter Windows                                   | mittel                                                                                                                                                    | Spike in Phase 1, sauberer Fallback                                                                                                                                                                                   |
+| Blob-Store frisst die Platte (viele Dateien, Videos)                        | hoch                                                                                                                                                      | Dedupe, Quota mit Warnung, Videos nur manuell, Speicherort verschiebbar (Laufwerk/NAS)                                                                                                                                |
+| OCR/Transkription bremsen den Rechner                                       | mittel                                                                                                                                                    | Leerlauf-Steuerung, Parallelität begrenzt, nur an Netzstrom, Pause im Tray                                                                                                                                            |
+| Community-OCR-Ports werden nicht gepflegt                                   | mittel                                                                                                                                                    | Engine hinter Interface; onnxruntime-node und Modelle bleiben, Port ist austauschbar; tesseract.js als Fallback                                                                                                       |
+| Archiv wächst über das Mengengerüst hinaus                                  | mittel                                                                                                                                                    | Vorgaben §3.1, Lasttest als Release-Gate, Keyset-Pagination, external-content-FTS; bei Bedarf Archiv nach Jahr partitionieren                                                                                         |
+| Index-Lawine nach Modellwechsel                                             | niedrig                                                                                                                                                   | Neu-Indizierung pro Quelle, gedrosselt, mit Zeitbudget; alte Ergebnisse bleiben bis zum Ersatz gültig                                                                                                                 |
+| Firmen-Policy (AppLocker/SRP) blockiert Ausführen aus `%LOCALAPPDATA%`      | unbekannt                                                                                                                                                 | In Phase 0 auf dem echten Zielrechner testen; Ausweg: signiertes Paket oder IT-Freigabe – dann früh wissen, nicht in Phase 9                                                                                          |
+| Roaming-Profil synchronisiert Gigabytes                                     | mittel (Domänen-Konto)                                                                                                                                    | Alle Daten nach `%LOCALAPPDATA%` (Phase 0), Prüfung im Installer-Test                                                                                                                                                 |
+| SmartScreen-Warnung schreckt ab / Defender verdächtigt unsignierte Sidecars | mittel                                                                                                                                                    | Dokumentierter Klickweg; Signierung als Option in Phase 9; Sidecars aus offiziellen Releases mit Hash-Prüfung                                                                                                         |
+| Windows-Pfadlänge/Dateinamen brechen Downloads oder Export                  | mittel                                                                                                                                                    | Sanitizing-Modul (Phase 2), Tests mit Extremfällen                                                                                                                                                                    |
+| macOS wird nebenbei kaputtgebaut                                            | mittel                                                                                                                                                    | mac-Build ist Pflicht-Check in CI; `platform/`-Interface; keine Windows-API im Feature-Code                                                                                                                           |
 
 ---
 
@@ -566,20 +577,20 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 Alle Punkte sind in [`docs/decisions/0001-offene-entscheidungen-aus-plan-10.md`](docs/decisions/0001-offene-entscheidungen-aus-plan-10.md)
 mit Begründung und Konsequenzen festgehalten. Kurzfassung:
 
-| # | Punkt | Entscheidung |
-|---|---|---|
-| 1 | Ziel-OS | Windows 10/11 zuerst (Release), macOS ab Phase 0 in CI grün, Linux nicht geplant. Installation ohne Adminrechte ist Pflicht. |
-| 2 | Archiv-Verschlüsselung | Klartext als Default, DB-Anbindung hinter einem Interface, Umstieg auf SQLCipher später ohne Schema-Migration möglich. |
-| 3 | Medien-Archiv | Bilder und Dokumente immer automatisch; **Videos nur auf Klick**; **Sprachnachrichten nicht automatisch**, auf Klick holbar. |
-| 4 | Transkription | whisper.cpp bleibt, aber **on demand** statt Backlog. Modellgröße nach Technik-Recon. |
-| 5 | Repo und Lizenz | Repo `phish3144/watis`, Paket/Ordner `watis`, `productName` `WatIs`, UI-Name `WatIs?`, **MIT**, öffentlich. |
-| 6 | Downloadordner | `~/Downloads/WhatsApp/<Chatname>/`, konfigurierbar. |
-| 7 | OCR-Bibliothek | Offen – Spike gegen die Fixtures entscheidet. Bis dahin nur über das Engine-Interface, `tesseract.js` als Fallback. |
-| 8 | Dateitypen im Index | PDF, DOCX, TXT/MD/CSV **plus gescannte PDFs durch die OCR**. Kein XLSX/PPTX (Interface bleibt offen). |
-| 9 | Blob-Store | Systemlaufwerk, `%LOCALAPPDATA%\watis\blobs`, Startquote **20 GB**, Warnung ab 80 %, Ort verschiebbar. |
-| 10 | Backfill-Tiefe | Default **12 Monate** für alle Chats, pro Chat manuell erweiterbar. Obergrenze setzt am Ende WhatsApp Web. |
-| 11 | Windows-Signierung | Unsigniert, SmartScreen-Klickweg dokumentiert – Vorbehalt: AppLocker-Test in Phase 0. |
-| 12 | Zielrechner | **Verwalteter Firmenrechner.** Installer-Test auf dem echten Zielgerät ist ein Phase-0-Task, kein Phase-9-Task. |
+| #   | Punkt                  | Entscheidung                                                                                                                 |
+| --- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Ziel-OS                | Windows 10/11 zuerst (Release), macOS ab Phase 0 in CI grün, Linux nicht geplant. Installation ohne Adminrechte ist Pflicht. |
+| 2   | Archiv-Verschlüsselung | Klartext als Default, DB-Anbindung hinter einem Interface, Umstieg auf SQLCipher später ohne Schema-Migration möglich.       |
+| 3   | Medien-Archiv          | Bilder und Dokumente immer automatisch; **Videos nur auf Klick**; **Sprachnachrichten nicht automatisch**, auf Klick holbar. |
+| 4   | Transkription          | whisper.cpp bleibt, aber **on demand** statt Backlog. Modellgröße nach Technik-Recon.                                        |
+| 5   | Repo und Lizenz        | Repo `phish3144/watis`, Paket/Ordner `watis`, `productName` `WatIs`, UI-Name `WatIs?`, **MIT**, öffentlich.                  |
+| 6   | Downloadordner         | `~/Downloads/WhatsApp/<Chatname>/`, konfigurierbar.                                                                          |
+| 7   | OCR-Bibliothek         | Offen – Spike gegen die Fixtures entscheidet. Bis dahin nur über das Engine-Interface, `tesseract.js` als Fallback.          |
+| 8   | Dateitypen im Index    | PDF, DOCX, TXT/MD/CSV **plus gescannte PDFs durch die OCR**. Kein XLSX/PPTX (Interface bleibt offen).                        |
+| 9   | Blob-Store             | Systemlaufwerk, `%LOCALAPPDATA%\watis\blobs`, Startquote **20 GB**, Warnung ab 80 %, Ort verschiebbar.                       |
+| 10  | Backfill-Tiefe         | Default **12 Monate** für alle Chats, pro Chat manuell erweiterbar. Obergrenze setzt am Ende WhatsApp Web.                   |
+| 11  | Windows-Signierung     | Unsigniert, SmartScreen-Klickweg dokumentiert – Vorbehalt: AppLocker-Test in Phase 0.                                        |
+| 12  | Zielrechner            | **Verwalteter Firmenrechner.** Installer-Test auf dem echten Zielgerät ist ein Phase-0-Task, kein Phase-9-Task.              |
 
 Konsequenzen, die den Plan an anderer Stelle ändern:
 

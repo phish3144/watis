@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-wa-panel: #111b21;
+  --color-wa-surface: #202c33;
+  --color-wa-accent: #00a884;
+}

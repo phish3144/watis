@@ -1,0 +1,86 @@
+# Installer configuration. Every choice here that looks arbitrary is load-bearing —
+# see docs/recon.md §5 for the source-level analysis behind the NSIS block.
+
+appId: io.github.phish3144.watis # MUST equal APP_ID in src/shared/app-identity.ts
+productName: WatIs # path-safe; the display name "WatIs?" never reaches a path
+copyright: Copyright © 2026 phish3144
+
+directories:
+  output: release
+  buildResources: build
+
+# better-sqlite3 13 is Node-API and ships prebuilds for every target inside its npm tarball.
+# Leaving this on makes electron-builder call @electron/rebuild, which hard-fails on any
+# cross-arch job with "node-gyp does not support cross-compiling native modules from source".
+npmRebuild: false
+
+asar: true
+asarUnpack:
+  - '**/node_modules/better-sqlite3/prebuilds/**'
+
+files:
+  - out/**
+  - package.json
+  # Ship one native binary, not eight. Negate only the platforms we do not target:
+  # an exclude-all-then-re-include pattern silently ships an app with NO binding at all,
+  # and the ${platform} macro expands to the build host rather than the target.
+  - '!node_modules/better-sqlite3/{deps,src,build,binding.gyp}/**'
+  - '!node_modules/better-sqlite3/prebuilds/linux*'
+  - '!node_modules/better-sqlite3/prebuilds/darwin*'
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: '${productName}-${version}-win-${arch}.${ext}'
+
+nsis:
+  # Three independent reasons this installer cannot elevate:
+  #  1. perMachine:false        -> RequestExecutionLevel user in the manifest
+  #  2. oneClick:true           -> no install-mode radio page, so no reachable UAC_RunElevated
+  #  3. packElevateHelper:false -> resources/elevate.exe does not exist to be called
+  # oneClick:false would undo (2): it defines INSTALL_MODE_PER_ALL_USERS_REQUIRED regardless of
+  # perMachine, and two of the three UAC_RunElevated call sites are NOT guarded by
+  # allowElevation. The price is allowToChangeInstallationDirectory, which electron-builder
+  # refuses to combine with oneClick:true. Guaranteed no-UAC wins.
+  oneClick: true
+  perMachine: false
+  packElevateHelper: false
+  allowElevation: false
+  # Required for Windows toasts: the shortcut carries the AppUserModelId.
+  createStartMenuShortcut: true
+  createDesktopShortcut: true
+  runAfterFinish: true
+  # Never destroy the archive on uninstall. It can be 20 GB of the user's own history.
+  deleteAppDataOnUninstall: false
+  differentialPackage: true
+  artifactName: '${productName}-${version}-win-${arch}-setup.${ext}'
+
+portable:
+  artifactName: '${productName}-${version}-win-${arch}-portable.${ext}'
+  unpackDirName: WatIs # stable, so state written beside the exe survives a restart
+
+mac:
+  category: public.app-category.social-networking
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    # zip is mandatory for electron-updater on macOS.
+    - target: zip
+      arch: [arm64, x64]
+  minimumSystemVersion: '13.0' # Electron 44 dropped macOS 12
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Deterministic: electron-builder 26 removed the automatic ad-hoc fallback, so the default now
+  # depends on whatever happens to be in the runner keychain.
+  identity: null
+  notarize: false
+
+publish:
+  provider: github
+  owner: phish3144
+  repo: watis
+  # Public repo, so no token is embedded in the shipped binary.

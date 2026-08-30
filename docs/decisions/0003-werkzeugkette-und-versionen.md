@@ -80,26 +80,26 @@ also stillschweigend eine ältere Version. 27.x ist Alpha.
 
 ## Gepinnte Versionen
 
-| Paket | Version | Lizenz | Anmerkung |
-|---|---|---|---|
-| electron | 44.0.0 | MIT | Chromium 152, Node 24.18.1, EOL 2027-03-02 |
-| electron-vite | 5.0.0 | MIT | begrenzt Vite auf ≤ 7 |
-| vite | 7.3.6 | MIT | **nicht** 8.x |
-| typescript | 6.0.3 | Apache-2.0 | **nicht** 7.x – Linter-Support fehlt |
-| eslint | 10.9.1 | MIT | Flat Config |
-| typescript-eslint | 8.68.0 | MIT | `strictTypeChecked` |
-| prettier | 3.9.6 | MIT | |
-| better-sqlite3 | 13.0.3 | MIT | N-API, Prebuilds im Tarball, FTS5 + Trigram |
-| @types/better-sqlite3 | 9.6.0 | MIT | Pflicht, das Paket bringt keine Typen mit |
-| zod | 4.5.4 | MIT | IPC-Schemas |
-| react / react-dom | 19.2.8 | MIT | eigene UI |
-| tailwindcss | 4.3.3 | MIT | v4: über `@tailwindcss/vite`, nicht PostCSS |
-| electron-builder | 26.15.7 | MIT | exakt pinnen, Dist-Tag ist veraltet |
-| electron-updater | 6.8.9 | MIT | an electron-builder gekoppelt (builder-util-runtime 9.7.0) |
-| electron-log | 5.4.4 | MIT | |
-| electron-store | 11.0.2 | MIT | nur `config.json`, nichts Großes |
-| vitest | 4.1.11 | MIT | |
-| @playwright/test | 1.62.1 | Apache-2.0 | Electron-E2E |
+| Paket                 | Version | Lizenz     | Anmerkung                                                  |
+| --------------------- | ------- | ---------- | ---------------------------------------------------------- |
+| electron              | 44.0.0  | MIT        | Chromium 152, Node 24.18.1, EOL 2027-03-02                 |
+| electron-vite         | 5.0.0   | MIT        | begrenzt Vite auf ≤ 7                                      |
+| vite                  | 7.3.6   | MIT        | **nicht** 8.x                                              |
+| typescript            | 6.0.3   | Apache-2.0 | **nicht** 7.x – Linter-Support fehlt                       |
+| eslint                | 10.9.1  | MIT        | Flat Config                                                |
+| typescript-eslint     | 8.68.0  | MIT        | `strictTypeChecked`                                        |
+| prettier              | 3.9.6   | MIT        |                                                            |
+| better-sqlite3        | 13.0.3  | MIT        | N-API, Prebuilds im Tarball, FTS5 + Trigram                |
+| @types/better-sqlite3 | 9.6.0   | MIT        | Pflicht, das Paket bringt keine Typen mit                  |
+| zod                   | 4.5.4   | MIT        | IPC-Schemas                                                |
+| react / react-dom     | 19.2.8  | MIT        | eigene UI                                                  |
+| tailwindcss           | 4.3.3   | MIT        | v4: über `@tailwindcss/vite`, nicht PostCSS                |
+| electron-builder      | 26.15.7 | MIT        | exakt pinnen, Dist-Tag ist veraltet                        |
+| electron-updater      | 6.8.9   | MIT        | an electron-builder gekoppelt (builder-util-runtime 9.7.0) |
+| electron-log          | 5.4.4   | MIT        |                                                            |
+| electron-store        | 11.0.2  | MIT        | nur `config.json`, nichts Großes                           |
+| vitest                | 4.1.11  | MIT        |                                                            |
+| @playwright/test      | 1.62.1  | Apache-2.0 | Electron-E2E                                               |
 
 Alle Lizenzen sind MIT-, Apache-2.0- oder BSD-verträglich. Für Phase 7 (OCR, PDF, Whisper) werden die
 Lizenzen der **Modelldateien** separat geprüft – sie weichen regelmäßig von der Code-Lizenz ab.

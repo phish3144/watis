@@ -17,11 +17,11 @@ zu den Ausnahmen.
 
 **Was das kostet, gemessen:**
 
-| Messwert | Wert |
-|---|---|
-| WA-Web-Builds pro Tag (Mittel, letzte 14 Tage) | 9,9 |
-| Spitze | 14 |
-| Annahme im ursprünglichen Plan (§9) | „mehrmals pro Jahr" |
+| Messwert                                       | Wert                |
+| ---------------------------------------------- | ------------------- |
+| WA-Web-Builds pro Tag (Mittel, letzte 14 Tage) | 9,9                 |
+| Spitze                                         | 14                  |
+| Annahme im ursprünglichen Plan (§9)            | „mehrmals pro Jahr" |
 
 Im Juli 2026 wurde eine Modell-Property umbenannt (`_serialized` → `$1`) und zwang beide
 Referenzbibliotheken zu Notfall-Patches. Nicht jeder Build bricht die Bridge — aber die Bauhäufigkeit ist

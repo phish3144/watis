@@ -12,11 +12,11 @@ nicht kann: lokales durchsuchbares Archiv, vernünftige Dateibehandlung, echte D
 
 ## Namen (nicht verwechseln)
 
-| Ebene | Wert |
-|---|---|
-| Repository, npm-Paket, Ordner unter `%LOCALAPPDATA%`, AppUserModelId | `watis` |
-| `productName` – Installer, Startmenü, Programmordner | `WatIs` |
-| Anzeigename in UI, Fenstertitel, Über-Dialog | `WatIs?` |
+| Ebene                                                                | Wert     |
+| -------------------------------------------------------------------- | -------- |
+| Repository, npm-Paket, Ordner unter `%LOCALAPPDATA%`, AppUserModelId | `watis`  |
+| `productName` – Installer, Startmenü, Programmordner                 | `WatIs`  |
+| Anzeigename in UI, Fenstertitel, Über-Dialog                         | `WatIs?` |
 
 Das Fragezeichen gehört ausschließlich in Anzeige-Strings. Es darf **nie** in einen Pfad, Dateinamen,
 Registry-Schlüssel oder Build-Artefaktnamen geraten – `?` ist unter Windows verboten.
@@ -35,7 +35,7 @@ Diese sind nicht verhandelbar. Ein PR, der eine davon verletzt, ist falsch, auch
 - Kein Protokoll-Client (whatsmeow, Baileys). Kein Scheduling, keine Bots, kein Bulk, kein Auto-Reply.
 
 **Die eine Ausnahme: Direktantwort aus der Benachrichtigung.** Festgelegt in
-[ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md), Abschnitt C. Sie gilt nur, wenn *alle*
+[ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md), Abschnitt C. Sie gilt nur, wenn _alle_
 Bedingungen zugleich erfüllt sind:
 
 - nicht über Store-APIs, sondern über die sichtbare Eingabezeile der Oberfläche – die Bridge bleibt unberührt

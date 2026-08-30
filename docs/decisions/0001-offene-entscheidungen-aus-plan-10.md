@@ -21,6 +21,7 @@ ein späterer Umstieg auf `better-sqlite3-multiple-ciphers` (SQLCipher) **ohne S
 bleibt.
 
 **Konsequenzen:**
+
 - Phase 0/3 nimmt `better-sqlite3` als Abhängigkeit, nicht die Ciphers-Variante.
 - Es gibt keinen `PRAGMA key`-Aufruf im Feature-Code; das Öffnen der Datenbank läuft über eine einzige
   Fabrikfunktion, die die Verschlüsselung später ergänzen kann.
@@ -30,15 +31,16 @@ bleibt.
 
 **Entscheidung:**
 
-| Medientyp | Verhalten |
-|---|---|
-| Bilder | immer automatisch |
-| Dokumente (PDF, DOCX, TXT/MD/CSV, sonstige Anhänge) | immer automatisch |
-| Videos | **nur auf Klick** |
-| Sprachnachrichten | **nicht automatisch** – auf Klick holbar und transkribierbar |
-| Sticker, GIFs | nicht automatisch (klein, aber wertlos für den Index) |
+| Medientyp                                           | Verhalten                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| Bilder                                              | immer automatisch                                            |
+| Dokumente (PDF, DOCX, TXT/MD/CSV, sonstige Anhänge) | immer automatisch                                            |
+| Videos                                              | **nur auf Klick**                                            |
+| Sprachnachrichten                                   | **nicht automatisch** – auf Klick holbar und transkribierbar |
+| Sticker, GIFs                                       | nicht automatisch (klein, aber wertlos für den Index)        |
 
 **Konsequenzen:**
+
 - Es gibt kein Hintergrund-Backlog für Sprachnachrichten. Der Whisper-Sidecar ist damit ein
   On-Demand-Werkzeug, kein Dauerläufer (siehe Punkt 4).
 - Sprachnachrichten werden trotzdem als Metadaten (Dauer, Absender, Zeit) im Archiv geführt, damit ein
@@ -55,6 +57,7 @@ Transkript landet mit Zeitmarken durchsuchbar im Archiv.
 in Richtung Genauigkeit statt Geschwindigkeit. Wird nach dem Technik-Recon entschieden und hier ergänzt.
 
 **Konsequenzen:**
+
 - Der Modell-Download passiert erst beim ersten Transkriptionswunsch, nicht beim ersten Start.
 - Die Leerlauf-Steuerung aus §3.1 gilt weiterhin für OCR und Dokumenttext, für die Transkription aber
   nicht – wer klickt, will das Ergebnis jetzt.
@@ -63,13 +66,13 @@ in Richtung Genauigkeit statt Geschwindigkeit. Wird nach dem Technik-Recon entsc
 
 **Entscheidung:**
 
-| Ebene | Wert |
-|---|---|
-| Repository | `phish3144/watis` |
-| npm/Paketname, Ordner, AppUserModelId | `watis` |
-| `productName` (Installer, Startmenü, Programmordner) | `WatIs` |
-| Anzeigename in UI, Fenstertitel, Über-Dialog | `WatIs?` |
-| Lizenz | MIT, öffentliches Repository |
+| Ebene                                                | Wert                         |
+| ---------------------------------------------------- | ---------------------------- |
+| Repository                                           | `phish3144/watis`            |
+| npm/Paketname, Ordner, AppUserModelId                | `watis`                      |
+| `productName` (Installer, Startmenü, Programmordner) | `WatIs`                      |
+| Anzeigename in UI, Fenstertitel, Über-Dialog         | `WatIs?`                     |
+| Lizenz                                               | MIT, öffentliches Repository |
 
 **Begründung für die Namenstrennung:** `?` ist unter Windows in Datei- und Ordnernamen verboten
 (`<>:"/\|?*`). Ein `productName` mit Fragezeichen würde Installationspfad, Verknüpfung und
@@ -77,6 +80,7 @@ Deinstallationseintrag brechen. Das Fragezeichen lebt deshalb ausschließlich in
 Pfad geraten.
 
 **Konsequenzen:**
+
 - Alle Abhängigkeiten werden auf MIT-Verträglichkeit geprüft, bevor sie aufgenommen werden. Das betrifft
   besonders OCR-Modelle und whisper.cpp-Modelldateien, deren Lizenz von der des Codes abweichen kann.
 - Das README trägt einen ehrlichen Disclaimer: kein offizielles WhatsApp-Produkt, keine Verbindung zu Meta,

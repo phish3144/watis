@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # better-sqlite3 13 is Node-API and ships prebuilds for every target inside its npm tarball.
+  # Nothing in this project needs a native rebuild, so no Python or MSVC toolchain is installed.
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+
+jobs:
+  verify:
+    name: Lint, types, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # The no-admin-rights constraint is a release gate, not a hope. This fails the build if
+      # anyone flips an NSIS flag that would reintroduce an elevation path.
+      - run: npm run verify:no-elevate
+
+  e2e:
+    name: E2E (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Electron needs a display. Linux runners are headless, Windows runners are not.
+      - name: Run E2E (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:e2e
+        env:
+          ELECTRON_DISABLE_SANDBOX: '1'
+      - name: Run E2E (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows is the release target: its installers are kept as artefacts.
+          - os: windows-latest
+            script: dist:win
+            artifact: windows-installers
+          # macOS is build-only but a REQUIRED check. It is what stops the project from being
+          # quietly broken for macOS by a Windows-only change.
+          - os: macos-latest
+            script: dist:mac
+            artifact: macos-builds
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # Catches a regression from Node-API prebuilds back to a source build immediately, rather
+      # than when a user's install fails.
+      - name: Smoke test — better-sqlite3 loads under Electron without a rebuild
+        run: npm run smoke:sqlite
+        env:
+          ELECTRON_DISABLE_SANDBOX: '1'
+
+      - name: Build and package
+        run: npm run ${{ matrix.script }}
+        env:
+          # Never publish from CI. Releases are cut from a tag by release.yml.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify the packaged app carries no elevation helper
+        if: runner.os == 'Windows'
+        run: npm run verify:no-elevate
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+          retention-days: 14
+          if-no-files-found: warn
