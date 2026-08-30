@@ -52,6 +52,9 @@ Entscheidung ausgeschlossen werden. Installation und Updates laufen ohne Adminis
 - **Kein eigener Protokoll-Client.** Alles läuft über den offiziellen Web-Client.
 - **Keine Sende-Automatisierung.** Kein Scheduling, keine Bots, kein Bulk, kein Auto-Reply. Auch nicht „optional".
 - **Kein Schreiben/Löschen über Internals.** Die Bridge ist strikt read-only (lesen, beobachten, Medien laden).
+  Einzige Ausnahme vom Sendeverbot ist die Direktantwort aus der Benachrichtigung – sie läuft über die
+  sichtbare Eingabezeile der Oberfläche, nicht über Internals, und ist in
+  [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) Abschnitt C eng umrissen.
 - **Kein Multi-Window derselben Session.** WhatsApp Web erlaubt nur eine aktive Instanz pro Session
   („WhatsApp ist in einem anderen Fenster geöffnet"). Pop-out-Chats sind damit nicht machbar.
 - **Keine serverseitigen Limits umgehen** (Edit-Zeitfenster, Dateigrößen, Status posten etc.).
@@ -117,7 +120,7 @@ Gesammelt aus Reviews, Foren und Issue-Trackern zur WebView2-Version und zu What
 |---|---|---|---|
 | 1 | RAM 2–3 GB, viele Hintergrundprozesse | Ein Renderer, eigene UI ohne zweites Chromium, Cache-Limits, Hintergrund-Throttling aus (sonst Notifications-Verzögerung) | 0–1 |
 | 2 | Nach Updates erneut QR scannen, Session weg | Persistente Partition, Storage nie löschen, Session-Verzeichnis vom Updater ausnehmen | 0 |
-| 3 | Notifications unzuverlässig, keine Direktantwort, Ping trotz offenem Fenster | Native Notifications, Fokus-Logik (kein Ping für sichtbaren Chat), Direktantwort (macOS nativ, Windows via toastXml – spiken), DND-Zeitplan | 1 |
+| 3 | Notifications unzuverlässig, keine Direktantwort, Ping trotz offenem Fenster | Native Notifications, Fokus-Logik (kein Ping für sichtbaren Chat), Direktantwort als eng begrenzte Ausnahme nach [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) C (Electron 44 kann Inline-Reply auf beiden OS), DND-Zeitplan | 1 |
 | 4 | Kein Close-to-Tray, kein minimierter Autostart, Fensterposition vergessen | Tray mit Badge, Autostart minimiert, Fenster-Bounds merken, globaler Show/Hide-Shortcut | 1 |
 | 5 | Kein Zoom in Fotos, browserartiges Kontextmenü, Audio-Glitches bei Sprachnachrichten | Eigener Medien-Viewer (Zoom/Pan/Tastatur), natives Kontextmenü (Copy/Save/Spellcheck), Audio-Ausgabegerät wählbar | 1 |
 | 6 | Kein Multi-Account | Tabs mit getrennten Sessions (`persist:acct-<n>`) | 8 |
@@ -537,7 +540,7 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 | Risiko | Wahrscheinlichkeit | Maßnahme |
 |---|---|---|
-| WA-Web-Update bricht Bridge | hoch, mehrmals pro Jahr | Healthcheck, Feature-Flags, Degradation, `bridge-map.md`, Smoke-Checkliste; Phasen 0–2 bleiben unabhängig |
+| WA-Web-Update bricht Bridge | **hoch – gemessen 9,9 WA-Web-Builds/Tag, Spitze 14** (nicht „mehrmals pro Jahr", siehe [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md) A) | Healthcheck, Feature-Flags, Degradation, `bridge-map.md`, Smoke-Checkliste; Modulauflösung an genau einer Stelle; Phasen 0–2 bleiben ohne Bridge vollwertig; kein Termin für Phase 3 |
 | Account-Warnung/Sperre | niedrig bei Read-only | Nie senden/löschen über Internals; Backfill in menschlichem Tempo; keine Massenaktionen |
 | UA-/Browser-Gate („WhatsApp funktioniert mit Chrome 60+") | mittel | Chrome-konformer UA, Chromium-Version aktuell halten |
 | Session-Verlust durch Update/Cache-Clear | mittel | Partition nie anfassen, Update-E2E-Test, Bereinigung nur selektiv |
@@ -601,6 +604,8 @@ Konsequenzen, die den Plan an anderer Stelle ändern:
 - Bei Unsicherheit über einen internen WA-Web-Store: erst Healthcheck-Test schreiben, dann Feature.
 - Architekturentscheidungen als kurze ADRs unter `docs/decisions/`.
 - Keine Telemetrie, keine Netzwerkaufrufe außer zu web.whatsapp.com/WA-Medienservern und GitHub Releases (Updater).
+- Sendecode existiert an genau einer Stelle (Direktantwort, ADR 0004 C). Nirgendwo sonst wird getippt,
+  geklickt oder abgeschickt.
 - Wenn eine Aufgabe etwas voraussetzt, das in §10 noch offen ist: nachfragen, nicht raten.
 - Performance-Budget: kein Code im Main-Prozess, der länger rechnet als ein paar Millisekunden oder synchron
   auf Platte/DB wartet – das gehört in die `utilityProcess`-Instanzen. Listen werden virtualisiert und

@@ -27,18 +27,32 @@ Diese sind nicht verhandelbar. Ein PR, der eine davon verletzt, ist falsch, auch
 
 ### Read-only gegenüber WhatsApp
 
-- **Niemals** Code, der über die Internals sendet, löscht, blockiert, Kontakte oder Gruppen ändert,
-  Nachrichten als gelesen markiert oder Status postet. Auch nicht als Experiment, auch nicht hinter einem
-  Feature-Flag, auch nicht auskommentiert.
+- **Die Bridge ist read-only. Ohne Ausnahme.** Niemals Code, der über die Internals sendet, löscht,
+  blockiert, Kontakte oder Gruppen ändert, Nachrichten als gelesen markiert oder Status postet. Auch nicht
+  als Experiment, auch nicht hinter einem Feature-Flag, auch nicht auskommentiert.
 - Erlaubt sind: lesen, beobachten, Medien laden, aktuellen Chat ermitteln, Chat öffnen, zu einer Nachricht
   scrollen, „ältere Nachrichten laden" auslösen – letzteres in menschlichem Tempo.
 - Kein Protokoll-Client (whatsmeow, Baileys). Kein Scheduling, keine Bots, kein Bulk, kein Auto-Reply.
+
+**Die eine Ausnahme: Direktantwort aus der Benachrichtigung.** Festgelegt in
+[ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md), Abschnitt C. Sie gilt nur, wenn *alle*
+Bedingungen zugleich erfüllt sind:
+
+- nicht über Store-APIs, sondern über die sichtbare Eingabezeile der Oberfläche – die Bridge bleibt unberührt
+- nur Klartext, nur reaktiv in einen Chat mit offenem Toast, eine Antwort pro Toast
+- Feature-Flag, standardmäßig aus; jede Antwort wird in `logs/outgoing.log` protokolliert
+- **an genau einer Stelle im Code.** Kein anderes Modul tippt, klickt oder sendet. Ein PR, der Sendecode
+  woanders einführt, ist falsch – auch dann, wenn er funktioniert.
 
 ### Keine Adminrechte
 
 - Keine Dienste, keine Treiber, keine HKLM-Registry, keine lauschenden Ports, keine systemweiten
   Installationen. Auch nicht für Updates oder Sidecars.
-- Schreibzugriffe nur unter `%LOCALAPPDATA%\watis\`, im Download-Ordner und in vom Nutzer gewählten Pfaden.
+- **Nutzdaten** nur unter `%LOCALAPPDATA%\watis\`, im Download-Ordner und in vom Nutzer gewählten Pfaden.
+  Ausdrücklich erlaubt sind die beiden Einträge, die das Windows-Toast-Subsystem verlangt: die
+  Start-Menü-Verknüpfung unter `FOLDERID_Programs` und die CLSID-Registrierung unter `HKEY_CURRENT_USER`
+  (siehe [ADR 0004](docs/decisions/0004-bridge-roaming-direktantwort.md), Abschnitt B). Sonst nichts
+  außerhalb von `%LOCALAPPDATA%` – insbesondere keine Nutzdaten im Roaming-Profil.
 - Zielrechner ist ein **verwalteter Firmenrechner**: AppLocker/SRP und Roaming-Profile sind reale Risiken,
   keine theoretischen.
 
