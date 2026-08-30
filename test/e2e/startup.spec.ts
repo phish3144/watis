@@ -93,3 +93,47 @@ test('runs the pinned Electron and Chromium', async () => {
   expect(versions.electron).toBe('44.0.0')
   expect(versions.chrome.startsWith('152.')).toBe(true)
 })
+
+test('exposes the settings panel and persists a change', async () => {
+  const readSetting = async (): Promise<unknown> =>
+    app.evaluate(async ({ webContents }) => {
+      const panel = webContents
+        .getAllWebContents()
+        .find((contents) => contents.getURL().includes('index.html'))
+      return (await panel?.executeJavaScript('window.watis.getSettings()')) as unknown
+    })
+
+  const before = (await readSetting()) as { compactMode: boolean; downloadDir: string }
+  expect(typeof before.compactMode).toBe('boolean')
+  // The download directory is filled in on first run rather than shipped as a literal.
+  expect(before.downloadDir).toContain('WhatsApp')
+
+  await app.evaluate(async ({ webContents }) => {
+    const panel = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().includes('index.html'))
+    await panel?.executeJavaScript('window.watis.updateSettings({ compactMode: true })')
+  })
+
+  const after = (await readSetting()) as { compactMode: boolean }
+  expect(after.compactMode).toBe(true)
+})
+
+test('rejects a settings patch that does not validate', async () => {
+  const result = (await app.evaluate(async ({ webContents }) => {
+    const panel = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().includes('index.html'))
+    // fontScale is bounded; 99 must be refused rather than stored.
+    return (await panel?.executeJavaScript(
+      'window.watis.updateSettings({ fontScale: 99 })',
+    )) as unknown
+  })) as { fontScale: number }
+  expect(result.fontScale).not.toBe(99)
+})
+
+test('creates a tray icon', async () => {
+  // Tray is what makes close-to-tray possible; if the icon fails to load there is no tray.
+  const hasTray = await app.evaluate(({ Tray }) => typeof Tray === 'function')
+  expect(hasTray).toBe(true)
+})

@@ -1,6 +1,6 @@
-import { join } from 'node:path'
 import { app, nativeImage } from 'electron'
 import type { Platform } from './index'
+import { resourcePath } from '../main/resources'
 
 /**
  * Linux and anything else. Not a release target, but the app has to start there so the test
@@ -22,7 +22,7 @@ export function createUnsupportedPlatform(): Platform {
       // No-op: not a release target.
     },
     sidecarPath(binaryName) {
-      return join(app.getAppPath(), 'resources', 'sidecars', binaryName)
+      return resourcePath('sidecars', binaryName)
     },
     registerProtocolHandler() {
       return false

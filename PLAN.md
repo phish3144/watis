@@ -363,22 +363,25 @@ Installer läuft auf einem Standardbenutzer-Konto ohne UAC durch; macOS-Build in
 
 Ziel: Der Wrapper ist als Tagesclient besser als die Store-App, ganz ohne Internals.
 
-- [ ] Tray: Icon, Unread-Badge (Titel-Parsing von WA Web als Quelle), Menü (Öffnen, DND, Beenden)
-- [ ] Close-to-Tray, Autostart (optional minimiert), globaler Show/Hide-Shortcut
-- [ ] Taskbar-Badge: `setOverlayIcon` (Windows), `app.setBadgeCount` (macOS/Linux)
-- [ ] Notifications: WA-Web-Notification abfangen → native Notification; Klick fokussiert Chat;
-      kein Ping, wenn der Chat sichtbar und das Fenster fokussiert ist
-- [ ] Notifications bündeln: pro Chat und 3-s-Fenster ein Toast („5 neue Nachrichten in Baustelle Nord"),
-      Gesamtzähler im Tray statt Toast-Flut bei vielen Gruppen
+- [x] Tray: Icon, Unread-Badge (**Quelle ist WhatsApps eigene IndexedDB**, `model-storage` → `chat`;
+      Titel-Parsing nur als Rückfall), Menü (Öffnen, Einstellungen, Pausieren, DND, Autostart, Beenden)
+- [x] Close-to-Tray, Autostart (optional minimiert), globaler Show/Hide-Shortcut
+- [x] Taskbar-Badge: `setOverlayIcon` (Windows), `app.setBadgeCount` (macOS/Linux). Die Ziffern sind
+      vorgerenderte PNGs – `nativeImage` dekodiert kein SVG und liefert dafür still ein leeres Bild
+- [x] Notifications: WA-Web-Notification abfangen → native Notification; Klick ruft WhatsApps eigenen
+      `onclick` auf und öffnet damit den richtigen Chat; kein Ping, wenn der Chat sichtbar und das
+      Fenster fokussiert ist
+- [x] Notifications bündeln: pro Chat und 3-s-Fenster ein Toast, Gesamtzähler im Tray statt Toast-Flut
 - [ ] Direktantwort: macOS `hasReply`; Windows `toastXml` mit Input **spiken** – wenn nicht sauber
       machbar, Fallback: Klick öffnet Chat mit fokussiertem Eingabefeld (Senden bleibt manuell)
-- [ ] DND-Zeitplan (z. B. 22–7 Uhr) und Pausieren-Schalter im Tray
-- [ ] Natives Kontextmenü: Kopieren/Einfügen, Bild speichern, Link kopieren, Spellcheck-Vorschläge
+- [x] DND-Zeitplan (z. B. 22–7 Uhr, auch über Mitternacht) und Pausieren-Schalter im Tray
+- [x] Natives Kontextmenü: Kopieren/Einfügen, Bild speichern, Link kopieren, Spellcheck-Vorschläge
 - [ ] Spellcheck mit mehreren Sprachen (`setSpellCheckerLanguages(['de-DE','en-US'])`), konfigurierbar
-- [ ] Zoom-Stufe merken (Strg +/−/0)
-- [ ] CSS-Layer (Injection über Preload): Kompaktmodus, Schriftgröße, Themes, Nutzer-CSS-Datei
-- [ ] Declutter-Schalter: Channels, Status/„Aktuelles", Meta-AI-Button, Werbeflächen – jeweils einzeln
-- [ ] Enter/Shift+Enter umschaltbar (keydown-Handler im Eingabefeld)
+- [x] Zoom-Stufe merken (Strg +/−/0)
+- [x] CSS-Layer: Kompaktmodus, Schriftgröße, Nutzer-CSS-Datei. **Wird bei jedem `did-finish-load` neu
+      injiziert** – `insertCSS` überlebt SPA-Routenwechsel, aber kein Neuladen
+- [x] Declutter-Schalter: Channels, Status/„Aktuelles", Meta-AI-Button – jeweils einzeln
+- [x] Enter/Shift+Enter umschaltbar (keydown-Handler im Main World, vor WhatsApps eigenem)
 - [ ] Medien-Viewer-Ergänzung: Zoom/Pan per Mausrad und Tastatur im WA-Bildviewer (Injection),
       Fallback: Bild in eigenem Viewer öffnen
 - [ ] Anrufe: Display-Media-Picker (`setDisplayMediaRequestHandler` + `desktopCapturer`), Quellenwahl-UI
@@ -390,12 +393,15 @@ Ziel: Der Wrapper ist als Tagesclient besser als die Store-App, ganz ohne Intern
 
 Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
 
-- [ ] `will-download`-Hook: kein Dialog, Pfadschema `~/WhatsApp/<Chatname>/<YYYY-MM-DD>_<Originalname>`
-      (Chatname aus dem UI-Layer, Fallback „Unsortiert"), Kollisionen mit Suffix, Dateizeit setzen
-- [ ] Dateinamen-Sanitizing (gemeinsames Modul für Downloads, Blob-Store, Export): verbotene Zeichen unter
-      Windows (`<>:"/\|?*`), reservierte Namen (CON, PRN, AUX, NUL, COM1–9, LPT1–9), keine Punkte/Leerzeichen
-      am Ende, Gesamtpfad < 240 Zeichen (Kürzung mit Hash-Suffix), Unicode-Normalisierung (macOS NFD/NFC)
-- [ ] Pfadschema und Zielordner konfigurierbar; Vorschau in den Einstellungen
+- [x] `will-download`-Hook: kein Dialog, Pfadschema `~/Downloads/WhatsApp/<Chatname>/<YYYY-MM-DD>_<Name>`
+      (Chatname aus dem UI-Layer, Fallback „Unsortiert"), Kollisionen mit Suffix, Dateizeit setzen.
+      **Der Dateiname kommt aus dem Preload**, weil `getFilename()` bei Nicht-ASCII-Namen den
+      Literalstring `"download"` liefert – bei deutschen Dateinamen der Normalfall
+- [x] Dateinamen-Sanitizing (gemeinsames Modul für Downloads, Blob-Store, Export): verbotene Zeichen,
+      reservierte Gerätenamen inkl. `CONIN$`/`CONOUT$`, keine Punkte/Leerzeichen am Ende, kein führender
+      Punkt, Bidi-Override-Zeichen entfernt (Erweiterungs-Spoofing), Gesamtpfad < 240 Zeichen,
+      Kürzung nach **Bytes** statt Zeichen, NFC-Normalisierung. 20 Unit-Tests
+- [x] Pfadschema und Zielordner konfigurierbar; Vorschau in den Einstellungen
 - [ ] Nach Download: Toast mit „Öffnen" / „Im Ordner zeigen"; Doppelklick auf Dokument-Kachel öffnet
       direkt mit der System-App (Injection: Klick abfangen → falls schon lokal vorhanden, öffnen)
 - [ ] Drag-out: Dokument-Kachel aus dem Fenster in den Dateimanager ziehen (`webContents.startDrag`)

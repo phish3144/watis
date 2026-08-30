@@ -18,6 +18,13 @@ asar: true
 asarUnpack:
   - '**/node_modules/better-sqlite3/prebuilds/**'
 
+# Tray icons, badge digits and (later) sidecars are read from disk at runtime, so they live
+# outside the asar archive. nativeImage.createFromPath cannot read from inside one.
+extraResources:
+  - from: resources
+    to: .
+    filter: ['**/*']
+
 files:
   - out/**
   - package.json
@@ -29,6 +36,7 @@ files:
   - '!node_modules/better-sqlite3/prebuilds/darwin*'
 
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -63,6 +71,7 @@ portable:
   unpackDirName: WatIs # stable, so state written beside the exe survives a restart
 
 mac:
+  icon: build/icon.png
   category: public.app-category.social-networking
   target:
     - target: dmg

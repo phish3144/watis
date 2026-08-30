@@ -1,6 +1,6 @@
-import { join } from 'node:path'
 import { app, nativeImage, shell } from 'electron'
 import type { Platform } from './index'
+import { resourcePath } from '../main/resources'
 
 /**
  * Windows implementation.
@@ -26,9 +26,7 @@ export function createWindowsPlatform(): Platform {
         return
       }
       const capped = count > 9 ? '9plus' : String(count)
-      const icon = nativeImage.createFromPath(
-        join(__dirname, '..', 'renderer', 'badges', `${capped}.png`),
-      )
+      const icon = nativeImage.createFromPath(resourcePath('badges', `${capped}.png`))
       window.setOverlayIcon(icon.isEmpty() ? null : icon, `${count} ungelesene Nachrichten`)
     },
 
@@ -51,9 +49,7 @@ export function createWindowsPlatform(): Platform {
 
     sidecarPath(binaryName) {
       const exe = binaryName.endsWith('.exe') ? binaryName : `${binaryName}.exe`
-      return app.isPackaged
-        ? join(process.resourcesPath, 'sidecars', exe)
-        : join(app.getAppPath(), 'resources', 'sidecars', exe)
+      return resourcePath('sidecars', exe)
     },
 
     registerProtocolHandler(scheme) {
@@ -67,7 +63,7 @@ export function createWindowsPlatform(): Platform {
     },
 
     trayIcon() {
-      return nativeImage.createFromPath(join(__dirname, '..', 'renderer', 'tray', 'tray.ico'))
+      return nativeImage.createFromPath(resourcePath('tray', 'tray.ico'))
     },
   }
 }

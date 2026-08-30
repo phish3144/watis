@@ -1,6 +1,6 @@
-import { join } from 'node:path'
 import { app, nativeImage, shell } from 'electron'
 import type { Platform } from './index'
+import { resourcePath } from '../main/resources'
 
 /**
  * macOS implementation.
@@ -35,9 +35,7 @@ export function createMacPlatform(): Platform {
     },
 
     sidecarPath(binaryName) {
-      return app.isPackaged
-        ? join(process.resourcesPath, 'sidecars', binaryName)
-        : join(app.getAppPath(), 'resources', 'sidecars', binaryName)
+      return resourcePath('sidecars', binaryName)
     },
 
     registerProtocolHandler() {
@@ -52,9 +50,7 @@ export function createMacPlatform(): Platform {
 
     trayIcon() {
       // macOS wants a template image so it adapts to light and dark menu bars.
-      const icon = nativeImage.createFromPath(
-        join(__dirname, '..', 'renderer', 'tray', 'trayTemplate.png'),
-      )
+      const icon = nativeImage.createFromPath(resourcePath('tray', 'trayTemplate.png'))
       icon.setTemplateImage(true)
       return icon
     },
