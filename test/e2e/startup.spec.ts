@@ -21,6 +21,28 @@ import { join } from 'node:path'
 let app: ElectronApplication
 let dataDir: string
 
+/**
+ * electron.launch() resolves as soon as the process is up, which is well before bootstrap() has
+ * finished: it awaits app.whenReady(), then a dynamic ESM import for the settings store, then
+ * the window. Asserting before that races the app — on a fast Linux runner the race was
+ * invisible, on Windows it failed two tests that were actually correct.
+ */
+async function waitForBoot(timeoutMs = 30_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    const ready = await app.evaluate(({ BaseWindow, webContents }) => {
+      const windows = BaseWindow.getAllWindows().length
+      const panel = webContents
+        .getAllWebContents()
+        .some((contents) => contents.getURL().includes('index.html'))
+      return windows === 1 && panel
+    })
+    if (ready) return
+    if (Date.now() > deadline) throw new Error('app did not finish booting in time')
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+}
+
 test.beforeAll(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'watis-e2e-'))
   app = await electron.launch({
@@ -32,6 +54,7 @@ test.beforeAll(async () => {
       NODE_ENV: 'test',
     },
   })
+  await waitForBoot()
 })
 
 test.afterAll(async () => {
@@ -44,11 +67,14 @@ test('keeps its data under the local app directory, never the roaming profile', 
     userData: electronApp.getPath('userData'),
     storage: session.fromPartition('persist:wa').getStoragePath(),
   }))
-  expect(paths.userData.startsWith(dataDir)).toBe(true)
+  // Compared case-insensitively: Windows reports drive letters and profile directories with
+  // inconsistent casing, and tmpdir() can hand back an 8.3 short name.
+  const under = (value: string): boolean => value.toLowerCase().startsWith(dataDir.toLowerCase())
+  expect(under(paths.userData)).toBe(true)
   expect(paths.userData).toContain('watis')
   // The session must follow, otherwise cookies and IndexedDB still land in the old location and
   // the user is asked to scan a QR code again after every update.
-  expect(paths.storage?.startsWith(dataDir)).toBe(true)
+  expect(paths.storage ? under(paths.storage) : false).toBe(true)
 })
 
 test('runs one window with exactly two views', async () => {

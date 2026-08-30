@@ -1,6 +1,6 @@
 {
   "name": "watis",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Desktop client for WhatsApp Web with a local searchable archive",
   "license": "MIT",
   "author": "phish3144",
