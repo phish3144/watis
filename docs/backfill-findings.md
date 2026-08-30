@@ -93,7 +93,7 @@ case o("WAWebProtobufsE2E.pb").Message$PeerDataOperationRequestType.FULL_HISTORY
 und an anderer Stelle:
 
 ```js
-o("WALogger").WARN("full history sync on demand not supported in web")
+o('WALogger').WARN('full history sync on demand not supported in web')
 ```
 
 ---
@@ -112,12 +112,12 @@ erreichbare Datum anzeigen.
 
 ## Was das für den Plan bedeutet
 
-| Bisherige Annahme | Realität |
-|---|---|
-| „so weit, wie das Handy liefert" (§1) | so weit, wie der **Web-Client anfragt** – 90 Tage |
-| „Default 12 Monate" (ADR 0001, Punkt 10) | unerreichbar; 90 Tage sind die Decke, nicht der Default |
-| „Fünf lange Chats vollständig nachgeladen" (DoD Phase 5) | nicht erfüllbar |
-| „Eine drei Jahre alte Nachricht finden" (DoD Phase 4) | nur für Nachrichten, die seit der Installation aufgelaufen sind |
+| Bisherige Annahme                                        | Realität                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------- |
+| „so weit, wie das Handy liefert" (§1)                    | so weit, wie der **Web-Client anfragt** – 90 Tage               |
+| „Default 12 Monate" (ADR 0001, Punkt 10)                 | unerreichbar; 90 Tage sind die Decke, nicht der Default         |
+| „Fünf lange Chats vollständig nachgeladen" (DoD Phase 5) | nicht erfüllbar                                                 |
+| „Eine drei Jahre alte Nachricht finden" (DoD Phase 4)    | nur für Nachrichten, die seit der Installation aufgelaufen sind |
 
 Was **bleibt**, und was der offizielle Client nicht kann: Ab dem Installationstag wächst das Archiv
 lückenlos und dauerhaft mit – ohne 90-Tage-Fenster, ohne „Nutze dein Telefon für ältere Nachrichten",
@@ -133,8 +133,8 @@ halber steht es hier, damit es in sechs Monaten nicht erneut als Idee auftaucht.
 
 ## Offen
 
-| Frage | Warum offen | Wie zu klären |
-|---|---|---|
+| Frage                                                                       | Warum offen                                 | Wie zu klären                                    |
+| --------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------ |
 | Wirkt die 90-Tage-Grenze als Anfrage-Anker oder als serverseitiger Schnitt? | Aus minifiziertem Code nicht unterscheidbar | Spike mit einem Konto, das älter als 90 Tage ist |
-| Wie viel liefert der reguläre Sync beim Verknüpfen tatsächlich? | Nie mit echtem Konto gemessen | Derselbe Spike |
-| Lässt sich pro Chat inkrementell tiefer nachziehen, und wie weit? | Ungeprüft | Derselbe Spike |
+| Wie viel liefert der reguläre Sync beim Verknüpfen tatsächlich?             | Nie mit echtem Konto gemessen               | Derselbe Spike                                   |
+| Lässt sich pro Chat inkrementell tiefer nachziehen, und wie weit?           | Ungeprüft                                   | Derselbe Spike                                   |
