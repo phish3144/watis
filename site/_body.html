@@ -565,8 +565,15 @@
           <div class="spec-label">Signatur</div>
           <div class="spec-value">
             Die Installationsdatei ist nicht signiert. Windows zeigt beim ersten Start eine
-            SmartScreen-Warnung. Sie lässt sich ohne Adminrechte bestätigen, sieht aber nach mehr
-            aus, als sie ist.
+            SmartScreen-Warnung; sie lässt sich ohne Adminrechte bestätigen.
+            <strong
+              >Ist auf deinem Gerät „Intelligente App-Steuerung“ (Smart App Control) eingeschaltet,
+              wird der Start dagegen ohne Weiterklick verweigert</strong
+            >
+            — dafür gibt es bewusst keine Ausnahme pro Programm. Was dann bleibt, steht in
+            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/windows-signing.md"
+              >docs/windows-signing.md</a
+            >.
           </div>
         </div>
         <div class="spec-row">
@@ -597,7 +604,8 @@
         <div>
           <strong>SmartScreen bestätigen.</strong> Erscheint „Der Computer wurde durch Windows
           geschützt", auf <em>Weitere Informationen</em> klicken und dann auf
-          <em>Trotzdem ausführen</em>. Das braucht keine Adminrechte.
+          <em>Trotzdem ausführen</em>. Das braucht keine Adminrechte. Fehlt dieser Weiterklick, war
+          es nicht SmartScreen, sondern Smart App Control — siehe „Signatur“ oben.
         </div>
       </li>
       <li>
