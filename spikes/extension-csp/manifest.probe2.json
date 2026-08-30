@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "WatIs Spike 2",
+  "version": "1.0",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://web.whatsapp.com/*", "https://static.whatsapp.net/*", "https://example.com/*"],
+  "content_scripts": [
+    { "matches": ["https://web.whatsapp.com/*"], "js": ["main2.js"], "world": "MAIN", "run_at": "document_idle" },
+    { "matches": ["https://web.whatsapp.com/*"], "js": ["iso2.js"], "world": "ISOLATED", "run_at": "document_idle" }
+  ]
+}

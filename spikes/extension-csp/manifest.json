@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "WatIs CSP Spike",
+  "version": "1.0",
+  "description": "Measures whether world:MAIN content scripts execute under a nonce CSP.",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://web.whatsapp.com/*", "http://127.0.0.1/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*", "http://127.0.0.1/*"],
+      "js": ["main-early.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*", "http://127.0.0.1/*"],
+      "js": ["main-late.js"],
+      "world": "MAIN",
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*", "http://127.0.0.1/*"],
+      "js": ["iso.js"],
+      "world": "ISOLATED",
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
