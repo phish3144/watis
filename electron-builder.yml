@@ -101,3 +101,6 @@ publish:
   owner: phish3144
   repo: watis
   # Public repo, so no token is embedded in the shipped binary.
+  # Published outright rather than as a draft: a draft is invisible to
+  # /releases/latest/download/, which is exactly the URL the landing page links to.
+  releaseType: release
