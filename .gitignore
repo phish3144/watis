@@ -37,6 +37,10 @@ fixtures/private/
 *.sqlite-shm
 loadtest-data/
 
+# scratch files from local debugging
+/shot.mjs
+/dbg*.mjs
+
 # editors / OS
 .vscode/*
 !.vscode/extensions.json
