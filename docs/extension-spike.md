@@ -86,6 +86,44 @@ hat. **[NICHT VOLLSTÄNDIG ISOLIERT]** — der Versuch trennt die beiden Ursache
 ist die Konsequenz in beiden Fällen dieselbe: Netzzugriffe der Medien-Pipeline gehören in den Service
 Worker oder ins Offscreen Document, nicht ins Content Script.
 
+## Zweiter Versuch: Speicher — trägt das Archiv?
+
+_Gleicher Aufbau, zwei Erweiterungen: eine mit `unlimitedStorage`, eine ohne. Gemessen in einer
+Extension-Page mit einem dedizierten Worker._
+
+| Gemessen                                      | mit `unlimitedStorage` | ohne        |
+| --------------------------------------------- | ---------------------- | ----------- |
+| OPFS `createSyncAccessHandle()` im Worker     | **OK**                 | **OK**      |
+| 256 MB am Stück geschrieben und zurückgelesen | **OK**                 | **OK**      |
+| `navigator.storage.persist()`                 | **`false`**            | **`false`** |
+| `navigator.storage.persisted()` danach        | `false`                | `false`     |
+| gemeldetes `quota`                            | 18,7 GB                | 162,3 GB    |
+| `crossOriginIsolated`                         | **`false`**            | `false`     |
+
+**Das Gute:** Der synchrone Zugriffshandle, den SQLite-WASM zwingend braucht, funktioniert im Worker
+einer Extension-Page. 256 MB gingen ohne Murren durch, `getSize()` bestätigte sie. Das Archiv ist in
+dieser Bauform technisch machbar — das war vorher nur aus der Dokumentation abgeleitet.
+
+**Das Unangenehme:** `navigator.storage.persist()` lieferte **`false`**, auch mit `unlimitedStorage`.
+Damit ist der Origin nicht als persistent markiert, und Chrome darf ihn unter Speicherdruck räumen.
+
+Hier ist Vorsicht geboten, in beide Richtungen: Die Messung lief in einem frischen Wegwerf-Profil ohne
+jede Nutzerinteraktion, und genau daran hängt Chromes Heuristik für `persist()`. In einem echten,
+benutzten Profil kann das Ergebnis anders ausfallen. Umgekehrt sagt die Chrome-Doku zu
+`unlimitedStorage`, es befreie „from both quota restrictions and eviction" — beides kann gleichzeitig
+zutreffen, wenn die Befreiung nicht über das Persistenz-Bit läuft. **Dieser Versuch beweist also nicht,
+dass das Archiv gelöscht werden kann — er beweist nur, dass wir es nicht belegen können.**
+Für ein Archiv ist das Grund genug, es nicht darauf ankommen zu lassen: ein Export-Pfad auf eine echte
+Datei außerhalb des Browsers gehört zur Grundausstattung, nicht in Phase 6.
+
+Die `quota`-Zahlen sind nicht überzubewerten: Die Erweiterung **ohne** `unlimitedStorage` bekam die
+größere Zahl gemeldet. Für Extension-Origins ist der Wert offenbar kein verlässlicher Indikator; er
+wurde hier nur zur Vollständigkeit protokolliert.
+
+**`crossOriginIsolated` war `false`.** Ohne Cross-Origin-Isolation gibt es keinen `SharedArrayBuffer`
+und damit keine WASM-Threads. Für Phase 7 (OCR, Whisper) heißt das: einkernig, solange kein Weg
+gefunden ist, COOP/COEP für Extension-Pages zu setzen. Das ist der wunde Punkt der Bauform.
+
 ## Was der Versuch **nicht** zeigt
 
 - **IndexedDB.** `indexedDB.databases()` lieferte in beiden Welten eine leere Liste — die Messung lief
@@ -103,6 +141,7 @@ Worker oder ins Offscreen Document, nicht ins Content Script.
 node spikes/extension-csp/control-server.mjs &          # Kontrollseite auf :8731
 xvfb-run -a node spikes/extension-csp/run.mjs  spikes/extension-csp   # CSP-Verhalten
 xvfb-run -a node spikes/extension-csp/run2.mjs spikes/extension-csp   # Kanal, fetch, Modul-Loader
+xvfb-run -a node spikes/extension-csp/run3.mjs spikes/extension-csp   # OPFS, Quota, Persistenz
 ```
 
 `run2.mjs` erwartet die Dateien aus `manifest.probe2.json` als `manifest.json`.

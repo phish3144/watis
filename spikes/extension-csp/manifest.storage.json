@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "WatIs Storage Probe (unlimited)",
+  "version": "1.0",
+  "permissions": ["storage", "unlimitedStorage"],
+  "web_accessible_resources": [{ "resources": ["page.html"], "matches": ["http://127.0.0.1/*"] }],
+  "content_scripts": [
+    { "matches": ["http://127.0.0.1/*"], "js": ["cs.js"], "run_at": "document_idle" }
+  ]
+}
