@@ -104,25 +104,45 @@ Extension-Page mit einem dedizierten Worker._
 einer Extension-Page. 256 MB gingen ohne Murren durch, `getSize()` bestätigte sie. Das Archiv ist in
 dieser Bauform technisch machbar — das war vorher nur aus der Dokumentation abgeleitet.
 
-**Das Unangenehme:** `navigator.storage.persist()` lieferte **`false`**, auch mit `unlimitedStorage`.
-Damit ist der Origin nicht als persistent markiert, und Chrome darf ihn unter Speicherdruck räumen.
+**Das scheinbar Unangenehme:** `navigator.storage.persist()` lieferte **`false`**, auch mit
+`unlimitedStorage`.
 
-Hier ist Vorsicht geboten, in beide Richtungen: Die Messung lief in einem frischen Wegwerf-Profil ohne
-jede Nutzerinteraktion, und genau daran hängt Chromes Heuristik für `persist()`. In einem echten,
-benutzten Profil kann das Ergebnis anders ausfallen. Umgekehrt sagt die Chrome-Doku zu
-`unlimitedStorage`, es befreie „from both quota restrictions and eviction" — beides kann gleichzeitig
-zutreffen, wenn die Befreiung nicht über das Persistenz-Bit läuft. **Dieser Versuch beweist also nicht,
-dass das Archiv gelöscht werden kann — er beweist nur, dass wir es nicht belegen können.**
-Für ein Archiv ist das Grund genug, es nicht darauf ankommen zu lassen: ein Export-Pfad auf eine echte
-Datei außerhalb des Browsers gehört zur Grundausstattung, nicht in Phase 6.
+Das sieht schlimmer aus, als es ist — es ist eine Fehlspur, und die Auflösung steht im Chromium-Quelltext.
+`QuotaDatabase::GetBucketsForEviction()` wählt `FROM buckets WHERE persistent = 0` und überspringt dann
+ausdrücklich alles, was `special_storage_policy->IsStorageUnlimited()` erfüllt — und
+`ExtensionSpecialStoragePolicy::IsStorageUnlimited()` ist für jede Erweiterung mit der Berechtigung wahr.
+Der Kommentar in `special_storage_policy.h` sagt es wörtlich: _„Unlimited storage is not subject to quota
+or storage pressure eviction."_ Die Eviction-Befreiung läuft also gar nicht über das Persistenz-Bit, das
+`persist()` setzt. Das gemessene `false` und die Doku-Aussage widersprechen einander nicht.
+
+Dazu die Löschwege: `DoesStorageKeyMatchMask()` verlangt für UNPROTECTED_WEB und PROTECTED_WEB ein
+Web-Schema, und `chrome-extension` steht nicht in dieser Liste. **„Browserdaten löschen" und die
+Enterprise-Policy `ClearBrowsingDataOnExitList` fassen das Archiv nicht an.** `DataDeleter::StartDeleting`
+wird ausschließlich aus `PostUninstallExtension()` gerufen — Deaktivieren, Neuladen und Update lassen OPFS
+unberührt, **Deinstallieren löscht alles**.
+
+Trotzdem bleibt der Export auf eine echte Datei Grundausstattung und nicht Phase 6: Eine Deinstallation
+ist ein Klick, und auf einem verwalteten Rechner kann sie auch von außen kommen.
 
 Die `quota`-Zahlen sind nicht überzubewerten: Die Erweiterung **ohne** `unlimitedStorage` bekam die
 größere Zahl gemeldet. Für Extension-Origins ist der Wert offenbar kein verlässlicher Indikator; er
 wurde hier nur zur Vollständigkeit protokolliert.
 
-**`crossOriginIsolated` war `false`.** Ohne Cross-Origin-Isolation gibt es keinen `SharedArrayBuffer`
-und damit keine WASM-Threads. Für Phase 7 (OCR, Whisper) heißt das: einkernig, solange kein Weg
-gefunden ist, COOP/COEP für Extension-Pages zu setzen. Das ist der wunde Punkt der Bauform.
+**`crossOriginIsolated` war `false`** — aber das war der Standardfall, nicht die Obergrenze. Nachgemessen
+mit den beiden Manifest-Schlüsseln `cross_origin_embedder_policy: {"value": "require-corp"}` und
+`cross_origin_opener_policy: {"value": "same-origin"}`:
+
+| Kontext                | `crossOriginIsolated` | `SharedArrayBuffer`  | geteilter `WebAssembly.Memory` |
+| ---------------------- | --------------------- | -------------------- | ------------------------------ |
+| **Offscreen Document** | **`true`**            | allokiert            | **geht**                       |
+| Service Worker         | `false`               | vorhanden, ungenutzt | –                              |
+
+**Damit bekommt Phase 7 echte WASM-Threads**, und der befürchtete wunde Punkt der Bauform ist keiner.
+Der Service Worker bleibt außen vor — was Chrome selbst ankündigt: _„cross-origin isolation is not fully
+implemented for service and shared workers currently."_ Für uns ohne Belang, weil sowohl das Archiv als
+auch der Index ohnehin im Offscreen Document laufen müssen.
+
+Die frühere Fassung dieses Dokuments schloss aus dem Standardwert auf Einkernbetrieb. Das war falsch.
 
 ## Was der Versuch **nicht** zeigt
 
@@ -142,6 +162,7 @@ node spikes/extension-csp/control-server.mjs &          # Kontrollseite auf :873
 xvfb-run -a node spikes/extension-csp/run.mjs  spikes/extension-csp   # CSP-Verhalten
 xvfb-run -a node spikes/extension-csp/run2.mjs spikes/extension-csp   # Kanal, fetch, Modul-Loader
 xvfb-run -a node spikes/extension-csp/run3.mjs spikes/extension-csp   # OPFS, Quota, Persistenz
+xvfb-run -a node spikes/extension-csp/run4.mjs spikes/extension-csp   # Cross-Origin-Isolation
 ```
 
 `run2.mjs` erwartet die Dateien aus `manifest.probe2.json` als `manifest.json`.
