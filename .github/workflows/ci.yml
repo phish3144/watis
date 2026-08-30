@@ -100,8 +100,6 @@ jobs:
       # than when a user's install fails.
       - name: Smoke test — better-sqlite3 loads under Electron without a rebuild
         run: npm run smoke:sqlite
-        env:
-          ELECTRON_DISABLE_SANDBOX: '1'
 
       - name: Build and package
         run: npm run ${{ matrix.script }}

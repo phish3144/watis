@@ -28,15 +28,18 @@ extraResources:
 files:
   - out/**
   - package.json
-  # Ship one native binary, not eight. Negate only the platforms we do not target:
-  # an exclude-all-then-re-include pattern silently ships an app with NO binding at all,
-  # and the ${platform} macro expands to the build host rather than the target.
+  # better-sqlite3 carries eight platform prebuilds (~27 MB). The unwanted ones are dropped
+  # per target below, NOT here: a global '!prebuilds/darwin*' would strip the macOS build of
+  # the very binding it needs. Sources and build scaffolding are useless on every target.
+  #
+  # Negation only. An exclude-all-then-re-include pattern silently ships an app with NO
+  # binding at all, and the ${platform} macro expands to the build host, not the target.
   - '!node_modules/better-sqlite3/{deps,src,build,binding.gyp}/**'
-  - '!node_modules/better-sqlite3/prebuilds/linux*'
-  - '!node_modules/better-sqlite3/prebuilds/darwin*'
 
 win:
   icon: build/icon.ico
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{linux,linuxmusl,darwin}*'
   target:
     - target: nsis
       arch: [x64]
@@ -75,6 +78,8 @@ portable:
 
 mac:
   icon: build/icon.png
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{linux,linuxmusl,win32}*'
   category: public.app-category.social-networking
   target:
     - target: dmg
