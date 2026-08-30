@@ -17,8 +17,16 @@ env:
 
 jobs:
   verify:
-    name: Lint, types, unit tests
-    runs-on: ubuntu-latest
+    name: Lint, types, unit tests (${{ matrix.os }})
+    # Unit tests run on Windows too. They touch path handling, and path.join uses a different
+    # separator there — a test that hardcodes POSIX separators passes on Linux and fails on
+    # Windows. Running them only on ubuntu meant that class of bug surfaced at release time
+    # instead of on the push that introduced it.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -32,7 +40,8 @@ jobs:
       - run: npm test
       # The no-admin-rights constraint is a release gate, not a hope. This fails the build if
       # anyone flips an NSIS flag that would reintroduce an elevation path.
-      - run: npm run verify:no-elevate
+      - if: runner.os == 'Linux'
+        run: npm run verify:no-elevate
 
   e2e:
     name: E2E (${{ matrix.os }})

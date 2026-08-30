@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   buildDownloadPath,
@@ -87,17 +88,21 @@ describe('sanitiseFilename', () => {
 })
 
 describe('resolveCollision', () => {
+  // Expectations are built with path.join rather than written as POSIX literals: the separator
+  // is \\ on Windows, and hardcoding / makes these pass on Linux and fail on the release runner.
+  const dir = join('tmp', 'x')
+
   it('returns the plain name when nothing is in the way', () => {
-    expect(resolveCollision('/tmp/x', 'a.pdf', () => false)).toBe('/tmp/x/a.pdf')
+    expect(resolveCollision(dir, 'a.pdf', () => false)).toBe(join(dir, 'a.pdf'))
   })
 
   it('counts up until it finds a free slot', () => {
-    const taken = new Set(['/tmp/x/a.pdf', '/tmp/x/a (2).pdf'])
-    expect(resolveCollision('/tmp/x', 'a.pdf', (p) => taken.has(p))).toBe('/tmp/x/a (3).pdf')
+    const taken = new Set([join(dir, 'a.pdf'), join(dir, 'a (2).pdf')])
+    expect(resolveCollision(dir, 'a.pdf', (p) => taken.has(p))).toBe(join(dir, 'a (3).pdf'))
   })
 
   it('keeps the whole path inside the Windows limit', () => {
-    const directory = `/tmp/${'d'.repeat(150)}`
+    const directory = join('tmp', 'd'.repeat(150))
     const result = resolveCollision(directory, `${'n'.repeat(200)}.pdf`, () => false)
     expect(result.length).toBeLessThanOrEqual(MAX_PATH_LENGTH)
     expect(result.endsWith('.pdf')).toBe(true)
@@ -107,35 +112,37 @@ describe('resolveCollision', () => {
 describe('buildDownloadPath', () => {
   const date = new Date(2026, 7, 30)
 
+  const root = join('home', 'u', 'Downloads', 'WhatsApp')
+
   it('sorts into a per-chat folder with a dated filename', () => {
     expect(
       buildDownloadPath({
-        root: '/home/u/Downloads/WhatsApp',
+        root,
         chatName: 'Baustelle Nord',
         filename: 'Angebot.pdf',
         date,
         sortByChat: true,
       }),
     ).toEqual({
-      directory: '/home/u/Downloads/WhatsApp/Baustelle Nord',
+      directory: join(root, 'Baustelle Nord'),
       filename: '2026-08-30_Angebot.pdf',
     })
   })
 
   it('falls back to "Unsortiert" when the chat is unknown', () => {
     const result = buildDownloadPath({
-      root: '/r',
+      root,
       chatName: '',
       filename: 'a.pdf',
       date,
       sortByChat: true,
     })
-    expect(result.directory).toBe('/r/Unsortiert')
+    expect(result.directory).toBe(join(root, 'Unsortiert'))
   })
 
   it('sanitises a chat name that would break a path', () => {
     const result = buildDownloadPath({
-      root: '/r',
+      root,
       chatName: 'Team: A/B?',
       filename: 'a.pdf',
       date,
@@ -143,17 +150,17 @@ describe('buildDownloadPath', () => {
     })
     // Each forbidden character becomes an underscore, including a trailing one: stripping that
     // would collapse "Team A?" and "Team A" onto the same folder.
-    expect(result.directory).toBe('/r/Team_ A_B_')
+    expect(result.directory).toBe(join(root, 'Team_ A_B_'))
   })
 
   it('can be told not to sort by chat', () => {
     const result = buildDownloadPath({
-      root: '/r',
+      root,
       chatName: 'X',
       filename: 'a.pdf',
       date,
       sortByChat: false,
     })
-    expect(result.directory).toBe('/r')
+    expect(result.directory).toBe(root)
   })
 })
