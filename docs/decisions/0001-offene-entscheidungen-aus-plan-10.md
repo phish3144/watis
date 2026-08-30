@@ -53,8 +53,10 @@ bleibt.
 Der Nutzer klickt „Transkribieren" an einer Sprachnachricht; die Datei wird geholt, transkribiert, und das
 Transkript landet mit Zeitmarken durchsuchbar im Archiv.
 
-**Offen:** Modellgröße und ob GPU genutzt wird. Weil keine Massenlast anfällt, verschiebt sich die Abwägung
-in Richtung Genauigkeit statt Geschwindigkeit. Wird nach dem Technik-Recon entschieden und hier ergänzt.
+**Modellgröße entschieden (2026-08-30):** `small` als Standard (~13 s für eine 30-Sekunden-Nachricht),
+`turbo-q5_0` als sichtbar beworbene Genauigkeits-Option (~90 s, mit echter Fortschrittsanzeige),
+`medium` wird gar nicht angeboten. Keine GPU-Nutzung. Begründung in
+[ADR 0005](0005-backfill-medien-transkription.md) D.
 
 **Konsequenzen:**
 
@@ -108,6 +110,11 @@ werden gerendert und erkannt).
 **Nicht enthalten:** XLSX und PPTX. Beides bleibt technisch möglich – das Extractor-Interface ist
 typoffen –, wird aber nicht gebaut, solange es niemand vermisst.
 
+**Bestätigt am 2026-08-30, nachdem der Preis bekannt war:** Die OCR gescannter PDFs bleibt in v1, obwohl
+sie mit `@napi-rs/canvas` (27–38 MB je Plattform) und `tesseract.js-core` (44 MB) die größte
+Einzelabhängigkeit des Dokumentenstapels ist. Begründung in
+[ADR 0005](0005-backfill-medien-transkription.md) C.
+
 ## 9. Blob-Store und Modelle
 
 **Entscheidung:** Systemlaufwerk, `%LOCALAPPDATA%\watis\blobs` bzw. `~/Library/Application Support/watis/blobs`.
@@ -119,13 +126,17 @@ Wert, bei dem eine Warnung noch rechtzeitig kommt.
 
 ## 10. Backfill-Tiefe
 
-**Entscheidung:** Default **12 Monate für alle Chats**, pro Chat manuell auf „komplett" oder einen anderen
-Zeitraum erweiterbar. Direktchats und markierte Gruppen laufen zuerst.
+> **Überholt am 2026-08-30 durch [ADR 0005](0005-backfill-medien-transkription.md) A.**
+> Der Vorbehalt unten ist eingetreten: Die Empirie fiel schlecht aus.
 
-**Vorbehalt:** Die tatsächliche Obergrenze setzt WhatsApp Web, nicht die Konfiguration. Wie weit das
-Nachladen im Multi-Device-Modus überhaupt reicht, wird empirisch ermittelt und in
-`docs/backfill-findings.md` dokumentiert. Fällt die Empirie schlecht aus, ist die Zahl hier Makulatur –
-das ist eingeplant, nicht überraschend.
+~~**Entscheidung:** Default **12 Monate für alle Chats**, pro Chat manuell erweiterbar.~~
+
+WhatsApp Web liefert höchstens **90 Tage**, und der Massenpfad existiert für Web-Clients nicht – er wirft.
+Eine Tiefe von 12 Monaten ist damit nicht konfigurierbar, sondern unerreichbar. Phase 5 ist als
+Vorwärts-Journal neu gefasst; die Beweiskette steht in [`docs/backfill-findings.md`](../backfill-findings.md).
+
+Was bleibt: Direktchats und markierte Gruppen laufen zuerst, und die Grenze wird zur Laufzeit gelesen
+statt hart kodiert.
 
 ## 11. Windows-Signierung
 
