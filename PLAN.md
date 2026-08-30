@@ -248,6 +248,10 @@ search_fts USING fts5(text, source UNINDEXED, chat_id UNINDEXED,
 - Ein Suchindex für alles: `search_docs` ist die einzige Quelle für `search_fts`; `source` erlaubt
   Filter und Trefferanzeige („gefunden im Bild / in PDF-Seite 3 / bei 1:24 in der Sprachnachricht").
 - Kein Text wird doppelt gehalten (external-content-FTS); `detail_json` liefert die Vorschau-Position.
+- `search_docs.text` enthält die **normalisierte** Form, nicht das Original: `ß→ss` und jedes Token mit
+  Umlaut zusätzlich in Digraph-Schreibweise (`ae/oe/ue`). Ohne das findet „Muenchen" das Wort „München"
+  nicht und umgekehrt – gemessen, siehe [ADR 0002](docs/decisions/0002-deutsche-suchnormalisierung.md).
+  Die Anfrage wird symmetrisch normalisiert. Original bleibt in `messages.body` / `content_text.text`.
 - Neu-Indizierung pro `source` und Engine-Version, ohne andere Quellen anzufassen.
 
 ### 5.5 Bridge-Design (der fragile Teil)
@@ -271,7 +275,7 @@ search_fts USING fts5(text, source UNINDEXED, chat_id UNINDEXED,
 |---|---|---|
 | Electron statt Tauri | Page-Internals, Download-Hooks, DevTools-Protokoll und einheitliches Chromium auf allen OS; unter Linux ist WebKitGTK für WA Web problematisch | Größeres Bundle; RAM-Vorteil gegenüber Store-App ohnehin gering, weil WA Web selbst der Brocken ist |
 | Eigenes Archiv statt Zugriff auf IndexedDB-Dateien | IndexedDB ist inzwischen at rest verschlüsselt (Schlüsselableitung braucht ein Server-Salt) | Bridge-Abhängigkeit |
-| better-sqlite3 (synchron) | Einfach, schnell, FTS5 dabei | Native Modul → Rebuild pro Electron-Version |
+| better-sqlite3 (synchron) | Einfach, schnell, FTS5 + Trigram dabei; seit v13 N-API mit Prebuilds im Tarball – kein `electron-rebuild` (ADR 0003) | Synchron und ohne Progress-Callback: lange Abfragen blockieren den Prozess, der die DB geöffnet hat – deshalb **nie** im Main |
 | React für eigene UI | Vorhandene Next.js-Erfahrung, schnelle Iteration | Zweiter Renderer-Prozess (klein) |
 | Read-only-Bridge | Ban-Risiko minimal halten | Keine Komfortfunktionen, die senden |
 | Archiv/Index als `utilityProcess` statt im Main | Main darf nie blockieren; better-sqlite3 ist synchron; OCR/Whisper rechnen minutenlang | IPC-Overhead, zwei zusätzliche Node-Prozesse |
@@ -285,9 +289,10 @@ search_fts USING fts5(text, source UNINDEXED, chat_id UNINDEXED,
 
 ## 6. Tech-Stack
 
-- **Electron** (aktuelle Major-Version mit `WebContentsView`/`BaseWindow`), **TypeScript strict**
+- **Electron 44.0.0** (`WebContentsView`/`BaseWindow`; Chromium 152, Node 24.18.1), **TypeScript 6 strict**
+  – exakte Versionen und Begründungen in [ADR 0003](docs/decisions/0003-werkzeugkette-und-versionen.md)
 - **electron-vite** (Main/Preload/Renderer-Builds), **React** + Tailwind für die eigene UI
-- **better-sqlite3** (FTS5), Migrations als nummerierte SQL-Dateien
+- **better-sqlite3 13** (SQLite 3.53, FTS5 + Trigram, N-API-Prebuilds), Migrations als nummerierte SQL-Dateien
 - **utilityProcess** (Electron) für Archiv- und Index-Prozess; Anbindung über MessagePorts, Schemas per zod
 - **onnxruntime-node** + PP-OCRv5-Modelle über **ppu-paddle-ocr** oder **paddleocr.js** (Wahl in §10);
   Engine hinter eigenem Interface, **tesseract.js** als Fallback
@@ -537,7 +542,7 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 | UA-/Browser-Gate („WhatsApp funktioniert mit Chrome 60+") | mittel | Chrome-konformer UA, Chromium-Version aktuell halten |
 | Session-Verlust durch Update/Cache-Clear | mittel | Partition nie anfassen, Update-E2E-Test, Bereinigung nur selektiv |
 | Klartext-Archiv auf dem Rechner | – | Bewusste Entscheidung; Option SQLCipher (`better-sqlite3-multiple-ciphers`) oder Verlass auf OS-Verschlüsselung (BitLocker/FileVault) |
-| Native Module (better-sqlite3) vs. Electron-Version | mittel | `electron-rebuild` in CI, Version pinnen |
+| ~~Native Module (better-sqlite3) vs. Electron-Version~~ | ~~mittel~~ **entfällt** | better-sqlite3 13 ist N-API mit Prebuilds für alle Zielplattformen im npm-Tarball; ABI-unabhängig. Statt `electron-rebuild` nur ein CI-Smoke-Test, der eine Regression zu einem Source-Build sofort meldet (ADR 0003) |
 | Backfill lädt weniger zurück als erhofft | unbekannt | Früh empirisch testen (Phase 5 vor Phase 6 abschließen, Erwartung anpassen) |
 | Notifications-Direktantwort unter Windows | mittel | Spike in Phase 1, sauberer Fallback |
 | Blob-Store frisst die Platte (viele Dateien, Videos) | hoch | Dedupe, Quota mit Warnung, Videos nur manuell, Speicherort verschiebbar (Laufwerk/NAS) |
