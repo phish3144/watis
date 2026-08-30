@@ -35,6 +35,26 @@ export default defineConfig([
     languageOptions: { globals: globals.node },
   },
   {
+    // The utilityProcess workers must stay importable as plain Node, so they can be unit-tested
+    // without an Electron mock. They reach the host through process.parentPort, which Electron
+    // provides at runtime without an import.
+    files: ['src/workers/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'electron',
+              message:
+                'Workers stay Electron-free so they can be tested as plain Node. Use the MessagePort the host hands over.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Plain Node build scripts: no types to check, so the type-aware rules are off rather than
     // worked around with casts.
     files: ['scripts/**/*.mjs'],

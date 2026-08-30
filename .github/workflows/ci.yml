@@ -89,6 +89,11 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+      # Electron's ~100 MB binary is downloaded on every npm ci otherwise.
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
 
       # Catches a regression from Node-API prebuilds back to a source build immediately, rather

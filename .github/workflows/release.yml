@@ -9,13 +9,28 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Release (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
+  # macOS is build-only until signing and notarisation are decided. It runs FIRST and publishes
+  # nothing: an unsigned .dmg on a release page invites people to install something macOS will
+  # refuse to open. Its job is to prove the tag still builds for macOS.
+  verify-mac:
+    name: Verify macOS build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm run dist:mac
+
+  release-windows:
+    name: Publish Windows release
+    # Serialised on purpose. Two jobs publishing to the same GitHub release in parallel race each
+    # other over the release draft and its latest.yml.
+    needs: verify-mac
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -33,3 +48,6 @@ jobs:
           # Unsigned by decision (ADR 0001, point 11). Auto-discovery would otherwise pick up
           # whatever happens to be in the runner keychain and make builds non-deterministic.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify the published build carries no elevation helper
+        run: npm run verify:no-elevate

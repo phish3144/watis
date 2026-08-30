@@ -45,7 +45,7 @@ Alle Versionen **exakt** pinnen, keine Carets. `save-exact=true` in `.npmrc`.
 | `electron-vite` | **5.0.0** | MIT | Letzte stabile Version; peer `vite ^5 \|\| ^6 \|\| ^7`. **[VERIFIZIERT]** |
 | `electron-builder` | **26.15.7** | MIT | **Explizit pinnen** — `latest` liefert das ältere 26.15.3. **[VERIFIZIERT]** |
 | `electron-updater` | **6.8.9** | MIT | Teilt `builder-util-runtime` mit electron-builder 26. 7.x nur Alpha. **[VERIFIZIERT]** |
-| `typescript` | **7.0.2** | Apache-2.0 | Nativer Compiler. Lizenz hat sich geändert. **[VERIFIZIERT]** |
+| `typescript` | **6.0.3** | Apache-2.0 | **Korrigiert am 2026-08-30.** Der Brief nannte hier 7.0.2; gepinnt ist 6.0.3, weil `typescript-eslint@8.68.0` `typescript: '>=4.8.4 <6.1.0'` peert und es keine 9.x gibt — mit TS 7 gäbe es kein typisiertes Linting. Selbst geprüft: TS 6.0.3 + ESLint 10.9.1 + typescript-eslint 8.68.0 mit `strictTypeChecked` laufen grün. Siehe [ADR 0003](decisions/0003-werkzeugkette-und-versionen.md). |
 | `zod` | **4.5.4** | MIT | IPC-Schemata. **[VERIFIZIERT]** |
 | `react` | **19.2.8** | MIT | Eigene UI. **[VERIFIZIERT]** |
 | `tailwindcss` + `@tailwindcss/vite` | **4.3.3** | MIT | v4 läuft über das Vite-Plugin, nicht über PostCSS. **[VERIFIZIERT]** |
@@ -1873,3 +1873,754 @@ Das spricht nicht gegen die Veröffentlichung. Es spricht dafür, dass das READM
 Phase 6 liefert JSON/HTML/TXT, das ist die halbe Antwort. Die andere Hälfte ist eine Zusage im README: **Das Archiv überlebt die App.** Konkret — das Schema ist dokumentiert, die `.db` ist eine gewöhnliche SQLite-Datei, die Medien liegen als gewöhnliche Dateien in einem beschriebenen Verzeichnisbaum, und der Export läuft ohne `watis` und ohne Netz. Das ist zugleich das beste Argument gegen die Sorge aus A5: Ein getesteter, früher Exportpfad ist der einzige Korruptionsschutz, der auch dann wirkt, wenn alles andere versagt.
 
 **Der Ton, in dem das steht, ist bereits richtig.** Der Abschnitt „Ehrliche Hinweise" braucht keine Umschreibung, nur vier Ergänzungen: Kontosperre, verwalteter Rechner, verschwindende Nachrichten und abgeleitete Daten (OCR/Transkription), plus einen Satz zur Haltbarkeit des Archivs. Und ein Satz zu dem, was `watis` bewusst nicht tut, damit später niemand es für eine Lücke hält: **View-once-Medien werden nicht archiviert — WhatsApp lässt sie auf Web/Desktop nicht öffnen, und das wird nicht umgangen.**
+
+
+---
+
+## 19. CI, Tests und der Entwicklungsloop
+
+Phase 0 ist im Repo bereits umgesetzt: `.github/workflows/ci.yml` und `release.yml`, `playwright.config.ts`, `vitest.config.ts`, `eslint.config.mjs`, ein erster E2E-Test (`test/e2e/startup.spec.ts`) und drei Unit-Tests existieren und sind eingecheckt (Commits `f8e5cfa`, `d6c520e`). Dieser Abschnitt prüft das **Ist** gegen Report 07 und gegen ADR 0003 — nicht gegen ein hypothetisches Setup. Wo der Report etwas vorschlägt, das schon existiert, wird das benannt statt wiederholt; wo Ist und Empfehlung auseinanderlaufen, steht die Lücke mit Fundstelle.
+
+### 19.1 GitHub Actions — Ist-Zustand, Action-Majors, zwei reale Lücken
+
+**[VERIFIZIERT]** Action-Majors, gegen die Registry geprüft (`git ls-remote --tags --refs`): `actions/checkout` v7.0.1, `actions/setup-node` v7.0.0, `actions/upload-artifact` v7.0.1, `actions/cache` v6.1.0, `actions/download-artifact` v8.0.1. Beide Workflows im Repo referenzieren bereits die floatenden Major-Tags `@v7` für checkout/setup-node/upload-artifact — aktuell und korrekt, kein Handlungsbedarf. `actions/cache` und `actions/download-artifact` werden aktuell **nicht verwendet** (dazu unten).
+
+Die beiden Workflows, wörtlich aus dem Repo (**[VERIFIZIERT]**, gelesen 2026-08-30):
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # better-sqlite3 13 is Node-API and ships prebuilds for every target inside its npm tarball.
+  # Nothing in this project needs a native rebuild, so no Python or MSVC toolchain is installed.
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+
+jobs:
+  verify:
+    name: Lint, types, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # The no-admin-rights constraint is a release gate, not a hope. This fails the build if
+      # anyone flips an NSIS flag that would reintroduce an elevation path.
+      - run: npm run verify:no-elevate
+
+  e2e:
+    name: E2E (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Electron needs a display. Linux runners are headless, Windows runners are not.
+      - name: Run E2E (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:e2e
+        env:
+          ELECTRON_DISABLE_SANDBOX: '1'
+      - name: Run E2E (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows is the release target: its installers are kept as artefacts.
+          - os: windows-latest
+            script: dist:win
+            artifact: windows-installers
+          # macOS is build-only but a REQUIRED check. It is what stops the project from being
+          # quietly broken for macOS by a Windows-only change.
+          - os: macos-latest
+            script: dist:mac
+            artifact: macos-builds
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Smoke test — better-sqlite3 loads under Electron without a rebuild
+        run: npm run smoke:sqlite
+        env:
+          ELECTRON_DISABLE_SANDBOX: '1'
+
+      - name: Build and package
+        run: npm run ${{ matrix.script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify the packaged app carries no elevation helper
+        if: runner.os == 'Windows'
+        run: npm run verify:no-elevate
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+          retention-days: 14
+          if-no-files-found: warn
+```
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm run verify:no-elevate
+
+      - name: Publish to GitHub Releases
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+```
+
+Der Aufbau ist insgesamt solide: `verify` läuft billig auf Linux und blockt `e2e`/`build`; `e2e` deckt genau das ab, was CLAUDE.md verlangt (Windows als Zielplattform, Linux als billiger Ersatz für „hat überhaupt einen Desktop"); `build` trennt Windows-Release-Artefakt von macOS-Pflicht-Check-ohne-Publish korrekt — das ist exakt, was PLAN.md Zeile 41 und Recon §A15 fordern, nicht mehr und nicht weniger. Vier konkrete Abweichungen vom Report bzw. von ADR 0003 bleiben:
+
+**1. `ELECTRON_CACHE` ist tot.** Die `env`-Variable in `ci.yml` zeigt auf `.cache/electron`, aber es gibt keinen `actions/cache`-Step, der dieses Verzeichnis zwischen Runs persistiert — Electron und der electron-builder-Cache werden bei jedem Job neu heruntergeladen. **[VERIFIZIERT durch Lesen der Datei — kein `uses: actions/cache` an keiner Stelle.]** Niedrige Priorität (kostet Minuten, nicht Korrektheit), aber die Variable suggeriert eine Funktion, die nicht existiert. Nachrüstbar mit dem vom Report verifizierten Muster:
+
+```yaml
+- name: Cache Electron downloads
+  uses: actions/cache@v6
+  with:
+    path: |
+      ~/.cache/electron
+      ~/.cache/electron-builder
+      ~/Library/Caches/electron
+      ~/Library/Caches/electron-builder
+      ~\AppData\Local\electron\Cache
+      ~\AppData\Local\electron-builder\Cache
+    key: ${{ runner.os }}-${{ runner.arch }}-electron-${{ hashFiles('package-lock.json') }}
+```
+
+**2. `.nvmrc` pinnt eine Node-Version, die inzwischen nur noch Maintenance-LTS ist.** `.nvmrc` enthält `22.22.2`. **[VERIFIZIERT]** gegen `nodejs/Release/schedule.json` (selbst abgerufen, 2026-08-30): Node 22 ist seit **2025-10-21** in Maintenance (Ende 2027-04-30), Node 24 ist **Active LTS bis 2026-10-20** (danach Maintenance bis 2028-04-30) — und Electron 44.0.0 bettet exakt Node 24.18.1 ein (DEPS-Datei, bereits in §2/ADR 0003 verifiziert). Drei verschiedene Node-Zahlen sind damit im Umlauf: `.nvmrc` (22.22.2), `package.json.engines` (`^20.19.0 || >=22.12.0` — das ist wörtlich electron-vites eigener Engine-Bereich, nicht auf das Projekt zugeschnitten) und Electron/ADR 0003 (24.18.1). Keine davon wird erzwungen: `.npmrc` setzt `save-exact` und `fund`/`audit` aus, aber **kein `engine-strict=true`**, also installiert `npm ci` klaglos auch mit einer abweichenden Node-Version. Empfehlung: `.nvmrc` und `engines.node` auf `24.18.1` heben (deckungsgleich mit dem, was Electron ohnehin ausliefert, und die einzige der drei Zahlen, die noch Active LTS ist), `engine-strict=true` ergänzen. Das ist Hygiene, kein Bug — native Module brauchen dank N-API-Prebuilds ohnehin keine Node-ABI-Übereinstimmung —, aber „drei Zahlen, keine erzwungen" ist genau die Art Divergenz, die nach einem Jahr niemand mehr erklären kann.
+
+**3. `release.yml` hat die Race-Bedingung, vor der der Report warnt — und zwar konkret, nicht hypothetisch.** Die `release`-Job-Matrix fährt `windows-latest` und `macos-latest` mit `fail-fast: false` **parallel**, ohne `needs:`-Abhängigkeit, und beide rufen unabhängig `npm run release` → `electron-builder --publish always` für **denselben Git-Tag** auf. electron-builders GitHub-Publisher sucht beim Publish ein vorhandenes Release zum Tag oder legt eines an (find-or-create) — zwei Jobs, die das gleichzeitig für denselben Tag tun, sind ein klassisches TOCTOU-Rennen: je nach Timing entstehen zwei Draft-Releases oder ein Job überschreibt Assets des anderen. **[VERIFIZIERT durch Lesen von `release.yml` — kein `needs:` zwischen den Matrix-Einträgen, keine Serialisierung.]** Der Report selbst nennt exakt dieses Muster als Risiko und empfiehlt die Lösung, die hier fehlt: einen `macos-gate`-Job mit `--publish never`, von dem der Windows-Job per `needs:` abhängt.
+
+**4. Damit veröffentlicht `release.yml` heute auch macOS-Artefakte auf GitHub Releases — PLAN.md sagt etwas anderes.** `npm run release` läuft ohne `--win`/`--mac`-Flag, electron-builder wählt also die Zielplattform anhand des Runner-Host-OS; auf `macos-latest` baut und **published** das dieselben `dmg`/`zip`-Targets, die in `electron-builder.yml` für macOS konfiguriert sind (`identity: null`, `notarize: false`) — unsigniert, aber sichtbar im Release. PLAN.md Zeile 41 sagt jedoch: „macOS-Build … ist in CI ab Phase 0 grün, **auch wenn er erst später veröffentlicht wird**." Das liest sich als Absicht, macOS-Artefakte vorerst *nicht* zu publizieren. Aktueller Code und Plansatz widersprechen sich damit sichtbar. **[UNGEKLÄRT, aber billig zu klären]** — das ist keine technische Unsicherheit, sondern eine Entscheidung, die im selben Zug wie Punkt 3 behoben werden kann: den macOS-Zweig von `release.yml` auf `electron-builder --mac --publish never` umstellen (Build bleibt Pflicht-Check, aber ohne Release-Upload), bis Signing/Notarisierung entschieden ist (siehe Owner-Frage zu Codesigning in §A15/§14.1).
+
+Zusammengefasst als Patch-Skizze (kein vollständiger Datei-Ersatz, nur der geänderte Teil von `release.yml`):
+
+```yaml
+jobs:
+  macos-gate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm run build && npx --no-install electron-builder --mac --publish never
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+
+  windows-release:
+    needs: macos-gate   # never ship Windows if macOS is broken; also removes the publish race
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm run verify:no-elevate
+      - run: npm run release
+        env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}, CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+```
+
+### 19.2 Playwright + Electron: ein direkter Widerspruch über `windows()`
+
+Das ist der wichtigste Befund dieses Abschnitts, weil er bestimmt, was von der App überhaupt automatisiert testbar ist.
+
+**Bereits gemessen und umgesetzt (Repo-Ground-Truth, Kommentar in `test/e2e/startup.spec.ts`, wörtlich):**
+
+> „Playwright's Electron support does not expose WebContentsView contents as pages: `app.windows()` returns 0 and `firstWindow()` times out. Verified against Playwright 1.62.1 and Electron 44. Reaching a view therefore means finding its webContents in main and calling `executeJavaScript` on it."
+
+Die gesamte Suite ist danach gebaut: jeder Test geht über `app.evaluate()` in den Main-Prozess und liest dort `BaseWindow.getAllWindows()` / `webContents.getAllWebContents()` bzw. ruft `executeJavaScript` auf einem gefundenen `WebContents`-Objekt auf (`window.watis.getWorkerHealth()` als String-Aufruf, mit `expect.poll`).
+
+**Report 07 behauptet das Gegenteil, ebenfalls als eigene Messung:**
+
+> „EMPIRICAL: with Electron 44.0.0 + Playwright 1.62.1, a BaseWindow holding two WebContentsViews yields `electronApp.windows().length === 2` — Playwright sees BOTH views as independent Page objects, each with its own `url()`/`title()`/locators. Both are fully interactable." Zusätzlich: `browserWindow(page)` liefert ein `BaseWindow`-Handle statt `null`, und die Reihenfolge in `windows()` ist über Läufe hinweg **nicht deterministisch**.
+
+Beide Seiten berufen sich auf dieselben Versionen (Electron 44.0.0, Playwright 1.62.1) und — das ist entscheidend — auf dieselbe Architektur: `src/main/window/main-window.ts` baut genau das, was der Report beschreibt, ein `BaseWindow` mit `window.contentView.addChildView(wa)` / `addChildView(app)` für zwei `WebContentsView`-Instanzen. **[VERIFIZIERT durch Lesen von `src/main/window/main-window.ts`]** — es ist nicht so, dass unterschiedliche Fenster-Konstruktionen den Unterschied erklären könnten, jedenfalls nicht offensichtlich.
+
+**[UNGEKLÄRT]** — und zwar in einer Weise, die nicht mit „ein Report hat recht" aufgelöst werden sollte, ohne es nachzuprüfen: Der bereits eingecheckte, im PLAN.md als erledigt markierte Befund (`windows()` → 0) ist die Grundlage der gesamten heutigen E2E-Strategie; der Report behauptet unabhängig das Gegenteil mit ebenso konkreten Zahlen. Mögliche Gründe für die Abweichung, keiner davon geprüft: unterschiedliches Timing (`windows()` unmittelbar nach `launch()` vs. nach einem Poll — CDP-Target-Discovery kann verzögert sein), ein Unterschied in `webPreferences` (`sandbox: true` ist im echten Code auf beiden Views gesetzt; ob der Report-Probe das auch tat, ist nicht dokumentiert), oder eine Playwright-interne Filterung nach WebContents-`type`, die vom genauen Erzeugungsweg abhängt.
+
+**Billig zu klären:** ein einziger temporärer Diagnose-Schritt in der bestehenden Suite — vor dem ersten `expect` in `startup.spec.ts` `console.log(app.windows().length, app.windows().map(p => p.url()))` einfügen, unter `xvfb-run` (genau der Pfad, den `ci.yml` für die Linux-E2E-Lane ohnehin fährt) laufen lassen, Ergebnis notieren, Zeile wieder entfernen. Kostet einen CI-Lauf, keine neue Infrastruktur. Bis das gemacht ist, gilt: **die im Repo verifizierte und bereits gebaute Strategie (`app.evaluate()`) ist die operative Wahrheit**, der Report-Befund ist ein Hinweis, dass sie es wert ist, gegengeprüft zu werden — nicht ein Grund, sie umzubauen.
+
+**Was so oder so nicht testbar ist (unabhängig vom Ausgang des Widerspruchs):**
+
+- Echter WhatsApp-Login/QR-Code/die authentifizierte `web.whatsapp.com`-Seite — beides bleibt Bridge-Smoke-Checkliste, läuft nie in CI (PLAN.md §8, unverändert richtig).
+- Playwrights Codegen/Inspector gegen die App-UI — beide Varianten sind auf headless CDP-Ansteuerung angewiesen und funktionieren mit keiner der beiden Sichtweisen interaktiv.
+
+**Falls `windows()` tatsächlich 0 ist (heutiger Stand):** keine native Playwright-`Locator`-API gegen die WA-View oder das eigene Panel (kein `getByRole`, kein Auto-Waiting, kein `expect(locator).toBeVisible()`), keine `page.screenshot()`/Video/Trace-DOM-Snapshots dieser Inhalte — nur was via `executeJavaScript`-String und manuellem `expect.poll()` aus dem Main-Prozess herausgeholt wird, wie es `getWorkerHealth()` heute schon vormacht. Visuelle Regressionstests der WA-Ansicht selbst sind damit praktisch nicht mit Playwright-Bordmitteln möglich; nur mit selbstgebautem `webContents.capturePage()` durch `app.evaluate()`.
+
+**Falls `windows()` tatsächlich 2 wäre (Report-Behauptung):** volle Locator-/Auto-Wait-/Trace-Funktionalität auf beiden Views — aber mit der vom Report selbst gemessenen Einschränkung, dass die Reihenfolge in `windows()` nicht deterministisch ist; jede Auswahl müsste über einen Identitäts-Marker laufen (`window.__WATIS_VIEW__` aus dem jeweiligen Preload), nie über einen Index.
+
+### 19.3 vitest: Main-Prozess mit `electron`, Worker ohne
+
+**Ist-Zustand:** `vitest.config.ts` ist eine einzelne, flache Konfiguration (`environment: 'node'`, `include: ['test/unit/**/*.test.ts', 'test/integration/**/*.test.ts']`) — kein `jsdom`-Projekt für den Renderer, kein eigenes Worker-Projekt, kein globaler `electron`-Alias. Der einzige heute existierende Test, der Code berührt, das `electron` importiert (`test/unit/user-agent.test.ts` gegen `src/main/user-agent.ts`), verwendet Datei-lokales `vi.mock('electron', () => ({ app: { getName: …, userAgentFallback: … } }))` — das ist exakt „Strategie B" aus Report 07, und der Report hat empirisch bestätigt, dass sie auf vitest 4.1.11 ohne `resolve.alias` funktioniert, weil `electron` als echte Dependency installiert ist und Vite die ID auflösen kann, bevor `vi.mock` eingreift. **[RECON, vom Report selbst gemessen; hier nicht erneut ausgeführt, aber konsistent mit dem, was im Repo tatsächlich läuft.]**
+
+Sobald mehr Main-Prozess-Module Tests bekommen (`src/main/paths.ts`, `src/main/workers/supervisor.ts`, `src/main/session/permissions.ts` importieren bereits `electron`, haben aber noch keine Tests), lohnt sich „Strategie A" aus dem Report — ein globaler `resolve.alias: { electron: <stub> }` in `vitest.config.ts` für ein `main`-Projekt, damit nicht jede neue Testdatei ihr eigenes `vi.mock`-Boilerplate braucht und es nicht vergessen kann. Beide Strategien sind laut Report gleichwertig lauffähig; welche man als Standard setzt, ist eine Stilfrage, keine technische.
+
+**Worker-Testbarkeit — die Architektur hält den Anspruch bereits ein, aber nichts erzwingt ihn.** `src/workers/shared/host-channel.ts` dokumentiert selbst: „deliberately Electron-free apart from the MessagePortMain handed over at startup, so the worker bodies can be unit-tested as plain Node." **[VERIFIZIERT durch `grep -rl "from 'electron'" src/workers` — null Treffer]**; `archive/index.ts` und `content-index/index.ts` importieren ausschließlich `../shared/host-channel`, kein `electron`. Der Report-Befund, dass `require('electron')` innerhalb eines `utilityProcess` zwar auflöst, aber nur `{ net, systemPreferences }` liefert — `app`, `ipcMain`, `BrowserWindow` fehlen —, ist damit für dieses Projekt vor allem eine Erklärung, *warum* ein versehentlicher `electron`-Import im Worker nicht beim Build, sondern erst als `undefined`-TypeError zur Laufzeit auffällt. **[RECON, Report-eigene Messung, nicht hier wiederholt, aber plausibel und mit der `binding.js`-Quellenlage aus §2 konsistent.]**
+
+Zwei konkrete Lücken, beide mechanisch und billig zu schließen, keine davon existiert heute:
+
+1. **Kein ESLint-Schutz.** `eslint.config.mjs` fasst `src/main/**/*.ts` und `src/workers/**/*.ts` in derselben Regelgruppe zusammen (nur `globals.node`) — es gibt **keine** `no-restricted-imports`-Regel, die `electron` unter `src/workers/**` verbietet. **[VERIFIZIERT durch Lesen von `eslint.config.mjs`]** Anders als im Report-Vorschlag braucht dieses Projekt nicht einmal eine `entry.ts`-Ausnahme — der Worker-Einstiegspunkt selbst kommuniziert schon über die von außen hereingereichte `MessagePortMain`, nicht über `electron`. Die Regel kann also ausnahmslos für ganz `src/workers/**` gelten:
+
+   ```js
+   {
+     files: ['src/workers/**/*.ts'],
+     rules: {
+       'no-restricted-imports': ['error', { paths: [{
+         name: 'electron',
+         message: 'Worker muss Electron-frei bleiben, damit er als reines Node testbar ist.',
+       }] }],
+     },
+   },
+   ```
+
+2. **Kein Test, der den Anspruch prüft.** Es existiert noch keine Testdatei unter `test/unit/` oder `test/integration/`, die `src/workers/archive/index.ts` bzw. `content-index/index.ts` unter reinem Node — ohne jeden `electron`-Mock — importiert. Ohne einen solchen Test fällt ein künftiger transitiver `electron`-Import (z. B. über ein gemeinsames Logging-Modul) erst zur Laufzeit im echten `utilityProcess` auf, nicht in CI. Der Report empfiehlt dafür ein eigenes vitest-„Projekt" ohne Alias; für die aktuelle flache Config reicht ebenso ein einfacher Test, der genau das importiert und prüft, dass er unter `node` (nicht unter Electron) lädt.
+
+### 19.4 Paketmanager, Husky/Commitlint
+
+**npm ist bereits entschieden, nicht mehr offen.** `package-lock.json` liegt im Repo, kein `pnpm-lock.yaml`, kein `yarn.lock`. **[VERIFIZIERT durch `ls`]** Die pnpm-vs-npm-Abwägung aus dem Report (electron-builder 26 hat inzwischen einen eigenen `PnpmNodeModulesCollector`, der das alte Symlink-Problem entschärft) ist damit für dieses Projekt gegenstandslos, solange niemand aktiv migrieren will — was hier nicht verlangt ist.
+
+**Husky/commitlint fehlen komplett.** Kein `.husky/`-Verzeichnis, kein `commitlint.config.*`, keine `prepare`-Script-Zeile in `package.json`. **[VERIFIZIERT]** Gleichzeitig folgen die letzten fünf Commits (`d6c520e chore:`, `f8e5cfa feat:`, `1e568bf docs:`, `fa3e9d4 docs:`, `ab31bdd docs:`) dem in CLAUDE.md verlangten Conventional-Commits-Schema bereits diszipliniert von Hand. **[VERIFIZIERT durch `git log --oneline -5`]** Für ein Ein-Personen-Projekt ist das vertretbar — nichts erzwingt es, aber bisher hält es auch niemand für nötig, dagegen zu verstoßen. Der Report liefert ein passendes, bereits versions-konsistentes Setup (`husky` 9.1.7, `@commitlint/cli` 21.2.2, `@commitlint/config-conventional` 21.2.2 — alle drei sind mit den übrigen gepinnten Paketen kompatibel, husky 9 kommt ohne die alte `husky.sh`-Präambel aus). Sinnvoller Zeitpunkt zur Einführung: sobald mehr als eine Person committet, oder sobald aus der Commit-Historie automatisiert etwas abgeleitet werden soll (Release Notes, Changelog) — vorher ist es optionale Härtung, kein fehlender Baustein.
+
+### 19.5 Lasttest-Gerüst nach §3.1
+
+PLAN.md §8 spezifiziert es bereits präzise: Generator für 5 Mio. Nachrichten, 500 Chats, 100.000 Medien-Einträge, 1 Mio. Index-Dokumente; „nicht eingecheckt, reproduzierbar per Seed"; misst Import-Durchsatz, Suchlatenz p50/p95, Event-Loop-Lag im Main, RSS aller Prozesse; läuft als Release-Gate in Phase 9 und ist Teil der Definition of Done der Phasen 3, 4 und 7. **[VERIFIZIERT durch Lesen von PLAN.md §8]**
+
+**Es existiert im Repo noch nicht.** Kein `tools/loadtest/`, kein `bench/`, kein `loadtest`-Script in `package.json`. **[VERIFIZIERT durch `find`/`grep` — keine Treffer]** Das ist an dieser Stelle des Plans (Phase 0 abgeschlossen, Phase 3 noch nicht begonnen) kein Rückstand, sondern erwartbar: die DoD, die den Lasttest verlangt, gehört zu späteren Phasen.
+
+Report 07 liefert ein konkretes, in sich schlüssiges Gerüst, das den entscheidenden methodischen Punkt richtig trifft: **das Event-Loop-Lag muss im PARENT (Main-Analogon) gemessen werden, während der WORKER die Datenbankarbeit macht** — ein Parent mit leerem Loop meldet nahe null Lag unabhängig vom Worker-Verhalten, was das „<16 ms"-Ziel scheinbar per Konstruktion erfüllen würde, ohne die eigentliche Architekturannahme aus CLAUDE.md („Main-Prozess rechnet nicht") je zu prüfen. Der Harness läuft unter `worker_threads` statt `utilityProcess`, damit er unter reinem `node` läuft — derselbe Codepfad wie der Electron-freie Worker-Kern aus §19.3 — und generiert den Korpus über einen Counter-basierten PRNG (`splitmix32`-artig), sodass Nachricht *N* bei gleichem Seed unabhängig von Batchgröße oder Fortsetzungspunkt identisch ist. **[RECON — Design des Reports, in diesem Repo noch nicht implementiert oder ausgeführt.]**
+
+```javascript
+// tools/loadtest/run.mjs — Parent: Orchestrierung, Event-Loop-Lag- und RSS-Messung, Gate gegen bench/baseline.json
+#!/usr/bin/env node --expose-gc
+//
+// Läuft AUSSERHALB von CI. Reproduzierbar, weil alles aus --seed abgeleitet ist.
+//   npm run loadtest -- --seed 42 --messages 5000000 --chats 500
+
+import { Worker } from 'node:worker_threads'
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks'
+import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
+const arg = (n, d) => {
+  const i = process.argv.indexOf(`--${n}`)
+  return i === -1 ? d : process.argv[i + 1]
+}
+const SEED = Number(arg('seed', 42))
+const MESSAGES = Number(arg('messages', 5_000_000))
+const CHATS = Number(arg('chats', 500))
+const QUERIES = Number(arg('queries', 2_000))
+const OUT = arg('out', `bench/results/run-${Date.now()}.json`)
+const DB = arg('db', path.join(os.tmpdir(), `watis-load-${SEED}.db`))
+
+export function rand(i, seed = SEED) {
+  let z = (i + seed * 0x9e3779b9) >>> 0
+  z = Math.imul(z ^ (z >>> 16), 0x21f0aaad) >>> 0
+  z = Math.imul(z ^ (z >>> 15), 0x735a2d97) >>> 0
+  return ((z ^ (z >>> 15)) >>> 0) / 4294967296
+}
+
+const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)]
+
+async function main() {
+  fs.mkdirSync(path.dirname(OUT), { recursive: true })
+  fs.rmSync(DB, { force: true })
+  fs.rmSync(`${DB}-wal`, { force: true })
+
+  // Parent-seitige Beobachtung. resolution:1ms, sonst geht ein 16-ms-Stall in der Auflösung unter.
+  const lag = monitorEventLoopDelay({ resolution: 1 })
+  lag.enable()
+
+  const rss = []
+  const rssTimer = setInterval(() => rss.push(process.memoryUsage().rss), 250)
+
+  // Hält den Parent-Loop absichtlich "busy-idle", sonst meldet ein leerer Loop ~0 Lag,
+  // egal was der Worker tut — das würde das Ziel per Konstruktion erfüllen, ohne etwas zu prüfen.
+  let ticks = 0
+  const heartbeat = setInterval(() => { ticks++ }, 4)
+
+  const worker = new Worker(fileURLToPath(new URL('./worker.mjs', import.meta.url)), {
+    workerData: { seed: SEED, messages: MESSAGES, chats: CHATS, queries: QUERIES, db: DB },
+  })
+
+  const phases = {}
+  const searchSamples = []
+  const done = new Promise((resolve, reject) => {
+    worker.on('message', (m) => {
+      if (m.type === 'phase') phases[m.name] = m
+      if (m.type === 'search') searchSamples.push(m.ms)
+      if (m.type === 'done') resolve(m)
+    })
+    worker.on('error', reject)
+    worker.on('exit', (c) => { if (c !== 0) reject(new Error(`worker exit ${c}`)) })
+  })
+
+  const t0 = performance.now()
+  const result = await done
+  const wall = performance.now() - t0
+
+  clearInterval(rssTimer)
+  clearInterval(heartbeat)
+  lag.disable()
+  await worker.terminate()
+
+  const sorted = searchSamples.slice().sort((a, b) => a - b)
+
+  const report = {
+    meta: {
+      seed: SEED, messages: MESSAGES, chats: CHATS, queries: QUERIES,
+      node: process.version, platform: `${os.platform()}-${os.arch()}`,
+      cpu: os.cpus()[0]?.model, cores: os.cpus().length,
+      totalMemGB: +(os.totalmem() / 2 ** 30).toFixed(1),
+      betterSqlite3: result.sqliteVersion, startedAt: new Date().toISOString(),
+    },
+    import: {
+      messages: MESSAGES, seconds: +(phases.import.ms / 1000).toFixed(2),
+      msgsPerSec: Math.round(MESSAGES / (phases.import.ms / 1000)),
+      dbBytes: fs.statSync(DB).size,
+    },
+    ftsBuild: { seconds: +(phases.fts.ms / 1000).toFixed(2) },
+    search: {
+      n: sorted.length,
+      p50: +pct(sorted, 50).toFixed(2), p95: +pct(sorted, 95).toFixed(2),
+      p99: +pct(sorted, 99).toFixed(2), max: +sorted[sorted.length - 1].toFixed(2),
+    },
+    eventLoopLagMs: {
+      mean: +(lag.mean / 1e6).toFixed(2), p50: +(lag.percentile(50) / 1e6).toFixed(2),
+      p95: +(lag.percentile(95) / 1e6).toFixed(2), p99: +(lag.percentile(99) / 1e6).toFixed(2),
+      max: +(lag.max / 1e6).toFixed(2), heartbeatTicks: ticks,
+    },
+    rssBytes: { peak: Math.max(...rss), final: rss[rss.length - 1] },
+    wallSeconds: +(wall / 1000).toFixed(1),
+  }
+
+  fs.writeFileSync(OUT, JSON.stringify(report, null, 2))
+  console.log(JSON.stringify(report, null, 2))
+
+  const base = JSON.parse(fs.readFileSync('bench/baseline.json', 'utf8'))
+  const fails = []
+  if (report.search.p95 > base.search.p95Max) fails.push(`search p95 ${report.search.p95}ms > ${base.search.p95Max}ms`)
+  if (report.eventLoopLagMs.p99 > base.loopLagP99Max) fails.push(`loop lag p99 ${report.eventLoopLagMs.p99}ms > ${base.loopLagP99Max}ms`)
+  if (report.import.msgsPerSec < base.import.minMsgsPerSec) fails.push(`import ${report.import.msgsPerSec}/s < ${base.import.minMsgsPerSec}/s`)
+  if (report.rssBytes.peak > base.rssPeakMaxBytes) fails.push(`peak RSS ${report.rssBytes.peak} > ${base.rssPeakMaxBytes}`)
+
+  if (fails.length) { console.error('\nLOAD TEST REGRESSION:\n  ' + fails.join('\n  ')); process.exit(1) }
+  console.error('\nload test within baseline')
+}
+
+main().catch((e) => { console.error(e); process.exit(1) })
+```
+
+```javascript
+// tools/loadtest/worker.mjs — Worker: Import, FTS5-Aufbau nach dem Bulk-Load, Query-Mix
+import { parentPort, workerData } from 'node:worker_threads'
+import { performance } from 'node:perf_hooks'
+import Database from 'better-sqlite3'
+
+const { seed, messages, chats, queries, db: dbPath } = workerData
+
+const rand = (i, s = seed) => {
+  let z = (i + s * 0x9e3779b9) >>> 0
+  z = Math.imul(z ^ (z >>> 16), 0x21f0aaad) >>> 0
+  z = Math.imul(z ^ (z >>> 15), 0x735a2d97) >>> 0
+  return ((z ^ (z >>> 15)) >>> 0) / 4294967296
+}
+
+const VOCAB = ('alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike ' +
+  'november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu ' +
+  'invoice receipt meeting tomorrow airport dinner photo video document location').split(' ')
+
+function body(i) {
+  const n = 6 + Math.floor(rand(i * 7) * 24)
+  const words = []
+  for (let w = 0; w < n; w++) words.push(VOCAB[Math.floor(rand(i * 31 + w) * VOCAB.length)])
+  return words.join(' ')
+}
+
+const d = new Database(dbPath)
+const sqliteVersion = d.prepare('select sqlite_version() as v').get().v
+
+// Bulk-Lade-Pragmas. WAL + NORMAL ist auch die Produktionseinstellung; der Rest gilt nur
+// während des Ladens und wird vor der Suchphase zurückgesetzt, damit die Zahlen ehrlich sind.
+d.pragma('journal_mode = WAL')
+d.pragma('synchronous = OFF')
+d.pragma('cache_size = -262144')
+d.pragma('temp_store = MEMORY')
+
+d.exec(`
+  CREATE TABLE msg (
+    id INTEGER PRIMARY KEY, chat_id INTEGER NOT NULL, ts INTEGER NOT NULL,
+    from_me INTEGER NOT NULL, body TEXT NOT NULL
+  );
+`)
+
+let t = performance.now()
+const ins = d.prepare('INSERT INTO msg (id, chat_id, ts, from_me, body) VALUES (?, ?, ?, ?, ?)')
+const BATCH = 20_000
+const insertBatch = d.transaction((from, to) => {
+  for (let i = from; i < to; i++) {
+    ins.run(i, Math.floor(rand(i * 3) * chats), 1700000000 + i, rand(i * 5) < 0.35 ? 1 : 0, body(i))
+  }
+})
+for (let i = 0; i < messages; i += BATCH) {
+  insertBatch(i, Math.min(i + BATCH, messages))
+  if (i % 500_000 === 0) parentPort.postMessage({ type: 'progress', done: i })
+}
+parentPort.postMessage({ type: 'phase', name: 'import', ms: performance.now() - t })
+
+// External-content-FTS NACH dem Bulk-Load aufbauen ist deutlich schneller als Trigger während
+// des Inserts zu pflegen — genau das, was der echte Importer später tun soll.
+t = performance.now()
+d.exec(`
+  CREATE VIRTUAL TABLE msg_fts USING fts5(
+    body, content='msg', content_rowid='id', tokenize='unicode61 remove_diacritics 2'
+  );
+  INSERT INTO msg_fts(msg_fts) VALUES('rebuild');
+  CREATE INDEX idx_msg_chat_ts ON msg(chat_id, ts DESC);
+`)
+d.exec('PRAGMA optimize; ANALYZE;')
+parentPort.postMessage({ type: 'phase', name: 'fts', ms: performance.now() - t })
+
+d.pragma('synchronous = NORMAL')
+
+const q1 = d.prepare(`
+  SELECT m.id, m.chat_id, m.ts FROM msg_fts f
+  JOIN msg m ON m.id = f.rowid
+  WHERE msg_fts MATCH ? ORDER BY m.ts DESC LIMIT 50`)
+const q2 = d.prepare(`
+  SELECT m.id FROM msg_fts f JOIN msg m ON m.id = f.rowid
+  WHERE msg_fts MATCH ? AND m.chat_id = ? ORDER BY m.ts DESC LIMIT 50`)
+
+for (let k = 0; k < queries; k++) {
+  const a = VOCAB[Math.floor(rand(k * 11 + 1) * VOCAB.length)]
+  const b = VOCAB[Math.floor(rand(k * 13 + 2) * VOCAB.length)]
+  const mode = rand(k * 17)
+  const t0 = performance.now()
+  if (mode < 0.5) q1.all(a)
+  else if (mode < 0.8) q1.all(`${a} AND ${b}`)
+  else q2.all(a, Math.floor(rand(k * 19) * chats))
+  parentPort.postMessage({ type: 'search', ms: performance.now() - t0 })
+}
+
+d.close()
+parentPort.postMessage({ type: 'done', sqliteVersion })
+```
+
+```json
+// bench/baseline.json — committete Schwellwerte. NIE automatisch neu erzeugen.
+{
+  "_comment": "Platzhalter. Aus den ersten drei sauberen Läufen auf der Referenzmaschine setzen, danach Änderungen wie Code reviewen.",
+  "_referenceMachine": "offen — CPU-Modell, Kerne, RAM, Plattendyp fehlen; ohne das ist die Baseline bedeutungslos",
+  "search": { "p95Max": 200 },
+  "loopLagP99Max": 16,
+  "import": { "minMsgsPerSec": 60000 },
+  "rssPeakMaxBytes": 2147483648
+}
+```
+
+**Ausdrücklich außerhalb von CI**, aus zwei Gründen, beide vom Report richtig benannt: gehostete Runner sind Shared-vCPU-Noisy-Neighbours — Zahlen würden über Läufe um 3–5× streuen, was entweder ständig falsch anschlägt oder die Schwellwerte so weit aufweicht, dass sie nie etwas fangen; und ein Lauf über 5 Mio. Nachrichten braucht Zeit, die in einem PR-Gate nicht vertretbar ist. Passender Ort ist `workflow_dispatch` auf einem **selbst gehosteten** Runner (eine feste, bekannte Maschine), nie auf `ubuntu-latest`/`windows-latest`:
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      seed: { default: '42' }
+      messages: { default: '5000000' }
+jobs:
+  load:
+    runs-on: [self-hosted, bench]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run loadtest -- --seed ${{ inputs.seed }} --messages ${{ inputs.messages }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with: { name: loadtest, path: bench/results/ }
+```
+
+**[UNGEKLÄRT, Owner-Entscheidung nötig, siehe unten]** Die Schwellwerte in `bench/baseline.json` sind reine Platzhalter — es gibt noch keine einzige Messung auf realer Hardware, und `search.p95Max: 200` ist die Zielvorgabe aus PLAN.md §3.1, keine gemessene Größe. Solange keine Referenzmaschine feststeht, ist der Harness ein Instrument ohne Skala.
+
+### 19.6 Korrektur an Abschnitt 2 dieses Dokuments
+
+**[VERIFIZIERT]** Ein Nebenbefund, der nichts mit CI zu tun hat, aber diesen Abschnitt betrifft, weil er sich aus denselben Quellen ergibt: §2 dieses Dokuments (Tabelle „Gepinnte Abhängigkeiten") listet `typescript: 7.0.2` als **[VERIFIZIERT]**. Das ist überholt — `package.json`, `ADR 0003` (Status: akzeptiert, selbes Datum 2026-08-30) und die Vorgabe dieses Auftrags pinnen übereinstimmend **TypeScript 6.0.3**, mit derselben Begründung wie in Report 07: `typescript-eslint@8.68.0` deklariert `typescript: '>=4.8.4 <6.1.0'`, TypeScript 7 hat kein stabiles Programm-API vor 7.1. §2 sollte auf 6.0.3 korrigiert werden; die einzige damit noch unentschiedene Frage ist die aus Report 07 aufgeworfene: ob ein Dual-Setup (`tsc` 7 fürs Bauen, `@typescript/typescript6` fürs Linten) je attraktiv wird — für dieses Projekt aktuell nicht angefragt und mit zwei TypeScript-Installationen mehr Komplexität, als der Nutzen rechtfertigt.
+
+### 19.7 Zusammenfassung — was zu tun ist, in Reihenfolge
+
+1. `release.yml`: macOS- und Windows-Job serialisieren, macOS auf `--publish never` — behebt die Race-Bedingung **und** den Widerspruch zu PLAN.md Zeile 41 in einem Schritt.
+2. Den `windows()`-Widerspruch mit einem einzigen temporären Log-Statement in der bestehenden E2E-Suite klären, bevor irgendeine E2E-Strategieentscheidung (Locator- vs. `evaluate()`-basiert) für spätere Phasen getroffen wird.
+3. `.nvmrc`/`engines.node` auf `24.18.1` heben, `engine-strict=true` ergänzen.
+4. `actions/cache@v6` für den toten `ELECTRON_CACHE`-Pfad nachrüsten.
+5. `no-restricted-imports` für `electron` unter `src/workers/**` in `eslint.config.mjs` ergänzen, plus einen Test, der einen Worker-Einstiegspunkt ohne jeden `electron`-Mock importiert.
+6. `tools/loadtest/` nach obigem Muster anlegen, sobald Phase 3 näher rückt — nicht vorher, aber auch nicht erst in Phase 9, damit die DoD der Phasen 3/4/7 überhaupt erfüllbar ist.
+7. §2 dieses Dokuments von `typescript 7.0.2` auf `6.0.3` korrigieren.
+8. Husky/commitlint: zurückstellen, bis das Team wächst oder die Commit-Historie automatisiert ausgewertet wird.
+
+---
+
+## 20. Sicherheitsmodell, Session und Downloads
+
+> Dieser Abschnitt wurde von Hand geschrieben. Der zuständige Agent hat zweimal Platzhalter statt
+> Inhalt geliefert (`markdown: 'test'`, beim zweiten Versuch die Ausrede „wird hier aus Platzgründen
+> nicht wiederholt"). Die Befunde stammen aus dem zugrundeliegenden Recon-Report, der sie empirisch
+> gegen Electron 44.0.0 unter Xvfb gemessen hat; wo ich sie selbst nachgeprüft habe, steht es dabei.
+
+### 20.1 Die Session lebt unter `sessionData`, nicht unter `userData`
+
+**[VERIFIZIERT]** Eine Partition `persist:wa` landet unter `<sessionData>/Partitions/wa` — der Ordnername
+ist der Teil hinter `persist:`, kleingeschrieben und prozentkodiert. `sessionData` folgt standardmäßig
+`userData`, und `userData` liegt unter Windows im **Roaming**-Profil. Ohne Eingriff synchronisiert ein
+Domänen-Profil also die gesamte WhatsApp-Session.
+
+`app.setPath('sessionData', …)` vor `ready` verschiebt den kompletten Partitionsbaum und lässt `userData`
+unangetastet. Selbst geprüft: Der E2E-Test `keeps its data under the local app directory` liest
+`session.fromPartition('persist:wa').getStoragePath()` und schlägt fehl, wenn er nicht unter dem
+erwarteten Verzeichnis liegt.
+
+### 20.2 Was in der Partition liegt — und was gelöscht werden darf
+
+**[VERIFIZIERT]** Vollständige Aufzählung nach einem Lauf, der localStorage, IndexedDB, Cache Storage,
+einen Service Worker und einen HTTP-Fetch benutzt hat:
+
+| Verzeichnis | Löschen erlaubt? |
+|---|---|
+| `Cache/Cache_Data`, `Cache/No_Vary_Search` | **ja** — reiner HTTP-Cache |
+| `Code Cache/js`, `Code Cache/wasm` | **ja** — wird neu erzeugt |
+| `GPUCache`, `DawnGraphiteCache`, `DawnWebGPUCache`, `ShaderCache` | **ja** |
+| `Cookies`, `Cookies-journal` | **nein** |
+| `IndexedDB/<origin>.indexeddb.leveldb` | **nein — neuer QR-Scan** |
+| `Local Storage/leveldb` | **nein — neuer QR-Scan** |
+| `Service Worker/` (Registrierungen, Script-Cache) | **nein** |
+| `DIPS`, `Network/` | **nein** |
+
+**Die beiden Fallen:**
+
+1. **`ses.clearCache()` ist sicher.** Gemessen: entfernt ausschließlich Dateien unter `Cache/Cache_Data`.
+   localStorage, IndexedDB, Service-Worker-Registrierungen und Cache Storage überleben unverändert.
+2. **`ses.clearData({ dataTypes: ['cache'] })` ist NICHT sicher.** Trotz des Namens löscht es zusätzlich
+   die Cache Storage (den Precache des Service Workers), den SW-Script-Cache und den V8-Code-Cache.
+   Gemessen: `caches.keys()` lieferte danach `[]`. Die Session überlebt zwar (Registrierung, localStorage
+   und IndexedDB bleiben), aber WhatsApp lädt seine komplette App-Shell neu. **Kein Wartungsaufruf.**
+
+**[VERIFIZIERT]** `clearStorageData(options).quotas` wurde in **Electron 42 entfernt** (Chromium-seitig).
+Übrig bleibt `storages` mit exakt: `cookies`, `filesystem`, `indexdb`, `localstorage`, `shadercache`,
+`serviceworkers`, `cachestorage`. Für die WA-Partition ist davon **nur `shadercache`** unbedenklich.
+
+**Warum Löschen so teuer ist:** WhatsApps Sitzungsmaterial liegt in localStorage **und** IndexedDB, und
+beide sind kryptografisch gekoppelt. Die IndexedDB `wawc_db_enc` (Store `keys`) hält `CryptoKey`-Objekte,
+die aber nur HKDF-*Eingaben* sind; der `info`-Parameter steht in localStorage unter `WebEncKeySalt`.
+Eines von beiden zu löschen macht das andere wertlos. **[RECON]**
+
+### 20.3 `sandbox: true` kostet nichts, was wir brauchen
+
+**[VERIFIZIERT]** Mit `sandbox: true` und `contextIsolation: true` funktionieren `contextBridge` und
+`ipcRenderer` normal (Round-Trip `ping` → `pong` gemessen); `fs`, `path`, `os` und `child_process` sind
+hart blockiert. `webFrame.executeJavaScript` und `webFrame.executeJavaScriptInIsolatedWorld` sind
+vorhanden. Und entscheidend für Phase 3: **`webContents.executeJavaScript` wertet weiterhin im MAIN
+World der Seite aus** — Sandboxing kostet die Main-World-Injektion nicht.
+
+Ein `MutationObserver` im **isolierten** Preload-World sieht das DOM der Seite und kann es abfragen
+(der isolierte World teilt das DOM, nicht die JS-Globals). Das ist der richtige Ort für die
+Declutter-Logik: WhatsApps eigenes JavaScript kann ihn weder sehen noch aushängen.
+
+### 20.4 Zwei stille Totalausfälle, die man kennen muss
+
+**[VERIFIZIERT]** Ein `MutationObserver`, dessen Callback in den eigenen beobachteten Teilbaum schreibt,
+**legt den Renderer dauerhaft lahm**. Danach wird jedes `webContents.executeJavaScript`-Promise weder
+erfüllt noch abgelehnt. Kein Absturz, keine Konsolenmeldung. Für Phase 1 heißt das: Der Observer wird vor
+jeder eigenen DOM-Änderung getrennt und danach wieder verbunden, oder er beobachtet einen anderen Teilbaum
+als den, den er ändert.
+
+**[VERIFIZIERT]** `event.preventDefault()` in `will-download` lässt die WebContents im Ladezustand hängen,
+und jedes folgende `executeJavaScript` blockiert für immer. Zum Abbrechen eines Downloads gehört
+`item.cancel()`, nicht `preventDefault()`.
+
+### 20.5 CSS-Injektion überlebt Routenwechsel, aber kein Neuladen
+
+**[VERIFIZIERT]** `insertCSS` überlebt WhatsApps SPA-Routenwechsel (kein Dokumentwechsel), verschwindet
+aber bei jedem `reload()`. Die Injektion gehört also an `did-finish-load`, nicht in den Startpfad.
+
+**[VERIFIZIERT]** `removeInsertedCSS(key)` entfernt ein Stylesheet mit dem Standard `cssOrigin: 'author'`,
+**nicht** aber eines mit `cssOrigin: 'user'`. Wer abschaltbare Nutzer-CSS bauen will, nimmt `author`.
+
+**[VERIFIZIERT]** `web.whatsapp.com` liefert eine strenge CSP mit Script-Nonce pro Antwort und ohne
+`'unsafe-inline'`, dazu `COEP: require-corp`, `COOP: same-origin-allow-popups` und `X-Frame-Options: DENY`.
+Folgen: Ein `<script>`-Tag lässt sich **nicht** in die Seite injizieren, WhatsApp lässt sich nicht in einen
+Iframe stecken, und jede Ressource, auf die man das DOM zeigen lässt, muss same-origin bzw. CORP-sauber
+sein. `insertCSS`, der isolierte Preload-World und `executeJavaScript` sind davon nicht betroffen — sie
+laufen unterhalb der CSP.
+
+### 20.6 Berechtigungen: die leere Origin
+
+**[VERIFIZIERT, und in diesem Repo bereits repariert]** Manche CHECK-Aufrufe kommen mit **leerer**
+`requestingOrigin` — gemessen für `media`, `geolocation` und ein undokumentiertes
+`web-app-installation` während des Seitenaufbaus. Ein Handler, der auf eine Origin-Übereinstimmung
+besteht, verweigert damit stillschweigend Mikrofon und Kamera.
+
+Ich habe das im eigenen Log wiedergefunden (`permission check denied: media from`) und behoben: Die
+Handler hängen an der Partition `persist:wa`, in der genau eine Seite lebt — ein **Hauptrahmen** ohne
+auflösbare Origin kann dort nur WhatsApp sein. Unterrahmen bleiben abgelehnt, denn ein eingebetteter
+Dritter ist genau der Fall, in dem eine leere Origin nicht vertrauenswürdig ist. Nach der Reparatur:
+`media` wird nicht mehr abgelehnt, `geolocation` und `web-app-installation` weiterhin. Sechs Unit-Tests
+halten das fest.
+
+### 20.7 Spellcheck lädt Wörterbücher von Google
+
+**[VERIFIZIERT, und in diesem Repo bereits repariert]** `webPreferences.spellcheck` ist standardmäßig
+**true**, und Electron lädt die Hunspell-Wörterbücher unter Windows vom Chromium-CDN nach — also
+ausgehender Verkehr zu Google-Hosts. Das verstößt gegen „Netzwerkverkehr nur zu WhatsApp und GitHub
+Releases". Unter macOS wird der System-Speller benutzt und nichts geladen.
+
+In Phase 0 ist Spellcheck deshalb nur auf macOS aktiv. Phase 1 muss entscheiden: Wörterbücher
+mitliefern und `setSpellCheckerDictionaryDownloadURL` auf eine lokale Quelle zeigen, oder den einmaligen
+Download bewusst zulassen und im README nennen.
+
+### 20.8 Downloads: der Dateiname kommt nicht von Electron
+
+**[VERIFIZIERT]** Das ist der wichtigste Befund für Phase 2. `downloadItem.getFilename()` liefert den
+Literalstring **`"download"`** für jeden `blob:`-Download, dessen `<a download>`-Name ein
+Nicht-ASCII-Zeichen enthält:
+
+| Vorgeschlagener Name | `getFilename()` |
+|---|---|
+| `plain.pdf` | `plain.pdf` |
+| `Rechnung Q3.pdf` | `Rechnung Q3.pdf` |
+| `Mueller.pdf` | `Mueller.pdf` |
+| `Müller.pdf` | **`download`** |
+| `Ünicode.pdf`, `emoji 😀.pdf`, `日本語.pdf` | **`download`** |
+
+WhatsApp Web entschlüsselt Medien in der Seite und lädt sie über `<a download>` auf einer `blob:`-URL
+herunter — das ist also nicht der Randfall, sondern **der Normalfall**. In einem deutschsprachigen Archiv
+mit Umlauten in Dateinamen wäre praktisch jede Datei `download`, `download (1)`, `download (2)`.
+
+**Folgerung für Phase 2:** Der Dateiname muss aus dem Preload kommen (aus dem DOM, bevor der Klick den
+Download auslöst), nicht aus dem `will-download`-Event. Dasselbe gilt für die Chat-Zuordnung: Das Event
+liefert nur URL und Dateiname, keinen Chat.
+
+Weitere gemessene Eigenschaften: `getFilename()` erzwingt **keine** Längenbegrenzung (ein 304-Zeichen-Name
+lief unverändert durch) und schützt **nicht** vor reservierten Windows-Gerätenamen (`CON.pdf` → `CON.pdf`);
+es ersetzt lediglich `: ? *` durch `_` und entfernt einen führenden Punkt. Bei `blob:`-Downloads gibt es
+kein `Content-Disposition`, kein `ETag`, kein `Last-Modified`; `getTotalBytes()` stimmt,
+`hasUserGesture()` ist `true`. Das Setzen der Dateizeit über `fs.utimes` auf `item.getSavePath()`
+funktioniert wie erwartet.
+
+### 20.9 Dateinamen-Sanitizing: kein Paket reicht allein
+
+**[VERIFIZIERT]** Beide Kandidaten sind gepflegt, und beiden fehlt etwas Wesentliches:
+
+| | `filenamify@7.0.3` (MIT) | `sanitize-filename@1.6.4` (WTFPL/ISC) |
+|---|---|---|
+| NFC-Normalisierung | ja | **nein** |
+| Bidi-/Format-Zeichen (RLO-Spoofing, U+202A–202E, U+2066–2069) | ja | **nein** |
+| Reservierte Windows-Namen | ja | teilweise (kein `CONIN$`, `CONOUT$`, `COM¹`) |
+| Kürzung auf 255 **Bytes** | **nein** (zählt UTF-16-Einheiten) | ja |
+| Gesamtpfadlänge | nein | nein |
+| Führender Punkt (versteckte Datei unter macOS) | bleibt | bleibt |
+| Modulformat | ESM-only | CJS |
+
+**Empfehlung:** `filenamify` als Basis (es deckt die Spoofing- und Normalisierungsfälle ab, die man von
+Hand garantiert falsch macht), darüber eine eigene Schicht für die Byte-Kürzung auf 255, die
+Gesamtpfadlänge und den führenden Punkt. ESM-only heißt: dynamisch importieren, wie bei `electron-store`
+in `src/main/window/bounds.ts`.
+
+**[VERIFIZIERT]** Und eine Falle darunter: Node und Electron setzen unter Windows **kein** `\\?\`-Präfix
+für gewöhnliche Dateioperationen — nur für Symlink-Ziele. MAX_PATH (260) gilt also für jede Datei, die
+wir schreiben, es sei denn, wir rufen `path.toNamespacedPath()` selbst auf. Die Registry-Freischaltung
+`LongPathsEnabled` liegt unter HKLM und ist uns per Constraint verschlossen.
+
+### 20.10 DOM-Anker für die Injektion
+
+**[RECON]** Verlässlich sind IDs, ARIA-Rollen und WhatsApps eigene `data-*`-Attribute — **nicht**
+Klassennamen und **nicht** `aria-label`-Texte (die sind lokalisiert). `data-testid` existiert noch an
+einigen Stellen, wird von WhatsApp aber abgebaut. Die Werte unter `data-icon` wechseln zwischen Builds
+(`lock-outline` → `lock-refreshed`, `new-chat-outline` → `chat-new-outline`). Für die Selektoren gilt
+deshalb dasselbe wie für die Bridge: **eine versionierte Map an genau einer Stelle**, damit eine
+Umbenennung ein Einzeiler bleibt.
+
+### 20.11 Nebenbefund für CI
+
+**[VERIFIZIERT]** Electron 44 lädt sein Binary **nicht mehr im postinstall**, sondern faul beim ersten
+Aufruf; `ELECTRON_SKIP_BINARY_DOWNLOAD` gibt es nicht mehr. Das verschiebt die ~100 MB in den ersten
+`electron`-Aufruf statt in `npm ci` — relevant für Cache-Strategie und Timeouts in der Build-Matrix.

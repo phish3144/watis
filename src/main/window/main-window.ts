@@ -56,7 +56,12 @@ export function createMainWindow(options: { startMinimised: boolean }): MainWind
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      spellcheck: true,
+      // webPreferences.spellcheck defaults to TRUE, and on Windows Electron then downloads
+      // hunspell dictionaries from Chromium's CDN — outbound traffic to Google hosts, which
+      // breaks the "network only to WhatsApp and GitHub Releases" rule. macOS uses the OS
+      // speller and downloads nothing. Off until phase 1 decides between shipping dictionaries
+      // and accepting the download (PLAN.md phase 1, "Spellcheck mit mehreren Sprachen").
+      spellcheck: process.platform === 'darwin',
       // Without this Chromium throttles timers in a background window and notifications arrive
       // minutes late. Measured: a hidden view keeps its timers for at least 7 minutes with this
       // set, well past Chromium's 5-minute intensive-throttling grace period.
