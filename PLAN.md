@@ -424,11 +424,14 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 - [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
 - [x] Ringpuffer (bounded, mit Drop-Zähler), Batch-Grenze 500, Taktung alle 250 ms, überlappende
       Flushes werden übersprungen statt gestapelt
-- [ ] Initialer Import aller lokal vorhandenen Chats/Nachrichten/Kontakte, fortsetzbar, Fortschritt in `sync_state`
-- [ ] Live-Spiegelung: neue, editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
+- [~] Initialer Import als Generator über die vorhandenen Collections, in Blöcken, damit WA Web
+  bedienbar bleibt **fertig**; offen: Fortschritt in `sync_state` und Fortsetzbarkeit
+- [x] Live-Spiegelung über die Backbone-artigen Collections (`add`/`change`/`remove`): neue,
+      editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
 - [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**;
   offen: der Download über die interne Funktion und das Anlegen der Index-Jobs
-- [ ] Regeln: welche Medien automatisch geholt werden (Dokumente immer, Bilder ja, Videos ab X MB nur manuell)
+- [x] Regeln: Dokumente immer, Bilder immer, Videos nur auf Klick, harte Obergrenze; jede Ablehnung
+      nennt ihren Grund
 - [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben
 - [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
 - [~] Kein Durchreichen von Exceptions in die WA-Seite **fertig** (jeder `require` gekapselt),
