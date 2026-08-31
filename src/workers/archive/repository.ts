@@ -21,6 +21,22 @@ export interface ChatRow {
   rawJson?: string | null | undefined
 }
 
+/**
+ * One chat's backfill bookkeeping. `depthLimitTs` is what WhatsApp said it can still reach, not a
+ * figure of ours (ADR 0005 A) — so a chat whose `oldestTs` has arrived at it is finished, and one
+ * that stops earlier stopped for a reason worth showing.
+ */
+export interface SyncStateRow {
+  chatId: string
+  oldestTs?: number | null | undefined
+  newestTs?: number | null | undefined
+  backfillDone?: boolean | undefined
+  depthLimitTs?: number | null | undefined
+  priority?: number | undefined
+  lastError?: string | null | undefined
+  updatedTs?: number | null | undefined
+}
+
 export interface ContactRow {
   jid: string
   name?: string | null | undefined
@@ -406,6 +422,65 @@ export class ArchiveRepository {
       lastMsgTs: r.last_msg_ts as number | null,
       isArchived: Boolean(r.is_archived),
       rawJson: r.raw_json as string | null,
+    }))
+  }
+
+  /**
+   * Records where each chat's backfill got to. Written per batch, so a run that is interrupted —
+   * by a quit, a crash, or the user — resumes from the timestamp it reached rather than starting
+   * the chat again from the top.
+   *
+   * `oldest_ts` only ever moves backwards and `newest_ts` only forwards: a later run that fetched
+   * less must not erase what an earlier one reached.
+   */
+  saveSyncState(rows: readonly SyncStateRow[]): number {
+    const write = this.#db.prepare(
+      `INSERT INTO sync_state
+         (chat_id, oldest_ts, newest_ts, backfill_done, depth_limit_ts, priority, last_error, updated_ts)
+       VALUES (@chatId, @oldestTs, @newestTs, @backfillDone, @depthLimitTs, @priority, @lastError, @updatedTs)
+       ON CONFLICT(chat_id) DO UPDATE SET
+         oldest_ts      = MIN(IFNULL(excluded.oldest_ts, sync_state.oldest_ts),
+                              IFNULL(sync_state.oldest_ts, excluded.oldest_ts)),
+         newest_ts      = MAX(IFNULL(excluded.newest_ts, sync_state.newest_ts),
+                              IFNULL(sync_state.newest_ts, excluded.newest_ts)),
+         backfill_done  = excluded.backfill_done,
+         depth_limit_ts = IFNULL(excluded.depth_limit_ts, sync_state.depth_limit_ts),
+         priority       = excluded.priority,
+         last_error     = excluded.last_error,
+         updated_ts     = excluded.updated_ts`,
+    )
+    const now = Math.floor(Date.now() / 1000)
+    return this.#runBatch(rows, (row) =>
+      write.run({
+        chatId: row.chatId,
+        oldestTs: row.oldestTs ?? null,
+        newestTs: row.newestTs ?? null,
+        backfillDone: row.backfillDone ? 1 : 0,
+        depthLimitTs: row.depthLimitTs ?? null,
+        priority: row.priority ?? 0,
+        lastError: row.lastError ?? null,
+        updatedTs: row.updatedTs ?? now,
+      }),
+    )
+  }
+
+  /** The recorded progress, so a restart can pick the queue back up where it stopped. */
+  syncState(chatId?: string): SyncStateRow[] {
+    const sql =
+      `SELECT chat_id, oldest_ts, newest_ts, backfill_done, depth_limit_ts, priority, last_error, updated_ts
+       FROM sync_state` + (chatId ? ' WHERE chat_id = ?' : ' ORDER BY priority DESC, chat_id')
+    const rows = (
+      chatId ? this.#db.prepare(sql).all(chatId) : this.#db.prepare(sql).all()
+    ) as Record<string, unknown>[]
+    return rows.map((r) => ({
+      chatId: r.chat_id as string,
+      oldestTs: r.oldest_ts as number | null,
+      newestTs: r.newest_ts as number | null,
+      backfillDone: Boolean(r.backfill_done),
+      depthLimitTs: r.depth_limit_ts as number | null,
+      priority: r.priority as number,
+      lastError: r.last_error as string | null,
+      updatedTs: r.updated_ts as number | null,
     }))
   }
 

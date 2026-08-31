@@ -25,6 +25,7 @@ import { configureUpdater } from './updater'
 import { HealthMonitor } from './health/monitor'
 import { BridgeHost } from './bridge/host'
 import { Importer } from './archive/importer'
+import { BackfillController } from './backfill/controller'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -40,6 +41,7 @@ let uiLayer: UiLayer | undefined
 let health: HealthMonitor | undefined
 let bridge: BridgeHost | undefined
 let importer: Importer | undefined
+let backfill: BackfillController | undefined
 let stopWatchdog: (() => void) | undefined
 
 let activeChat = ''
@@ -168,6 +170,14 @@ async function bootstrap(): Promise<void> {
   })
   bridge.attach(mainWindow.wa.webContents)
 
+  backfill = new BackfillController({
+    bridge,
+    archive: (request) => supervisor.request('archive', request),
+    onChange: (snapshot) => {
+      mainWindow?.panel.webContents.send('app:backfill', snapshot)
+    },
+  })
+
   configureUpdater({ enabled: true })
 
   app.on('activate', () => {
@@ -280,6 +290,28 @@ function registerIpcHandlers(): void {
     })
   })
 
+  // The backfill only ever runs because somebody pressed start: it opens chats, and opening a chat
+  // marks it read (ADR 0006).
+  ipcMain.handle('backfill:state', () => ({
+    ...backfill?.snapshot(),
+    pauseReason: backfill?.pauseReason(),
+  }))
+
+  ipcMain.handle('backfill:start', async (_event, payload: unknown) => {
+    const args = payload as { chatIds?: unknown }
+    const chatIds = Array.isArray(args?.chatIds)
+      ? args.chatIds.filter((id): id is string => typeof id === 'string')
+      : []
+    if (!backfill) throw new Error('not ready')
+    await backfill.restore(chatIds)
+    return backfill.start()
+  })
+
+  ipcMain.handle('backfill:stop', () => {
+    backfill?.stop()
+    return true
+  })
+
   ipcMain.handle('bridge:load-older', async (_event, payload: unknown) => {
     const args = payload as { chatId?: unknown }
     if (typeof args?.chatId !== 'string') throw new Error('chatId is required')
@@ -338,6 +370,7 @@ app.on('will-quit', (event) => {
   stopWatchdog?.()
   health?.stop()
   notifications?.dispose()
+  backfill?.stop()
   bridge?.dispose()
   void importer?.stop()
   tray?.dispose()

@@ -3,6 +3,9 @@ import type { Settings, SettingsPatch } from '@shared/settings'
 import type { HealthState } from '@shared/health/degraded'
 import type { BridgeReady } from '../bridge/protocol'
 import type { ImporterStats } from '../main/archive/importer'
+import type { BackfillSnapshot } from '../main/backfill/state-machine'
+
+export type BackfillState = BackfillSnapshot & { pauseReason?: 'bridge' | 'in-use' | undefined }
 
 /** Preload for our own panel. Typed, minimal, explicit about what it exposes. */
 const api = {
@@ -24,6 +27,14 @@ const api = {
         chatId,
       }),
   },
+
+  /** The backfill. Started by the user, never on its own — see ADR 0006. */
+  backfill: {
+    state: (): Promise<BackfillState> => ipcRenderer.invoke('backfill:state'),
+    start: (chatIds: string[]): Promise<BackfillSnapshot> =>
+      ipcRenderer.invoke('backfill:start', { chatIds }),
+    stop: (): Promise<boolean> => ipcRenderer.invoke('backfill:stop'),
+  },
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('app:settings'),
   updateSettings: (patch: SettingsPatch): Promise<Settings> =>
     ipcRenderer.invoke('app:update-settings', patch),
@@ -37,6 +48,13 @@ const api = {
     }
     ipcRenderer.on('app:settings', handler)
     return () => ipcRenderer.removeListener('app:settings', handler)
+  },
+  onBackfill: (listener: (snapshot: BackfillSnapshot) => void): (() => void) => {
+    const handler = (_event: unknown, value: BackfillSnapshot): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:backfill', handler)
+    return () => ipcRenderer.removeListener('app:backfill', handler)
   },
   onBridge: (listener: (report: BridgeReady) => void): (() => void) => {
     const handler = (_event: unknown, value: BridgeReady): void => {

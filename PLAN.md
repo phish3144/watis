@@ -426,8 +426,9 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
       (geschrieben / wartend / verworfen, `MirrorStatus`)
 - [x] Ringpuffer (bounded, mit Drop-Zähler), Batch-Grenze 500, Taktung alle 250 ms, überlappende
       Flushes werden übersprungen statt gestapelt
-- [~] Initialer Import als Generator über die vorhandenen Collections, in Blöcken, damit WA Web
-  bedienbar bleibt **fertig**; offen: Fortschritt in `sync_state` und Fortsetzbarkeit
+- [x] Initialer Import als Generator über die vorhandenen Collections, in Blöcken, damit WA Web
+      bedienbar bleibt; Fortschritt pro Chat in `sync_state`, `oldest_ts` wandert nur zurück und
+      `newest_ts` nur vor — ein späterer Lauf darf nicht löschen, was ein früherer erreicht hat
 - [x] Live-Spiegelung über die Backbone-artigen Collections (`add`/`change`/`remove`): neue,
       editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
 - [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**;
@@ -487,10 +488,12 @@ WhatsApp Web hergibt.
 - [x] Priorisierung: Reihenfolge durch den Aufrufer, `prioritise()` stellt einen Chat manuell oben an
 - [x] **Grenze zur Laufzeit gelesen, nirgends hart kodiert** — die Maschine fragt sie ab und meldet
       „unbekannt", wenn die Bridge nicht antwortet, statt eine Zahl zu erfinden
-- [ ] UI: ehrliche Fortschrittsanzeige. Kein Balken, der bei der Decke stehenbleibt und Vollständigkeit
-      suggeriert – die UI nennt das erreichbare Datum und sagt, dass die Grenze von WhatsApp kommt
-- [ ] `depth_limit_ts` bleibt im Schema (Begrenzung nach unten bleibt möglich), wird aber nicht mehr als
-      Tiefenregler beworben – nach oben gibt es nichts zu regeln
+- [x] UI: ehrliche Fortschrittsanzeige — kein Balken, weil es keine ehrliche Gesamtzahl gibt. Gezählt
+      wird das Geholte, genannt wird das erreichbare Datum und woher die Grenze kommt; steht der Lauf,
+      sagt die UI warum (kein Bridge-Kontakt oder „du sitzt gerade davor")
+- [x] `depth_limit_ts` bleibt im Schema und wird pro Chat mitgeschrieben (Begrenzung nach unten bleibt
+      möglich), wird aber nicht mehr als Tiefenregler beworben – nach oben gibt es nichts zu regeln.
+      Ein späterer Schreibvorgang ohne Antwort überschreibt den letzten echten Wert nicht mit „unbekannt"
 
 **DoD:** Der Erstsync landet vollständig im Archiv, das Nachziehen erreicht in fünf Stichproben-Chats
 nachweislich den Boden, und ein Neustart mitten im Lauf verliert nichts. Die UI zeigt dem Nutzer das

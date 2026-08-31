@@ -52,6 +52,10 @@ function handle(payload: unknown): unknown {
       return { messages: repo.contextAround(request.msgId, request.radius) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
+    case 'saveSyncState':
+      return { written: repo.saveSyncState(request.rows) }
+    case 'syncState':
+      return { rows: repo.syncState(request.chatId) }
     case 'stats':
       return repo.stats() satisfies ArchiveStats
     case 'snapshot':

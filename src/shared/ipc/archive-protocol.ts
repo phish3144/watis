@@ -84,6 +84,23 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   }),
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
   z.object({ op: z.literal('stats') }),
+  z.object({
+    op: z.literal('saveSyncState'),
+    rows: z
+      .array(
+        z.object({
+          chatId: z.string().min(1),
+          oldestTs: z.number().int().nullable().optional(),
+          newestTs: z.number().int().nullable().optional(),
+          backfillDone: z.boolean().optional(),
+          depthLimitTs: z.number().int().nullable().optional(),
+          priority: z.number().int().optional(),
+          lastError: z.string().nullable().optional(),
+        }),
+      )
+      .max(MAX_BATCH),
+  }),
+  z.object({ op: z.literal('syncState'), chatId: z.string().min(1).optional() }),
   z.object({ op: z.literal('snapshot'), toFile: z.string().min(1) }),
 ])
 

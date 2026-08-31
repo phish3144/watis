@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../api'
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
+import { BackfillPanel } from '../components/BackfillPanel'
 
 /**
  * The archive view: chat list, virtualised message list, search.
@@ -284,27 +285,34 @@ export function ArchivePanel(): React.JSX.Element {
 
   return (
     <div className="flex h-full min-h-0 gap-3">
-      <aside className="flex w-56 shrink-0 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
-        {chats.map((chat) => (
-          <button
-            key={chat.id}
-            type="button"
-            onClick={() => {
-              setChatId(chat.id)
-            }}
-            className={`truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
-              chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
-            }`}
-          >
-            {chat.name ?? chat.id}
-          </button>
-        ))}
-        {chats.length === 0 && (
-          <p className="p-3 text-sm text-wa-muted">
-            Noch nichts archiviert. Das Archiv füllt sich, sobald die Bridge läuft.
-          </p>
-        )}
-      </aside>
+      <div className="flex w-56 shrink-0 flex-col gap-2">
+        <aside className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
+          {chats.map((chat) => (
+            <button
+              key={chat.id}
+              type="button"
+              onClick={() => {
+                setChatId(chat.id)
+              }}
+              className={`truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
+                chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
+              }`}
+            >
+              {chat.name ?? chat.id}
+            </button>
+          ))}
+          {chats.length === 0 && (
+            <p className="p-3 text-sm text-wa-muted">
+              Noch nichts archiviert. Das Archiv füllt sich, sobald die Bridge läuft.
+            </p>
+          )}
+        </aside>
+
+        <details className="shrink-0 rounded-lg border border-wa-hairline">
+          <summary className="cursor-pointer px-3 py-2 text-xs">Nachladen</summary>
+          <BackfillPanel chats={chats} />
+        </details>
+      </div>
 
       <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <div className="flex gap-2">

@@ -2,6 +2,11 @@ import type { Settings, SettingsPatch } from '@shared/settings'
 import type { HealthState } from '@shared/health/degraded'
 import type { BridgeReady } from '../../bridge/protocol'
 import type { ImporterStats } from '../../main/archive/importer'
+import type { BackfillSnapshot } from '../../main/backfill/state-machine'
+
+export type BackfillState = BackfillSnapshot & {
+  pauseReason?: 'bridge' | 'in-use' | undefined
+}
 
 export interface Versions {
   app: string
@@ -60,11 +65,17 @@ export interface WatIsApi {
     openChat(chatId: string, msgId?: string): Promise<unknown>
     loadOlder(chatId: string): Promise<unknown>
   }
+  backfill: {
+    state(): Promise<BackfillState>
+    start(chatIds: string[]): Promise<BackfillSnapshot>
+    stop(): Promise<boolean>
+  }
   getSettings(): Promise<Settings>
   updateSettings(patch: SettingsPatch): Promise<Settings>
   onSettings(listener: (settings: Settings) => void): () => void
   onHealth(listener: (state: HealthState) => void): () => void
   onBridge(listener: (report: BridgeReady) => void): () => void
+  onBackfill(listener: (snapshot: BackfillSnapshot) => void): () => void
   onUnread(listener: (counts: UnreadCounts) => void): () => void
 }
 
