@@ -106,6 +106,15 @@ export class TrayController {
           },
         },
         {
+          label: 'Inhaltsindex pausieren',
+          type: 'checkbox',
+          checked: config.indexPaused,
+          click: (item) => {
+            updateSettings({ indexPaused: item.checked })
+            this.rebuildMenu()
+          },
+        },
+        {
           label: 'Ruhezeit aktiv',
           type: 'checkbox',
           checked: config.dndEnabled,

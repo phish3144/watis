@@ -522,8 +522,9 @@ im Leerlauf, ohne die Bedienung zu bremsen.
 
 - [x] Job-Queue aus `index_jobs`: Prioritäten (neu vor alt, Dokumente vor Bildern), Retry mit Backoff,
       `skipped` für ungeeignete Dateien, Wiederaufnahme hängengebliebener Jobs nach einem Absturz
-- [~] Leerlauf-Steuerung als Policy **fertig** (Inaktivität, Netzstrom, Pause-Schalter, Parallelität,
-  und eine Begründung für die UI, warum die Queue steht); offen: die Anbindung an `powerMonitor` und den Tray
+- [x] Leerlauf-Steuerung als Policy und angebunden: `powerMonitor` liefert Inaktivität und Netzstrom,
+      der Tray schaltet die Pause, main schiebt beides alle 5 s in den Worker — der Worker entscheidet,
+      rät aber nicht. Die Begründung steht in der UI, wenn die Queue steht
 - [x] Engine-Interface mit Zeilen, Boxen, Seiten und Zeitmarken; Klassifikation entscheidet Quelle und
       Priorität; Text/CSV/Markdown werden ohne Engine gelesen
 - [x] OCR über **tesseract.js** statt PP-OCRv5 ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)):

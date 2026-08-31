@@ -3,6 +3,7 @@ import { MessageChannelMain, utilityProcess } from 'electron'
 import type { MessagePortMain, UtilityProcess } from 'electron'
 import { parseWorkerMessage, type HostToWorker, type WorkerName } from '@shared/ipc/worker-protocol'
 import { appPaths } from '../paths'
+import { resourcePath } from '../resources'
 import { log } from '../logging'
 
 /**
@@ -76,6 +77,10 @@ export class WorkerSupervisor {
         WATIS_ARCHIVE_DIR: appPaths().archive,
         WATIS_BLOBS_DIR: appPaths().blobs,
         WATIS_MODELS_DIR: appPaths().models,
+        // The OCR language data ships with the application rather than living in the user's data
+        // directory: it is read-only, identical for everyone, and downloading it would be traffic
+        // to a host the project does not allow.
+        WATIS_TESSDATA_DIR: resourcePath('tessdata'),
       },
     })
 

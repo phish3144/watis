@@ -45,6 +45,15 @@ export const settingsSchema = z.object({
   /** ~/Downloads/WhatsApp/<Chat>/<YYYY-MM-DD>_<Name> */
   sortDownloadsByChat: z.boolean(),
   notifyOnDownload: z.boolean(),
+
+  // --- Inhaltsindex ------------------------------------------------------
+  /** The tray's pause switch for OCR and text extraction. */
+  indexPaused: z.boolean(),
+  /** Seconds of inactivity before indexing starts. */
+  indexIdleThresholdSeconds: z.number().int().min(5).max(3600),
+  /** Index on battery too. Off by default: OCR is the most expensive thing the app does. */
+  indexOnBattery: z.boolean(),
+  indexConcurrency: z.number().int().min(1).max(4),
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -77,6 +86,11 @@ export const defaultSettings: Settings = {
   downloadDir: '',
   sortDownloadsByChat: true,
   notifyOnDownload: true,
+
+  indexPaused: false,
+  indexIdleThresholdSeconds: 60,
+  indexOnBattery: false,
+  indexConcurrency: 1,
 }
 
 /** Merges a stored object with the defaults, dropping anything that does not validate. */

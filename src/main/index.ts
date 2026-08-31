@@ -26,6 +26,7 @@ import { HealthMonitor } from './health/monitor'
 import { BridgeHost } from './bridge/host'
 import { Importer } from './archive/importer'
 import { BackfillController } from './backfill/controller'
+import { startIndexSignals } from './index-signals'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -43,6 +44,7 @@ let bridge: BridgeHost | undefined
 let importer: Importer | undefined
 let backfill: BackfillController | undefined
 let stopWatchdog: (() => void) | undefined
+let stopIndexSignals: (() => void) | undefined
 
 let activeChat = ''
 let pendingDownloadName: string | undefined
@@ -178,6 +180,8 @@ async function bootstrap(): Promise<void> {
     },
   })
 
+  stopIndexSignals = startIndexSignals(supervisor)
+
   configureUpdater({ enabled: true })
 
   app.on('activate', () => {
@@ -267,6 +271,13 @@ function registerIpcHandlers(): void {
   // Backpressure, so the panel can show a mirror that is falling behind instead of silently
   // dropping events (PLAN.md Phase 3).
   ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
+
+  ipcMain.handle('app:index-status', () => supervisor.request('contentIndex', { op: 'status' }))
+  ipcMain.handle('app:reindex', (_event, payload: unknown) => {
+    const kind = (payload as { kind?: unknown })?.kind
+    if (typeof kind !== 'string') throw new Error('kind is required')
+    return supervisor.request('contentIndex', { op: 'reindex', kind })
+  })
 
   // The initial mirror is a user action, not something that runs on its own at startup: it walks
   // every collection WhatsApp has in memory and the user should decide when to pay for that.
@@ -368,6 +379,7 @@ app.on('will-quit', (event) => {
   event.preventDefault()
   shuttingDown = true
   stopWatchdog?.()
+  stopIndexSignals?.()
   health?.stop()
   notifications?.dispose()
   backfill?.stop()
