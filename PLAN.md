@@ -561,7 +561,12 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 ### Phase 9 – Hardening & Release (M)
 
-- [ ] Auto-Update über GitHub Releases, Session-, Archiv- und Blob-Verzeichnis vom Update unberührt (E2E-Test)
+- [~] Auto-Update über GitHub Releases **fertig**; Session-, Archiv- und Blob-Verzeichnis vom Update
+  unberührt **per E2E belegt** (`test/e2e/update.spec.ts`): der Anwendungsordner wird gelöscht und aus
+  einer neuen Version wieder aufgebaut, danach ist der Datenbaum byteweise identisch — ausgenommen
+  ausdrücklich nur die Wegwerf-Caches (HTTP, GPU, Code) und LevelDBs eigene Diagnosedateien.
+  IndexedDB, Local Storage und Service-Worker-Registrierungen werden streng verglichen;
+  offen: der Lauf gegen einen echten NSIS-Installer unter Windows
 - [~] Storage-Übersicht als Berechnung **fertig** — Archiv und Medien sind ausdrücklich **nicht**
   löschbar markiert, der Browser-Cache schon; offen: die Anbindung an die echten Verzeichnisse
 - [ ] Lasttest-Suite als Release-Gate (§8): Import, Suche p50/p95, Event-Loop-Lag, Speicher, Index-Durchsatz
