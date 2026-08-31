@@ -6,6 +6,7 @@ import { NumberField, Row, Section, TextField, TimeField, Toggle } from './compo
 import { ArchivePanel } from './archive/ArchivePanel'
 import { HealthBanner } from './components/HealthBanner'
 import { MirrorStatus } from './components/MirrorStatus'
+import { StoragePanel } from './components/StoragePanel'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -413,6 +414,115 @@ export function App(): React.JSX.Element {
               {t('files.scheme')}:{' '}
               <span className="break-all font-mono text-slate-400">{downloadScheme}</span>
             </div>
+          </Section>
+
+          <Section title={t('section.index')}>
+            <Row
+              label={t('index.paused')}
+              hint={t('index.paused.hint')}
+              control={
+                <Toggle
+                  label={t('index.paused')}
+                  checked={settings.indexPaused}
+                  onChange={(indexPaused) => {
+                    patch({ indexPaused })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('index.idle')}
+              hint={t('index.idle.hint')}
+              control={
+                <NumberField
+                  label={t('index.idle')}
+                  value={settings.indexIdleThresholdSeconds}
+                  min={5}
+                  max={3600}
+                  step={5}
+                  onChange={(indexIdleThresholdSeconds) => {
+                    patch({ indexIdleThresholdSeconds })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('index.battery')}
+              hint={t('index.battery.hint')}
+              control={
+                <Toggle
+                  label={t('index.battery')}
+                  checked={settings.indexOnBattery}
+                  onChange={(indexOnBattery) => {
+                    patch({ indexOnBattery })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('index.concurrency')}
+              control={
+                <NumberField
+                  label={t('index.concurrency')}
+                  value={settings.indexConcurrency}
+                  min={1}
+                  max={4}
+                  step={1}
+                  onChange={(indexConcurrency) => {
+                    patch({ indexConcurrency })
+                  }}
+                />
+              }
+            />
+          </Section>
+
+          <Section title={t('section.backup')}>
+            <Row
+              label={t('backup.enabled')}
+              hint={t('backup.enabled.hint')}
+              control={
+                <Toggle
+                  label={t('backup.enabled')}
+                  checked={settings.scheduledExportEnabled}
+                  onChange={(scheduledExportEnabled) => {
+                    patch({ scheduledExportEnabled })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('backup.dir')}
+              control={
+                <TextField
+                  label={t('backup.dir')}
+                  value={settings.scheduledExportDir}
+                  width="w-52"
+                  onChange={(scheduledExportDir) => {
+                    patch({ scheduledExportDir })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('backup.every')}
+              control={
+                <NumberField
+                  label={t('backup.every')}
+                  value={settings.scheduledExportEveryHours}
+                  min={1}
+                  max={336}
+                  step={1}
+                  onChange={(scheduledExportEveryHours) => {
+                    patch({ scheduledExportEveryHours })
+                  }}
+                />
+              }
+            />
+            <p className="pt-1 text-[11px] text-slate-500">{t('backup.restore.hint')}</p>
+          </Section>
+
+          <Section title={t('section.storage')}>
+            <StoragePanel />
           </Section>
 
           <Section title={t('section.status')}>

@@ -4,6 +4,14 @@ import type { HealthState } from '@shared/health/degraded'
 import type { BridgeReady } from '../bridge/protocol'
 import type { ImporterStats } from '../main/archive/importer'
 import type { BackfillSnapshot } from '../main/backfill/state-machine'
+import type { StorageOverview } from '@shared/extras/storage-overview'
+
+export interface ExportScheduleState {
+  lastRunMs?: number
+  lastError?: string
+  lastResult?: { chats: number; messages: number }
+  nextDueMs?: number
+}
 
 export type BackfillState = BackfillSnapshot & { pauseReason?: 'bridge' | 'in-use' | undefined }
 
@@ -16,6 +24,18 @@ const api = {
   getPaths: (): Promise<Record<string, string>> => ipcRenderer.invoke('app:paths'),
   getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
+  getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
+  clearCaches: (): Promise<StorageOverview> => ipcRenderer.invoke('app:clear-caches'),
+  getIndexStatus: (): Promise<unknown> => ipcRenderer.invoke('app:index-status'),
+  reindex: (kind: string): Promise<unknown> => ipcRenderer.invoke('app:reindex', { kind }),
+
+  /** Export and backup. Both run in the archive worker; main only relays. */
+  exportSchedule: {
+    state: (): Promise<ExportScheduleState | null> => ipcRenderer.invoke('app:export-schedule'),
+    runNow: (): Promise<boolean> => ipcRenderer.invoke('app:export-now'),
+  },
+  backup: (targetDir: string, includeBlobs = true): Promise<unknown> =>
+    ipcRenderer.invoke('app:backup', { targetDir, includeBlobs }),
 
   /** The three read-only bridge commands the UI may ask for. Nothing here writes. */
   bridge: {

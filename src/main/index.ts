@@ -28,6 +28,8 @@ import { Importer } from './archive/importer'
 import { BackfillController } from './backfill/controller'
 import { startIndexSignals } from './index-signals'
 import { MediaFetcher } from './archive/media-fetcher'
+import { ExportSchedule } from './export/schedule'
+import { clearDisposableCaches, measureStorage } from './storage/overview'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -45,6 +47,7 @@ let bridge: BridgeHost | undefined
 let importer: Importer | undefined
 let backfill: BackfillController | undefined
 let mediaFetcher: MediaFetcher | undefined
+let exportSchedule: ExportSchedule | undefined
 let stopWatchdog: (() => void) | undefined
 let stopIndexSignals: (() => void) | undefined
 
@@ -188,6 +191,11 @@ async function bootstrap(): Promise<void> {
   })
   mediaFetcher.start()
 
+  exportSchedule = new ExportSchedule({
+    archive: (request) => supervisor.request('archive', request),
+  })
+  void exportSchedule.start()
+
   stopIndexSignals = startIndexSignals(supervisor)
 
   configureUpdater({ enabled: true })
@@ -279,6 +287,25 @@ function registerIpcHandlers(): void {
   // Backpressure, so the panel can show a mirror that is falling behind instead of silently
   // dropping events (PLAN.md Phase 3).
   ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
+
+  ipcMain.handle('app:storage', () => measureStorage())
+  ipcMain.handle('app:clear-caches', async () => {
+    await clearDisposableCaches()
+    return measureStorage()
+  })
+
+  ipcMain.handle('app:export-schedule', () => exportSchedule?.state() ?? null)
+  ipcMain.handle('app:export-now', () => exportSchedule?.tick(true) ?? false)
+
+  ipcMain.handle('app:backup', async (_event, payload: unknown) => {
+    const args = payload as { targetDir?: unknown; includeBlobs?: unknown }
+    if (typeof args?.targetDir !== 'string') throw new Error('targetDir is required')
+    return supervisor.request('archive', {
+      op: 'backup',
+      targetDir: args.targetDir,
+      includeBlobs: args.includeBlobs !== false,
+    })
+  })
 
   ipcMain.handle('app:media-stats', () => mediaFetcher?.stats() ?? null)
 
@@ -403,6 +430,7 @@ app.on('will-quit', (event) => {
   notifications?.dispose()
   backfill?.stop()
   mediaFetcher?.stop()
+  exportSchedule?.stop()
   bridge?.dispose()
   void importer?.stop()
   tray?.dispose()

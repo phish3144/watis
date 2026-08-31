@@ -14,6 +14,9 @@ const de = {
   'section.input': 'Eingabe',
   'section.files': 'Dateien',
   'section.status': 'Status',
+  'section.index': 'Inhaltsindex',
+  'section.backup': 'Export und Sicherung',
+  'section.storage': 'Speicherplatz',
 
   'window.closeToTray': 'Schließen minimiert in den Tray',
   'window.closeToTray.hint':
@@ -63,6 +66,25 @@ const de = {
   'status.down': 'nicht bereit',
   'status.versions': 'Versionen',
   'status.paths': 'Speicherorte',
+
+  'index.paused': 'Inhaltsindex pausieren',
+  'index.paused.hint':
+    'Texterkennung und PDF-Auswertung stehen still. Der Schalter liegt auch im Tray.',
+  'index.idle': 'Erst nach Inaktivität starten',
+  'index.idle.hint': 'Sekunden ohne Eingabe, bevor der Index loslegt.',
+  'index.battery': 'Auch im Akkubetrieb indizieren',
+  'index.battery.hint': 'Aus, weil Texterkennung das Teuerste ist, was die App tut.',
+  'index.concurrency': 'Gleichzeitige Jobs',
+
+  'backup.enabled': 'Zeitgesteuert exportieren',
+  'backup.enabled.hint':
+    'Legt lesbare Dateien in einen Ordner, den dann restic, rsync oder ein Sync-Laufwerk abholt.',
+  'backup.dir': 'Zielordner',
+  'backup.every': 'Alle wie viel Stunden',
+  'backup.formats': 'Formate',
+  'backup.restore': 'Zurückspielen',
+  'backup.restore.hint':
+    'Eine Sicherung wird in dieser App geöffnet, nicht in WhatsApp. Ein Zurückspielen nach WhatsApp gibt es nicht — WhatsApp bietet dafür keinen Weg an.',
 
   'health.whatsapp-offline': 'WhatsApp Web ist nicht verbunden. Das Archiv wächst gerade nicht.',
   'health.phone-offline':

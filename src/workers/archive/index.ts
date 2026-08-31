@@ -7,6 +7,7 @@ import { connectToHost } from '../shared/host-channel'
 import { openArchive } from './db'
 import { ArchiveRepository } from './repository'
 import { BlobStore } from './blob-store'
+import { runExport, runBackup } from './backup'
 
 /**
  * The archive worker: SQLite (WAL), FTS5 and export.
@@ -87,6 +88,14 @@ async function handle(payload: unknown): Promise<unknown> {
       return { media: repo.pendingMedia(request.limit) }
     case 'quota':
       return blobs ? blobs.quota(repo.stats().databaseBytes) : null
+    case 'export': {
+      if (!blobs) throw new Error('the blob store is not open')
+      return runExport(repo, blobs, request)
+    }
+    case 'backup': {
+      if (!blobs) throw new Error('the blob store is not open')
+      return runBackup(repo, blobs, request)
+    }
     case 'snapshot':
       // VACUUM INTO writes a defragmented copy without locking out readers for the duration.
       repo.snapshot(request.toFile)

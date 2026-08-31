@@ -118,6 +118,20 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('pendingMedia'), limit: z.number().int().min(1).max(500).default(50) }),
   z.object({ op: z.literal('quota') }),
   z.object({ op: z.literal('snapshot'), toFile: z.string().min(1) }),
+  z.object({
+    op: z.literal('export'),
+    targetDir: z.string().min(1),
+    formats: z.array(z.enum(['json', 'html', 'txt'])).min(1),
+    /** Only what is new since the last run, tracked in a state file beside the export. */
+    incremental: z.boolean().default(true),
+    chatIds: z.array(z.string().min(1)).optional(),
+  }),
+  z.object({
+    op: z.literal('backup'),
+    targetDir: z.string().min(1),
+    /** Media too. Off means database only — much smaller, and still fully searchable text. */
+    includeBlobs: z.boolean().default(true),
+  }),
 ])
 
 export type ArchiveRequest = z.infer<typeof archiveRequestSchema>

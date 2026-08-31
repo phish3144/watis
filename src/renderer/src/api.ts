@@ -3,6 +3,10 @@ import type { HealthState } from '@shared/health/degraded'
 import type { BridgeReady } from '../../bridge/protocol'
 import type { ImporterStats } from '../../main/archive/importer'
 import type { BackfillSnapshot } from '../../main/backfill/state-machine'
+import type { StorageOverview } from '@shared/extras/storage-overview'
+import type { ExportScheduleState } from '../../preload/app'
+
+export type { ExportScheduleState }
 
 export type BackfillState = BackfillSnapshot & {
   pauseReason?: 'bridge' | 'in-use' | undefined
@@ -60,6 +64,15 @@ export interface WatIsApi {
   getPaths(): Promise<Record<string, string>>
   getHealth(): Promise<HealthState>
   getImportStats(): Promise<ImporterStats | null>
+  getStorage(): Promise<StorageOverview>
+  clearCaches(): Promise<StorageOverview>
+  getIndexStatus(): Promise<unknown>
+  reindex(kind: string): Promise<unknown>
+  exportSchedule: {
+    state(): Promise<ExportScheduleState | null>
+    runNow(): Promise<boolean>
+  }
+  backup(targetDir: string, includeBlobs?: boolean): Promise<unknown>
   bridge: {
     snapshot(): Promise<unknown>
     openChat(chatId: string, msgId?: string): Promise<unknown>

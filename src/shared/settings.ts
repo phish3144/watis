@@ -54,6 +54,18 @@ export const settingsSchema = z.object({
   /** Index on battery too. Off by default: OCR is the most expensive thing the app does. */
   indexOnBattery: z.boolean(),
   indexConcurrency: z.number().int().min(1).max(4),
+
+  // --- Export und Backup -------------------------------------------------
+  /** Timed export into a folder something like restic or rsync then picks up. */
+  scheduledExportEnabled: z.boolean(),
+  scheduledExportDir: z.string(),
+  scheduledExportFormats: z.array(z.enum(['json', 'html', 'txt'])).min(1),
+  /** Hours between runs. Daily by default; anything shorter is churn for no gain. */
+  scheduledExportEveryHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 14),
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -91,6 +103,11 @@ export const defaultSettings: Settings = {
   indexIdleThresholdSeconds: 60,
   indexOnBattery: false,
   indexConcurrency: 1,
+
+  scheduledExportEnabled: false,
+  scheduledExportDir: '',
+  scheduledExportFormats: ['json'],
+  scheduledExportEveryHours: 24,
 }
 
 /** Merges a stored object with the defaults, dropping anything that does not validate. */

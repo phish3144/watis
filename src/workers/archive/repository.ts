@@ -525,6 +525,91 @@ export class ArchiveRepository {
       .run(sha256, size, mediaId)
   }
 
+  /**
+   * A whole chat for the export, messages oldest-first with their media attached.
+   *
+   * `since` makes the run incremental. The cap is not optional: an export of a chat with a million
+   * messages has to be paged like everything else, and the caller loops until it gets less than a
+   * full page (§3.1, "Alles laden gibt es nicht").
+   */
+  chatForExport(
+    chatId: string,
+    options: { since?: number | undefined; limit?: number; afterId?: string | undefined } = {},
+  ): { chat: ChatRow | undefined; messages: (MessageRow & { media?: MediaRow | null })[] } {
+    const chat = this.chats(1000).find((c) => c.id === chatId)
+    const limit = Math.min(options.limit ?? 1000, 5000)
+
+    const rows = this.#db
+      .prepare(
+        `SELECT m.id, m.chat_id, m.sender_jid, m.ts, m.kind, m.body, m.quoted_id, m.media_id,
+                m.edited, m.revoked, m.from_me, m.raw_json,
+                d.id AS media_row_id, d.mime AS media_mime, d.size AS media_size,
+                d.sha256 AS media_sha256, d.filename AS media_filename, d.status AS media_status
+         FROM messages m
+         LEFT JOIN media d ON d.id = m.media_id
+         WHERE m.chat_id = @chatId
+           AND m.ts > @since
+           AND (@afterId IS NULL OR (m.ts, m.id) > (
+                 SELECT ts, id FROM messages WHERE id = @afterId))
+         ORDER BY m.ts ASC, m.id ASC
+         LIMIT @limit`,
+      )
+      .all({
+        chatId,
+        since: options.since ?? -1,
+        afterId: options.afterId ?? null,
+        limit,
+      }) as Record<string, unknown>[]
+
+    return {
+      chat,
+      messages: rows.map((r) => ({
+        id: r.id as string,
+        chatId: r.chat_id as string,
+        senderJid: r.sender_jid as string | null,
+        ts: r.ts as number,
+        kind: r.kind as string | null,
+        body: r.body as string | null,
+        quotedId: r.quoted_id as string | null,
+        mediaId: r.media_id as string | null,
+        edited: Boolean(r.edited),
+        revoked: Boolean(r.revoked),
+        fromMe: Boolean(r.from_me),
+        rawJson: r.raw_json as string | null,
+        media: r.media_row_id
+          ? {
+              id: r.media_row_id as string,
+              mime: r.media_mime as string | null,
+              size: r.media_size as number | null,
+              sha256: r.media_sha256 as string | null,
+              filename: r.media_filename as string | null,
+              status: r.media_status as MediaRow['status'],
+            }
+          : null,
+      })),
+    }
+  }
+
+  /** Every media row a backup has to account for — with its id, so the report can name what failed. */
+  mediaForBackup(): MediaRow[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT id, msg_id, chat_id, mime, size, sha256, filename, status
+         FROM media WHERE status IN ('done', 'failed') ORDER BY rowid`,
+      )
+      .all() as Record<string, unknown>[]
+    return rows.map((r) => ({
+      id: r.id as string,
+      msgId: r.msg_id as string | null,
+      chatId: r.chat_id as string | null,
+      mime: r.mime as string | null,
+      size: r.size as number | null,
+      sha256: r.sha256 as string | null,
+      filename: r.filename as string | null,
+      status: r.status as MediaRow['status'],
+    }))
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number

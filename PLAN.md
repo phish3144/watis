@@ -510,11 +510,17 @@ Ziel: Das Archiv ist ein echtes, offenes Backup.
       TXT im Stil des WA-eigenen Exports (`[dd.mm.yy, hh:mm] Name: Text`)
 - [x] Medien beim Export in lesbare Chat-Ordner materialisiert: Hardlink, sonst Kopie — ein Export,
       der scheitert, ist schlimmer als einer, der länger dauert
-- [~] Inkrementeller Export (nur Neues seit letztem Lauf) **fertig**, `VACUUM INTO` im Repository
-  **fertig**; offen: den Blob-Store in den Snapshot einbeziehen
+- [x] Inkrementeller Export (nur Neues seit letztem Lauf), `VACUUM INTO` und der Blob-Store im
+      Snapshot: `runBackup` legt `archive.sqlite`, `blobs/` und `BACKUP.json` ab — der Bericht nennt,
+      was **nicht** drin ist, denn eine Datenbank ohne ihre Blobs stellt ein Archiv voller toter
+      Verweise wieder her
 - [x] Integritätsprüfung: Zähler, fehlende Blobs und Datensätze ohne Hash getrennt ausgewiesen
-- [ ] Zeitgesteuerter Export in einen Zielordner (z. B. für restic/rsync)
-- [ ] Dokumentation: „Restore" = Archivansicht; ein Zurückspielen in WhatsApp gibt es nicht
+- [x] Zeitgesteuerter Export in einen Zielordner (z. B. für restic/rsync). Der Zeitplan prüft alle
+      paar Minuten, ob genug Zeit vergangen ist, statt einen langen Timer zu stellen — ein langer
+      Timer geht bei jedem Ruhezustand daneben, und „daneben" heißt: eine Sicherung, die
+      stillschweigend nie lief
+- [x] Dokumentation: [`docs/backup-und-restore.md`](docs/backup-und-restore.md) — „Restore" heißt
+      Archivansicht; ein Zurückspielen in WhatsApp gibt es nicht und kann es nicht geben
 
 **DoD:** Snapshot auf zweitem Rechner in der App öffnen → alles lesbar und durchsuchbar.
 
@@ -567,8 +573,10 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
   ausdrücklich nur die Wegwerf-Caches (HTTP, GPU, Code) und LevelDBs eigene Diagnosedateien.
   IndexedDB, Local Storage und Service-Worker-Registrierungen werden streng verglichen;
   offen: der Lauf gegen einen echten NSIS-Installer unter Windows
-- [~] Storage-Übersicht als Berechnung **fertig** — Archiv und Medien sind ausdrücklich **nicht**
-  löschbar markiert, der Browser-Cache schon; offen: die Anbindung an die echten Verzeichnisse
+- [x] Storage-Übersicht an die echten Verzeichnisse angebunden — Archiv und Medien ausdrücklich
+      **nicht** löschbar, der Browser-Cache schon. Geleert wird über `clearCache()` mit
+      ausdrücklicher Liste, nie über `clearStorageData()`: das nähme Cookies, IndexedDB und Local
+      Storage gleich mit, und damit die Anmeldung
 - [ ] Lasttest-Suite als Release-Gate (§8): Import, Suche p50/p95, Event-Loop-Lag, Speicher, Index-Durchsatz
 - [x] Fehlerpfade: WA Web offline, Handy offline, Bridge tot, Festplatte voll, Archiv gesperrt —
       `shared/health/degraded.ts` bildet Störung auf verlorene Fähigkeit ab, `main/health/monitor.ts`
