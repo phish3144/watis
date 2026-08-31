@@ -501,11 +501,12 @@ Ziel: Das Archiv ist ein echtes, offenes Backup.
 Ziel: Text in Bildern, Dateien und Sprachnachrichten ist durchsuchbar wie eine Nachricht. Alles lokal,
 im Leerlauf, ohne die Bedienung zu bremsen.
 
-- [ ] `index`-Prozess mit Job-Queue aus `index_jobs`: Prioritäten (neu vor alt, Dokumente vor Bildern),
-      Retry mit Backoff, `skipped` für ungeeignete Dateien (zu groß, unbekannter Typ, Sticker)
-- [ ] Leerlauf-Steuerung: nur bei Nutzer-Inaktivität und Netzstrom (Laptop), Parallelität 1–2 konfigurierbar,
-      Pause-Schalter im Tray, Fortschritt in der Storage-Übersicht
-- [ ] Engine-Interface (`recognize(image) → lines[]`), damit OCR-Engine austauschbar bleibt
+- [x] Job-Queue aus `index_jobs`: Prioritäten (neu vor alt, Dokumente vor Bildern), Retry mit Backoff,
+      `skipped` für ungeeignete Dateien, Wiederaufnahme hängengebliebener Jobs nach einem Absturz
+- [~] Leerlauf-Steuerung als Policy **fertig** (Inaktivität, Netzstrom, Pause-Schalter, Parallelität,
+  und eine Begründung für die UI, warum die Queue steht); offen: die Anbindung an `powerMonitor` und den Tray
+- [x] Engine-Interface mit Zeilen, Boxen, Seiten und Zeitmarken; Klassifikation entscheidet Quelle und
+      Priorität; Text/CSV/Markdown werden ohne Engine gelesen
 - [ ] OCR: PP-OCRv5 über onnxruntime-node (Bibliothek laut §10), Modelle beim ersten Start nach `models/`;
       Vorverarbeitung (Skalierung auf max. Kante, Graustufen), Sprachen DE + EN; Fallback tesseract.js
 - [ ] OCR-Ergebnis mit Zeilen, Boxen und Confidence nach `content_text`; Confidence-Schwelle für den Suchindex konfigurierbar
@@ -515,7 +516,7 @@ im Leerlauf, ohne die Bedienung zu bremsen.
       Anzeige unter der Nachricht (Injection, hinter Feature-Flag)
 - [ ] Suche: `source:`-Filter, Treffer zeigen Quelle und Vorschau (Bildausschnitt mit markierter Zeile, PDF-Seite,
       Zeitmarke im Audio); Klick öffnet Datei/Bild an der Stelle
-- [ ] Neu-Indizierung pro Quelle: Engine + Version pro Datensatz, „mit neuem Modell neu indizieren" ohne Datenverlust
+- [x] Neu-Indizierung pro Quelle, ohne die anderen Quellen derselben Datei anzufassen
 - [ ] Fixtures mit Erwartungswerten (§8): Screenshots, Rechnungen, Whiteboard-Fotos, schräge Handyfotos,
       gescanntes PDF, DOCX, kurze und lange Sprachnachricht (DE/EN)
 
