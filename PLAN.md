@@ -416,7 +416,9 @@ Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
 
 Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 
-- [ ] Bridge-Grundgerüst: Modulauflösung, Healthcheck, Feature-Flags, `docs/bridge-map.md`
+- [~] Bridge-Grundgerüst: Modulauflösung über `window.require`, Healthcheck mit Signaturprüfung,
+  Feature-Abschaltung pro fehlendem Modul, `docs/bridge-map.md` **fertig**;
+  offen: Verifikation gegen eine angemeldete Sitzung
 - [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
 - [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
 - [~] Ringpuffer (bounded, mit Drop-Zähler) und Batch-Grenze 500 **fertig**; offen: die 250-ms-Taktung in der Bridge
@@ -427,8 +429,10 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 - [ ] Regeln: welche Medien automatisch geholt werden (Dokumente immer, Bilder ja, Videos ab X MB nur manuell)
 - [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben
 - [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
-- [ ] Healthcheck-Ausfall: Banner + Features aus + Log; keine Exceptions in die WA-Seite durchreichen
-- [ ] Manuelle Smoke-Test-Checkliste gegen die aktuelle WA-Web-Version (`docs/bridge-smoke.md`)
+- [~] Kein Durchreichen von Exceptions in die WA-Seite **fertig** (jeder `require` gekapselt),
+  Feature-Abschaltung **fertig**; offen: das Banner in der UI
+- [x] Manuelle Smoke-Test-Checkliste (`docs/bridge-smoke.md`) — prüft ausdrücklich auch die
+      Lesebestätigung und dass `logs/outgoing.log` leer bleibt
 - [~] Lasttest (§8) **gebaut** und bis 1 Mio. Nachrichten gefahren; die 5-Mio.-Läufe stehen aus
 
 **DoD:** Archiv entspricht nach Import dem, was WA Web anzeigt (Stichproben in 10 Chats); nach WA-Web-Update
