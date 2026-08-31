@@ -17,6 +17,10 @@ npmRebuild: false
 asar: true
 asarUnpack:
   - '**/node_modules/better-sqlite3/prebuilds/**'
+  # WASM and the pdf.js worker are read from disk at runtime; neither loads from inside an asar.
+  - '**/node_modules/tesseract.js-core/**'
+  - '**/node_modules/tesseract.js/**'
+  - '**/node_modules/pdfjs-dist/**'
 
 # Tray icons, badge digits and (later) sidecars are read from disk at runtime, so they live
 # outside the asar archive. nativeImage.createFromPath cannot read from inside one.

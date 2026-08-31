@@ -513,13 +513,14 @@ im Leerlauf, ohne die Bedienung zu bremsen.
   und eine Begründung für die UI, warum die Queue steht); offen: die Anbindung an `powerMonitor` und den Tray
 - [x] Engine-Interface mit Zeilen, Boxen, Seiten und Zeitmarken; Klassifikation entscheidet Quelle und
       Priorität; Text/CSV/Markdown werden ohne Engine gelesen
-- [ ] OCR: PP-OCRv5 über onnxruntime-node (Bibliothek laut §10), Modelle beim ersten Start nach `models/`;
-      Vorverarbeitung (Skalierung auf max. Kante, Graustufen), Sprachen DE + EN; Fallback tesseract.js
-- [ ] OCR-Ergebnis mit Zeilen, Boxen und Confidence nach `content_text`; Confidence-Schwelle für den Suchindex konfigurierbar
-- [ ] Dokumente: PDF-Text über pdfjs-dist; Seiten ohne Textebene (Scans) rendern und durch die OCR; DOCX über mammoth;
-      TXT/MD/CSV direkt; Größenlimit pro Datei; weitere Typen laut §10
-- [ ] Sprachnachrichten: whisper.cpp als Sidecar, Modell laut §10, Transkript mit Zeitmarken nach `content_text`,
-      Anzeige unter der Nachricht (Injection, hinter Feature-Flag)
+- [x] OCR über **tesseract.js** statt PP-OCRv5 ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)):
+      Sprachdaten DE + EN **mitgeliefert** statt nachgeladen, kein natives Modul, gegen ein Fixture belegt
+- [x] OCR-Ergebnis mit Zeilen, Boxen und Confidence nach `content_text`; Confidence-Schwelle konfigurierbar
+- [~] PDF-Text über pdfjs-dist **fertig**, Seiten ohne Textebene werden als `scannedPages` gemeldet,
+  TXT/MD/CSV direkt, Größenlimit **fertig**; offen: die gemeldeten Scan-Seiten rendern und durch die
+  OCR schicken, sowie DOCX (mammoth ist nicht freigegeben)
+- [ ] Sprachnachrichten: **vertagt** ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)). `classify()`
+      leitet Audio weiterhin nach `transcript`, die Jobs entstehen und werden mangels Engine übersprungen
 - [ ] Suche: `source:`-Filter, Treffer zeigen Quelle und Vorschau (Bildausschnitt mit markierter Zeile, PDF-Seite,
       Zeitmarke im Audio); Klick öffnet Datei/Bild an der Stelle
 - [x] Neu-Indizierung pro Quelle, ohne die anderen Quellen derselben Datei anzufassen
