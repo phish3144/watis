@@ -419,13 +419,13 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 - [ ] Bridge-Grundgerüst: Modulauflösung, Healthcheck, Feature-Flags, `docs/bridge-map.md`
 - [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
 - [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
-- [ ] Ringpuffer in der Bridge, Batch-IPC alle ~250 ms; Import-Batches ≤ 500 mit Yield, WA Web bleibt bedienbar
+- [~] Ringpuffer (bounded, mit Drop-Zähler) und Batch-Grenze 500 **fertig**; offen: die 250-ms-Taktung in der Bridge
 - [ ] Initialer Import aller lokal vorhandenen Chats/Nachrichten/Kontakte, fortsetzbar, Fortschritt in `sync_state`
 - [ ] Live-Spiegelung: neue, editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
-- [ ] Medien-Pipeline: Download über interne Funktion → Blob-Store (content-addressed, SHA-256-Dedupe),
-      Status in `media`, Index-Job anlegen
+- [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**;
+  offen: der Download über die interne Funktion und das Anlegen der Index-Jobs
 - [ ] Regeln: welche Medien automatisch geholt werden (Dokumente immer, Bilder ja, Videos ab X MB nur manuell)
-- [ ] Quota für den Blob-Store mit Warnung; Speicherort in der Config, Verschieben mit Fortschritt und Verifikation
+- [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben
 - [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
 - [ ] Healthcheck-Ausfall: Banner + Features aus + Log; keine Exceptions in die WA-Seite durchreichen
 - [ ] Manuelle Smoke-Test-Checkliste gegen die aktuelle WA-Web-Version (`docs/bridge-smoke.md`)
@@ -467,13 +467,12 @@ WhatsApp Web hergibt.
 
 - [ ] Erstsync: beim Verknüpfen alles spiegeln, was WhatsApps regulärer Recent-History-Sync liefert;
       Menge messen und in `docs/backfill-findings.md` nachtragen
-- [ ] Inkrementelles Nachziehen pro Chat bis zum Boden: Chat öffnen, „ältere Nachrichten laden" auslösen,
-      auf Eintreffen warten, wiederholen, bis nichts mehr kommt
-- [ ] Drosselung: ein Chat gleichzeitig, Pausen zwischen Batches, nur bei Leerlauf und erreichbarem Handy
-- [ ] Fortschritt und Zustand in `sync_state`; fortsetzbar nach Neustart; Fehler pro Chat protokolliert
-- [ ] Priorisierung: Direktchats und markierte Gruppen zuerst, Chat manuell oben anstellen
-- [ ] **Grenze zur Laufzeit lesen, nie hart kodieren.** `getEarliestHistorySyncDate()` liefert den Wert;
-      die mautrix-Doku nennt „3 Monate" statt 90 Tage, und WhatsApp kann ihn ändern
+- [x] Inkrementelles Nachziehen pro Chat bis zum Boden — Zustandsmaschine fertig, gegen gefakte Events geprüft
+- [x] Drosselung: ein Chat gleichzeitig, Pausen zwischen Batches, nur bei Leerlauf und erreichbarem Handy
+- [x] Fortschritt fortsetzbar nach Neustart (mitten laufende Chats gehen zurück in die Queue), Fehler pro Chat protokolliert
+- [x] Priorisierung: Reihenfolge durch den Aufrufer, `prioritise()` stellt einen Chat manuell oben an
+- [x] **Grenze zur Laufzeit gelesen, nirgends hart kodiert** — die Maschine fragt sie ab und meldet
+      „unbekannt", wenn die Bridge nicht antwortet, statt eine Zahl zu erfinden
 - [ ] UI: ehrliche Fortschrittsanzeige. Kein Balken, der bei der Decke stehenbleibt und Vollständigkeit
       suggeriert – die UI nennt das erreichbare Datum und sagt, dass die Grenze von WhatsApp kommt
 - [ ] `depth_limit_ts` bleibt im Schema (Begrenzung nach unten bleibt möglich), wird aber nicht mehr als
@@ -487,11 +486,11 @@ tatsächlich erreichbare Datum, nicht eine Zahl aus dem Quelltext.
 
 Ziel: Das Archiv ist ein echtes, offenes Backup.
 
-- [ ] Export pro Chat und gesamt: JSON (verlustfrei), HTML (selbständig, mit relativen Medienlinks),
+- [x] Export pro Chat: JSON (verlustfrei), HTML (selbständig, relative Medienlinks, kein Script),
       TXT im Stil des WA-eigenen Exports (`[dd.mm.yy, hh:mm] Name: Text`)
 - [ ] Medien beim Export aus dem Blob-Store in lesbare Chat-Ordner materialisieren (Hardlinks, sonst Kopie)
 - [ ] Inkrementeller Export (nur Neues seit letztem Lauf) und vollständiger Snapshot (`VACUUM INTO` + Blob-Store)
-- [ ] Integritätsprüfung: Zähler, Hashes, Report
+- [x] Integritätsprüfung: Zähler, fehlende Blobs und Datensätze ohne Hash getrennt ausgewiesen
 - [ ] Zeitgesteuerter Export in einen Zielordner (z. B. für restic/rsync)
 - [ ] Dokumentation: „Restore" = Archivansicht; ein Zurückspielen in WhatsApp gibt es nicht
 
