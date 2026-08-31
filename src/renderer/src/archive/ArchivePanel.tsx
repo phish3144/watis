@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../api'
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
 import { BackfillPanel } from '../components/BackfillPanel'
+import type { HitPreview } from '../../../workers/archive/repository'
 
 /**
  * The archive view: chat list, virtualised message list, search.
@@ -48,11 +49,39 @@ function MessageRow({ message }: { message: ArchiveMessage }): React.JSX.Element
  * The context is fetched when the row is expanded, not with the hit list: a page of 60 hits would
  * otherwise mean 60 extra queries for context nobody looked at.
  */
+/** Human names for the index sources, so a hit says where it came from in plain German. */
+const SOURCE_LABEL: Record<string, string> = {
+  body: 'Nachricht',
+  filename: 'Dateiname',
+  ocr: 'Text im Bild',
+  pdf: 'PDF',
+  docx: 'Dokument',
+  text: 'Textdatei',
+  transcript: 'Sprachnachricht',
+}
+
+/** Where in the file the hit sits, when the engine recorded it. */
+function whereIn(preview: HitPreview | undefined): string | undefined {
+  if (!preview) return undefined
+  const parts: string[] = []
+  if (preview.page !== undefined) parts.push(`Seite ${String(preview.page)}`)
+  if (preview.startSeconds !== undefined) {
+    const total = Math.floor(preview.startSeconds)
+    parts.push(`bei ${String(Math.floor(total / 60))}:${String(total % 60).padStart(2, '0')}`)
+  }
+  if (preview.confidence !== undefined) {
+    parts.push(`${String(Math.round(preview.confidence))}% sicher`)
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined
+}
+
 function HitRow({
   hit,
+  preview,
   onOpenInArchive,
 }: {
   hit: ArchiveHit
+  preview: HitPreview | undefined
   onOpenInArchive: () => void
 }): React.JSX.Element {
   const [context, setContext] = useState<ArchiveMessage[] | undefined>(undefined)
@@ -88,8 +117,16 @@ function HitRow({
   return (
     <li className="border-b border-wa-hairline px-3 py-2">
       <div className="text-xs text-wa-muted">
-        {hit.ts !== null ? formatWhen(hit.ts) : '—'} · gefunden in {hit.source}
+        {hit.ts !== null ? formatWhen(hit.ts) : '—'} · {SOURCE_LABEL[hit.source] ?? hit.source}
+        {preview?.filename ? ` · ${preview.filename}` : ''}
       </div>
+
+      {preview?.text ? (
+        <p className="line-clamp-3 py-0.5 text-sm">{preview.text}</p>
+      ) : (
+        <p className="py-0.5 text-sm text-wa-muted">Keine Vorschau.</p>
+      )}
+      {whereIn(preview) && <p className="text-[11px] text-wa-muted">{whereIn(preview)}</p>}
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <button
@@ -145,6 +182,7 @@ export function ArchivePanel(): React.JSX.Element {
   const [messages, setMessages] = useState<ArchiveMessage[]>([])
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ArchiveHit[] | undefined>(undefined)
+  const [previews, setPreviews] = useState<Record<string, HitPreview>>({})
   const [error, setError] = useState<string | undefined>(undefined)
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(600)
@@ -230,12 +268,30 @@ export function ArchivePanel(): React.JSX.Element {
   const runSearch = useCallback(async () => {
     if (query.trim() === '') {
       setHits(undefined)
+      setPreviews({})
       return
     }
     setLoading(true)
     try {
       const r = await ask<{ hits: ArchiveHit[] }>({ op: 'search', query, limit: 100 })
       setHits(r.hits)
+
+      // Previews come in one request for the whole page rather than one per row: a hundred hits
+      // would otherwise be a hundred round trips for text nobody has looked at yet.
+      const terms = query
+        .split(/\s+/)
+        .filter((word) => word.length > 0 && !word.includes(':'))
+        .slice(0, 20)
+      const p = await ask<{ previews: HitPreview[] }>({
+        op: 'hitPreviews',
+        hits: r.hits.slice(0, 200).map((h) => ({
+          msgId: h.msgId,
+          mediaId: h.mediaId,
+          source: h.source,
+        })),
+        terms,
+      })
+      setPreviews(Object.fromEntries(p.previews.map((preview) => [preview.key, preview])))
     } catch (e) {
       setError(String(e))
     } finally {
@@ -344,6 +400,64 @@ export function ArchivePanel(): React.JSX.Element {
           </button>
         </div>
 
+        {/*
+          Chips rather than a dropdown: they write into the same query string the user could have
+          typed, so the syntax stays visible and learnable instead of being hidden behind a widget.
+        */}
+        <div className="flex flex-wrap gap-1 text-[11px]">
+          {(
+            [
+              ['body', 'Nachrichten'],
+              ['ocr', 'Text in Bildern'],
+              ['pdf', 'PDFs'],
+              ['transcript', 'Sprachnachrichten'],
+            ] as const
+          ).map(([value, label]) => {
+            const token = `quelle:${value}`
+            const active = query.includes(token)
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  const next = active
+                    ? query
+                        .replace(token, '')
+                        .replace(/\s{2,}/g, ' ')
+                        .trim()
+                    : `${query.trim()} ${token}`.trim()
+                  setQuery(next)
+                }}
+                className={`rounded-full border px-2 py-0.5 ${
+                  active
+                    ? 'border-wa-accent text-wa-accent'
+                    : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+          {(query.includes('hat:') || query.includes('quelle:')) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery(
+                  query
+                    .split(/\s+/)
+                    .filter((word) => !word.startsWith('quelle:') && !word.startsWith('hat:'))
+                    .join(' ')
+                    .trim(),
+                )
+              }}
+              className="rounded-full border border-wa-hairline px-2 py-0.5 text-wa-muted hover:text-slate-200"
+            >
+              Filter zurücksetzen
+            </button>
+          )}
+        </div>
+
         {error !== undefined && (
           <p
             role="alert"
@@ -360,6 +474,7 @@ export function ArchivePanel(): React.JSX.Element {
               <HitRow
                 key={`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`}
                 hit={hit}
+                preview={previews[`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`]}
                 onOpenInArchive={() => {
                   if (hit.chatId) setChatId(hit.chatId)
                   setHits(undefined)

@@ -99,3 +99,40 @@ describe('toMatchExpression', () => {
     expect(toMatchExpression(parseQuery('a* OR b'))).toBe('"a*" AND "OR" AND "b"')
   })
 })
+
+describe('German field names', () => {
+  it('accepts the keywords the search box actually shows', () => {
+    // The placeholder has always promised von:, vor:, nach:, hat: and quelle:. A syntax the UI
+    // advertises and the parser ignores is worse than no syntax at all.
+    const q = parseQuery('rechnung von:anna quelle:ocr hat:file vor:2026-01-01 nach:2025-01-01')
+    expect(q.terms).toEqual(['rechnung'])
+    expect(q.from).toEqual(['anna'])
+    expect(q.source).toEqual(['ocr'])
+    expect(q.has).toEqual(['file'])
+    expect(q.before).toBe(parseDate('2026-01-01'))
+    expect(q.after).toBe(parseDate('2025-01-01'))
+  })
+
+  it('keeps the English names working', () => {
+    const q = parseQuery('from:anna source:pdf has:image before:2026-01-01')
+    expect(q.from).toEqual(['anna'])
+    expect(q.source).toEqual(['pdf'])
+    expect(q.has).toEqual(['image'])
+  })
+
+  it('mixes both spellings without complaint', () => {
+    const q = parseQuery('quelle:ocr source:pdf')
+    expect(q.source).toEqual(['ocr', 'pdf'])
+  })
+
+  it('does not translate filter values — those are source names, not words', () => {
+    expect(parseQuery('quelle:bild').warnings).toEqual(['quelle:bild'])
+    expect(parseQuery('quelle:bild').source).toEqual([])
+  })
+
+  it('reports a bad value using the spelling that was typed', () => {
+    // Echoing back `source:` for something the user wrote as `quelle:` reads like a different error.
+    expect(parseQuery('quelle:unfug').warnings).toEqual(['quelle:unfug'])
+    expect(parseQuery('vor:gestern').warnings).toEqual(['vor:gestern'])
+  })
+})

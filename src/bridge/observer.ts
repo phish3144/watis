@@ -1,4 +1,5 @@
 import { isFailure, resolveModule, type PageGlobals } from './modules'
+import type { ChatRow, ContactRow, MessageRow, MirrorRow } from '@shared/model/rows'
 import { CHAT_COLLECTION, CONTACT_COLLECTION, MSG_COLLECTION } from './signatures'
 
 /**
@@ -12,10 +13,7 @@ import { CHAT_COLLECTION, CONTACT_COLLECTION, MSG_COLLECTION } from './signature
  * output straight to the importer.
  */
 
-export interface MirrorEvent {
-  kind: 'chat' | 'contact' | 'message' | 'media'
-  row: Record<string, unknown>
-}
+export type MirrorEvent = MirrorRow
 
 export interface ObserverHandle {
   /** Detaches every listener. Must be called before the page navigates away. */
@@ -39,7 +37,7 @@ type Emit = (event: MirrorEvent) => void
  * so a later schema can be rebuilt from what we already stored rather than from a re-sync that may
  * no longer reach that far back (§5.4).
  */
-export function toMessageRow(model: unknown): Record<string, unknown> | undefined {
+export function toMessageRow(model: unknown): MessageRow | undefined {
   const m = model as Record<string, unknown> | null
   if (!m) return undefined
 
@@ -66,7 +64,7 @@ export function toMessageRow(model: unknown): Record<string, unknown> | undefine
   }
 }
 
-export function toChatRow(model: unknown): Record<string, unknown> | undefined {
+export function toChatRow(model: unknown): ChatRow | undefined {
   const c = model as Record<string, unknown> | null
   const id = readId(c?.id)
   if (!c || id === undefined) return undefined
@@ -87,7 +85,7 @@ export function toChatRow(model: unknown): Record<string, unknown> | undefined {
   }
 }
 
-export function toContactRow(model: unknown): Record<string, unknown> | undefined {
+export function toContactRow(model: unknown): ContactRow | undefined {
   const c = model as Record<string, unknown> | null
   const jid = readId(c?.id)
   if (!c || jid === undefined) return undefined
@@ -105,7 +103,7 @@ export function toContactRow(model: unknown): Record<string, unknown> | undefine
  * arrive and disappear independently, and rewriting the parent for each one would churn the search
  * index for text that did not change.
  */
-export function toReactionRow(model: unknown): Record<string, unknown> | undefined {
+export function toReactionRow(model: unknown): MessageRow | undefined {
   const r = model as Record<string, unknown> | null
   const id = readId(r?.msgKey ?? r?.id)
   const parent = readId(r?.parentMsgKey)
@@ -151,14 +149,16 @@ export function observe(globals: PageGlobals, emit: Emit): ObserverHandle {
   const bind = (
     collection: Collection | undefined,
     events: readonly string[],
-    map: (model: unknown) => Record<string, unknown> | undefined,
+    map: (model: unknown) => MirrorRow['row'] | undefined,
     kind: MirrorEvent['kind'],
   ): void => {
     if (!collection?.on) return
     for (const event of events) {
       const handler = (model: unknown): void => {
         const row = map(model)
-        if (row) emit({ kind, row })
+        // The pair is built here, where the mapper and the kind were chosen together; the cast
+        // says only that those two match, which is the one thing this call site knows.
+        if (row) emit({ kind, row } as MirrorEvent)
       }
       collection.on(event, handler)
       detach.push(() => collection.off?.(event, handler))
@@ -203,7 +203,7 @@ export function* snapshot(globals: PageGlobals, chunkSize = 200): Generator<Mirr
       const batch: MirrorEvent[] = []
       for (const model of models.slice(i, i + chunkSize)) {
         const row = source.map(model)
-        if (row) batch.push({ kind: source.kind, row })
+        if (row) batch.push({ kind: source.kind, row } as MirrorEvent)
       }
       if (batch.length > 0) yield batch
     }

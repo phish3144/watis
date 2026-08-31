@@ -1,5 +1,6 @@
 import { MAX_BATCH } from '@shared/ipc/archive-protocol'
 import { RingBuffer } from '@shared/ipc/ring-buffer'
+import type { MirrorRow } from '@shared/model/rows'
 
 /**
  * The spine between the bridge and the archive worker (PLAN.md §3.1).
@@ -10,10 +11,7 @@ import { RingBuffer } from '@shared/ipc/ring-buffer'
  * an out-of-memory crash.
  */
 
-export interface ImportEvent {
-  kind: 'chat' | 'contact' | 'message' | 'media'
-  row: Record<string, unknown>
-}
+export type ImportEvent = MirrorRow
 
 export interface ImporterOptions {
   /** How often to drain. §3.1 asks for roughly a quarter second. */
@@ -83,12 +81,14 @@ export class Importer {
       const events = this.#buffer.drain(this.#batchSize)
       if (events.length === 0) return
 
+      // flatMap on the discriminant rather than filter+cast: each array comes out with the row
+      // type that goes with its kind, and a new kind would not compile until it is handled here.
       const request = {
         op: 'import' as const,
-        chats: rowsOf(events, 'chat'),
-        contacts: rowsOf(events, 'contact'),
-        messages: rowsOf(events, 'message'),
-        media: rowsOf(events, 'media'),
+        chats: events.flatMap((e) => (e.kind === 'chat' ? [e.row] : [])),
+        contacts: events.flatMap((e) => (e.kind === 'contact' ? [e.row] : [])),
+        messages: events.flatMap((e) => (e.kind === 'message' ? [e.row] : [])),
+        media: events.flatMap((e) => (e.kind === 'media' ? [e.row] : [])),
       }
 
       try {
@@ -115,11 +115,4 @@ export class Importer {
       lastError: this.#lastError,
     }
   }
-}
-
-function rowsOf(
-  events: readonly ImportEvent[],
-  kind: ImportEvent['kind'],
-): Record<string, unknown>[] {
-  return events.filter((e) => e.kind === kind).map((e) => e.row)
 }

@@ -56,6 +56,8 @@ async function handle(payload: unknown): Promise<unknown> {
       }
     case 'context':
       return { messages: repo.contextAround(request.msgId, request.radius) }
+    case 'hitPreviews':
+      return { previews: repo.hitPreviews(request.hits, request.terms) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
     case 'saveSyncState':

@@ -38,6 +38,26 @@ export interface ParsedQuery {
   readonly warnings: string[]
 }
 
+/**
+ * German field names alongside the English ones.
+ *
+ * The UI is German (CLAUDE.md), and the search box has always shown `von:`, `vor:`, `nach:`,
+ * `hat:` and `quelle:` in its placeholder — so those have to be the ones that actually work. The
+ * English names keep working: they are what the documentation and the tests use, and a syntax that
+ * silently stops accepting what it used to is worse than one that accepts two spellings.
+ *
+ * Filter *values* are not translated. `quelle:ocr` stays `ocr`, because those are the names of the
+ * index sources, not words.
+ */
+const FIELD_ALIASES: Record<string, string> = {
+  von: 'from',
+  in: 'in',
+  vor: 'before',
+  nach: 'after',
+  hat: 'has',
+  quelle: 'source',
+}
+
 /** `field:value`, `field:"value with spaces"`, a `"quoted phrase"`, or a bare word. */
 const TOKEN = /(\w+):"([^"]*)"|(\w+):(\S+)|"([^"]*)"|(\S+)/g
 
@@ -68,7 +88,8 @@ export function parseQuery(input: string): ParsedQuery {
   let after: number | undefined
 
   for (const match of input.matchAll(TOKEN)) {
-    const field = (match[1] ?? match[3])?.toLowerCase()
+    const typed = (match[1] ?? match[3])?.toLowerCase()
+    const field = typed === undefined ? undefined : (FIELD_ALIASES[typed] ?? typed)
     const value = match[2] ?? match[4]
 
     if (field === undefined || value === undefined) {
@@ -88,22 +109,22 @@ export function parseQuery(input: string): ParsedQuery {
       case 'has':
         if ((HAS_VALUES as readonly string[]).includes(value.toLowerCase())) {
           has.push(value.toLowerCase() as HasFilter)
-        } else warnings.push(`has:${value}`)
+        } else warnings.push(`${typed ?? 'has'}:${value}`)
         break
       case 'source':
         if ((SOURCE_VALUES as readonly string[]).includes(value.toLowerCase())) {
           source.push(value.toLowerCase() as SourceFilter)
-        } else warnings.push(`source:${value}`)
+        } else warnings.push(`${typed ?? 'source'}:${value}`)
         break
       case 'before': {
         const ts = parseDate(value)
-        if (ts === undefined) warnings.push(`before:${value}`)
+        if (ts === undefined) warnings.push(`${typed ?? 'before'}:${value}`)
         else before = ts
         break
       }
       case 'after': {
         const ts = parseDate(value)
-        if (ts === undefined) warnings.push(`after:${value}`)
+        if (ts === undefined) warnings.push(`${typed ?? 'after'}:${value}`)
         else after = ts
         break
       }

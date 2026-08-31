@@ -1,5 +1,10 @@
 import type Database from 'better-sqlite3'
 import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
+import type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow } from '@shared/model/rows'
+
+// Re-exported because most of this file's callers reach for the row types through the repository,
+// and a second import path for the same shape is how the duplication started in the first place.
+export type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow }
 
 /**
  * Every read and write the archive offers. Two rules run through all of it (PLAN.md §3.1):
@@ -10,65 +15,6 @@ import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
  *    and search always carries a LIMIT — an unbounded `ORDER BY bm25()` costs 294 ms at 200k
  *    matches where the same query with a LIMIT costs 0.68 ms.
  */
-
-export interface ChatRow {
-  id: string
-  jid?: string | null | undefined
-  name?: string | null | undefined
-  kind?: 'dm' | 'group' | 'broadcast' | 'channel' | null | undefined
-  lastMsgTs?: number | null | undefined
-  isArchived?: boolean | undefined
-  rawJson?: string | null | undefined
-}
-
-/**
- * One chat's backfill bookkeeping. `depthLimitTs` is what WhatsApp said it can still reach, not a
- * figure of ours (ADR 0005 A) — so a chat whose `oldestTs` has arrived at it is finished, and one
- * that stops earlier stopped for a reason worth showing.
- */
-export interface SyncStateRow {
-  chatId: string
-  oldestTs?: number | null | undefined
-  newestTs?: number | null | undefined
-  backfillDone?: boolean | undefined
-  depthLimitTs?: number | null | undefined
-  priority?: number | undefined
-  lastError?: string | null | undefined
-  updatedTs?: number | null | undefined
-}
-
-export interface ContactRow {
-  jid: string
-  name?: string | null | undefined
-  pushname?: string | null | undefined
-  phone?: string | null | undefined
-}
-
-export interface MessageRow {
-  id: string
-  chatId: string
-  senderJid?: string | null | undefined
-  ts: number
-  kind?: string | null | undefined
-  body?: string | null | undefined
-  quotedId?: string | null | undefined
-  mediaId?: string | null | undefined
-  edited?: boolean | undefined
-  revoked?: boolean | undefined
-  fromMe?: boolean | undefined
-  rawJson?: string | null | undefined
-}
-
-export interface MediaRow {
-  id: string
-  msgId?: string | null | undefined
-  chatId?: string | null | undefined
-  mime?: string | null | undefined
-  size?: number | null | undefined
-  sha256?: string | null | undefined
-  filename?: string | null | undefined
-  status?: 'pending' | 'done' | 'failed' | 'skipped' | undefined
-}
 
 /** A position in a chat, used to page in either direction without OFFSET. */
 export interface Cursor {
@@ -610,6 +556,72 @@ export class ArchiveRepository {
     }))
   }
 
+  /**
+   * The preview for a hit: enough to see why it matched, and where, without opening anything
+   * (PLAN.md Phase 7).
+   *
+   * The snippet comes from the ORIGINAL text, never from `search_fts` — the index stores an
+   * umlaut-folded variant so `Grüße` and `Gruesse` find each other (ADR 0002), and showing that
+   * back would look like the archive had mangled the message.
+   *
+   * For OCR, PDF and transcript hits it also returns the *matching* line rather than the first
+   * one, with whatever position that engine recorded: a pixel box for OCR, a page for PDF, a time
+   * offset for audio. A hit in a scanned invoice is only useful if it says where in the invoice.
+   */
+  hitPreviews(
+    hits: readonly { msgId: string | null; mediaId: string | null; source: string }[],
+    terms: readonly string[] = [],
+  ): HitPreview[] {
+    const previews: HitPreview[] = []
+    const needles = terms.map((t) => t.toLowerCase()).filter((t) => t.length > 0)
+
+    const messageBody = this.#db.prepare('SELECT body FROM messages WHERE id = ?')
+    const content = this.#db.prepare(
+      `SELECT text, detail_json, confidence FROM content_text
+       WHERE media_id = ? AND source = ? ORDER BY id DESC LIMIT 1`,
+    )
+    const mediaRow = this.#db.prepare('SELECT mime, filename, sha256 FROM media WHERE id = ?')
+
+    for (const hit of hits) {
+      const key = `${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`
+
+      if (hit.source === 'body' && hit.msgId) {
+        const row = messageBody.get(hit.msgId) as { body: string | null } | undefined
+        previews.push({ key, source: hit.source, text: row?.body ?? '' })
+        continue
+      }
+
+      if (!hit.mediaId) {
+        previews.push({ key, source: hit.source, text: '' })
+        continue
+      }
+
+      const row = content.get(hit.mediaId, hit.source) as
+        { text: string; detail_json: string | null; confidence: number | null } | undefined
+      const media = mediaRow.get(hit.mediaId) as
+        { mime: string | null; filename: string | null; sha256: string | null } | undefined
+
+      const line = matchingLine(row?.detail_json, needles)
+
+      previews.push({
+        key,
+        source: hit.source,
+        text: line?.text ?? truncate(row?.text ?? ''),
+        ...(line?.page !== undefined ? { page: line.page } : {}),
+        ...(line?.box !== undefined ? { box: line.box } : {}),
+        ...(line?.startSeconds !== undefined ? { startSeconds: line.startSeconds } : {}),
+        ...((line?.confidence ?? row?.confidence) != null
+          ? { confidence: line?.confidence ?? row?.confidence ?? undefined }
+          : {}),
+        filename: media?.filename ?? null,
+        mime: media?.mime ?? null,
+        sha256: media?.sha256 ?? null,
+      })
+    }
+
+    return previews
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number
@@ -709,4 +721,64 @@ function hasPredicate(has: string): string {
     default:
       return '1'
   }
+}
+
+export interface HitPreview {
+  key: string
+  source: string
+  /** The matching line where one is known, otherwise the start of the extracted text. */
+  text: string
+  page?: number | undefined
+  /** Pixel box for OCR, so the viewer can mark the line in the image. */
+  box?: readonly [number, number, number, number] | undefined
+  /** Seconds into the audio, for a transcript hit. */
+  startSeconds?: number | undefined
+  confidence?: number | undefined
+  filename?: string | null
+  mime?: string | null
+  sha256?: string | null
+}
+
+interface DetailLine {
+  text: string
+  page?: number
+  box?: readonly [number, number, number, number]
+  startSeconds?: number
+  confidence?: number
+}
+
+const PREVIEW_CHARS = 240
+
+function truncate(text: string): string {
+  return text.length <= PREVIEW_CHARS ? text : `${text.slice(0, PREVIEW_CHARS)}…`
+}
+
+/**
+ * The line the search actually hit. Read defensively: `detail_json` is whatever the engine wrote,
+ * its shape differs per engine, and a preview that cannot say which page is still a useful
+ * preview — a crash is not.
+ */
+function matchingLine(
+  json: string | null | undefined,
+  needles: readonly string[],
+): DetailLine | undefined {
+  if (!json) return undefined
+  let lines: DetailLine[]
+  try {
+    lines = ((JSON.parse(json) as { lines?: DetailLine[] }).lines ?? []).filter(
+      (l) => typeof l?.text === 'string',
+    )
+  } catch {
+    return undefined
+  }
+  if (lines.length === 0) return undefined
+  if (needles.length === 0) return lines[0]
+
+  const hit = lines.find((line) => {
+    const lower = line.text.toLowerCase()
+    return needles.some((needle) => lower.includes(needle))
+  })
+  // No line contains the term because the index matched the folded form; the first line is still
+  // better than nothing, and the page it carries is usually right.
+  return hit ?? lines[0]
 }

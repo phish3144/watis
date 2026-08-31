@@ -177,7 +177,9 @@ describe('observe', () => {
     msgs.emit('change', message({ body: 'geändert' }))
 
     expect(events.map((e) => e.kind)).toEqual(['message', 'message'])
-    expect(events[1]?.row.body).toBe('geändert')
+    const edited = events[1]
+    // The event is a discriminated union now, so reading a message field means saying it is one.
+    expect(edited?.kind === 'message' ? edited.row.body : undefined).toBe('geändert')
   })
 
   it('subscribes to change rather than change:body', () => {

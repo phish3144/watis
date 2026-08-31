@@ -421,7 +421,9 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
   Feature-Abschaltung pro fehlendem Modul, `docs/bridge-map.md` **fertig**; Injektion in die
   Seitenwelt nach jedem Load und der Draht über `CustomEvent` **fertig** (`main/bridge/host.ts`);
   offen: Verifikation gegen eine angemeldete Sitzung
-- [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
+- [x] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/model/rows.ts` —
+      Bridge, Importer und Repository sprechen jetzt dieselben Shapes, und `archive-protocol.ts`
+      trägt eine Compile-Zeit-Zusicherung, dass Schema und Typ nicht auseinanderlaufen
 - [x] Archiv-Prozess: Batch-Schreiben in Transaktionen, WAL, Backpressure-Zähler im Panel
       (geschrieben / wartend / verworfen, `MirrorStatus`)
 - [x] Ringpuffer (bounded, mit Drop-Zähler), Batch-Grenze 500, Taktung alle 250 ms, überlappende
@@ -464,7 +466,9 @@ Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
 - [x] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht; das Panel schließt
       vorher, damit sichtbar ist was passiert. Lesebestätigung dabei ist in Ordnung ([ADR 0006](docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md))
 - [ ] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Links), Filter und Sortierung
-- [~] Strg+K springt in die Suche **fertig**; offen: Chats und Kontakte als eigene Trefferarten
+- [~] Strg+K springt in die Suche **fertig**, deutsche Feldnamen (`von:`, `vor:`, `nach:`, `hat:`,
+  `quelle:`) werden jetzt tatsächlich geparst — die Platzhalterzeile hatte sie versprochen, der
+  Parser kannte nur die englischen; offen: Chats und Kontakte als eigene Trefferarten
 - [x] Suche < 200 ms (p95): **6,20 ms bei 1 Mio.** in der Standardreihenfolge, Benchmark unter
       `scripts/loadtest-archive.mjs` ([ADR 0007](docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md)).
       Relevanz-Sortierung verfehlt das Gate bei sehr häufigen Begriffen bauartbedingt
@@ -544,8 +548,12 @@ im Leerlauf, ohne die Bedienung zu bremsen.
   OCR schicken, sowie DOCX (mammoth ist nicht freigegeben)
 - [ ] Sprachnachrichten: **vertagt** ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)). `classify()`
       leitet Audio weiterhin nach `transcript`, die Jobs entstehen und werden mangels Engine übersprungen
-- [ ] Suche: `source:`-Filter, Treffer zeigen Quelle und Vorschau (Bildausschnitt mit markierter Zeile, PDF-Seite,
-      Zeitmarke im Audio); Klick öffnet Datei/Bild an der Stelle
+- [~] Suche: `quelle:`-Filter als Chips (schreiben in dieselbe Query, die man auch tippen könnte),
+  Treffer zeigen Quelle, Dateiname und die **getroffene Zeile** mit Position — Seite beim PDF,
+  Zeitmarke beim Audio, Box und Confidence bei der Texterkennung. Die Vorschau kommt aus dem
+  Originaltext, nie aus `search_fts`: dort steht die umlautgefaltete Form (ADR 0002), und die
+  zurückzuzeigen sähe aus, als hätte das Archiv die Nachricht verstümmelt.
+  Offen: der Klick, der Bild oder PDF an genau dieser Stelle öffnet
 - [x] Neu-Indizierung pro Quelle, ohne die anderen Quellen derselben Datei anzufassen
 - [ ] Fixtures mit Erwartungswerten (§8): Screenshots, Rechnungen, Whiteboard-Fotos, schräge Handyfotos,
       gescanntes PDF, DOCX, kurze und lange Sprachnachricht (DE/EN)
