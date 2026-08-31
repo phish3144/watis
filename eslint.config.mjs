@@ -4,7 +4,17 @@ import tseslint from 'typescript-eslint'
 import globals from 'globals'
 
 export default defineConfig([
-  globalIgnores(['out/**', 'release/**', 'node_modules/**', 'coverage/**', 'test-results/**']),
+  globalIgnores([
+    'out/**',
+    'release/**',
+    'node_modules/**',
+    'coverage/**',
+    'test-results/**',
+    // Standalone measurement artefacts: browser and extension scripts that run under
+    // Chromium, not under this project's TypeScript config. They are kept verbatim as the
+    // record of what was measured, so linting them to project rules would be beside the point.
+    'spikes/**',
+  ]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -12,7 +22,12 @@ export default defineConfig([
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.mjs', '*.config.mjs', 'scripts/*.mjs'],
+          allowDefaultProject: [
+            'eslint.config.mjs',
+            '*.config.mjs',
+            'scripts/*.mjs',
+            'scripts/lib/*.mjs',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
