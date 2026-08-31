@@ -1,0 +1,16 @@
+# Prettier is configured with endOfLine: "lf", so the working tree must be LF on every
+# platform. Without this, Git for Windows checks out CRLF and `npm run format:check`
+# fails on every text file in the repository — which is exactly what the Windows lint
+# job did from the day it was added.
+* text=auto eol=lf
+
+# Binaries Git must never touch.
+*.png binary
+*.ico binary
+*.icns binary
+*.exe binary
+*.dll binary
+*.node binary
+*.blockmap binary
+*.zip binary
+*.gz binary
