@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Settings, SettingsPatch } from '@shared/settings'
+import type { HealthState } from '@shared/health/degraded'
 
 /** Preload for our own panel. Typed, minimal, explicit about what it exposes. */
 const api = {
@@ -8,6 +9,7 @@ const api = {
   getWorkerHealth: (): Promise<{ archive: boolean; contentIndex: boolean }> =>
     ipcRenderer.invoke('app:worker-health'),
   getPaths: (): Promise<Record<string, string>> => ipcRenderer.invoke('app:paths'),
+  getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('app:settings'),
   updateSettings: (patch: SettingsPatch): Promise<Settings> =>
     ipcRenderer.invoke('app:update-settings', patch),
@@ -21,6 +23,13 @@ const api = {
     }
     ipcRenderer.on('app:settings', handler)
     return () => ipcRenderer.removeListener('app:settings', handler)
+  },
+  onHealth: (listener: (state: HealthState) => void): (() => void) => {
+    const handler = (_event: unknown, value: HealthState): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:health', handler)
+    return () => ipcRenderer.removeListener('app:health', handler)
   },
   onUnread: (listener: (counts: { unread: number; mutedUnread: number }) => void): (() => void) => {
     const handler = (_event: unknown, value: { unread: number; mutedUnread: number }): void => {

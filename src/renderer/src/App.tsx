@@ -4,6 +4,8 @@ import { api, type UnreadCounts, type Versions, type WorkerHealth } from './api'
 import { t } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
 import { ArchivePanel } from './archive/ArchivePanel'
+import { HealthBanner } from './components/HealthBanner'
+import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   return (
@@ -23,14 +25,17 @@ export function App(): React.JSX.Element {
   const [health, setHealth] = useState<WorkerHealth | undefined>(undefined)
   const [paths, setPaths] = useState<Record<string, string> | undefined>(undefined)
   const [unread, setUnread] = useState<UnreadCounts>({ unread: 0, mutedUnread: 0 })
+  const [degraded, setDegraded] = useState<HealthState | undefined>(undefined)
 
   useEffect(() => {
     void api().getSettings().then(setSettings)
     void api().getVersions().then(setVersions)
     void api().getPaths().then(setPaths)
+    void api().getHealth().then(setDegraded)
 
     const offSettings = api().onSettings(setSettings)
     const offUnread = api().onUnread(setUnread)
+    const offHealth = api().onHealth(setDegraded)
 
     const poll = (): void => {
       void api().getWorkerHealth().then(setHealth)
@@ -41,6 +46,7 @@ export function App(): React.JSX.Element {
       clearInterval(timer)
       offSettings()
       offUnread()
+      offHealth()
     }
   }, [])
 
@@ -92,6 +98,8 @@ export function App(): React.JSX.Element {
           ))}
         </nav>
       </header>
+
+      <HealthBanner state={degraded} />
 
       {tab === 'archive' ? (
         <div className="min-h-0 flex-1">

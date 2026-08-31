@@ -64,6 +64,19 @@ const de = {
   'status.versions': 'Versionen',
   'status.paths': 'Speicherorte',
 
+  'health.whatsapp-offline': 'WhatsApp Web ist nicht verbunden. Das Archiv wächst gerade nicht.',
+  'health.phone-offline':
+    'Dein Handy ist nicht erreichbar. Ältere Nachrichten lassen sich nicht nachladen.',
+  'health.bridge-unavailable':
+    'Die Verbindung zu WhatsApps Interna funktioniert nicht — vermutlich nach einem Update von WhatsApp Web. Das vorhandene Archiv bleibt durchsuchbar.',
+  'health.archive-unavailable': 'Das Archiv ist nicht erreichbar. Suche und Export stehen still.',
+  'health.archive-locked':
+    'Das Archiv ist von einem anderen Vorgang gesperrt. Es wird nichts geschrieben, Lesen geht weiter.',
+  'health.disk-full': 'Kein Platz mehr auf dem Datenträger. Es wird nichts mehr gespeichert.',
+  'health.index-unavailable':
+    'Der Inhaltsindex läuft nicht. Bilder und PDFs werden gerade nicht durchsucht.',
+  'health.stillReadable': 'Nachrichten lesen und schreiben geht weiter wie immer.',
+
   'phase.notice':
     'Archiv und Suche folgen in den nächsten Phasen. Der Verlauf reicht dann ab dem Installationstag zurück — WhatsApp Web liefert rückwirkend höchstens 90 Tage.',
 } as const

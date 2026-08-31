@@ -1,4 +1,5 @@
 import type { Settings, SettingsPatch } from '@shared/settings'
+import type { HealthState } from '@shared/health/degraded'
 
 export interface Versions {
   app: string
@@ -50,9 +51,11 @@ export interface WatIsApi {
   getVersions(): Promise<Versions>
   getWorkerHealth(): Promise<WorkerHealth>
   getPaths(): Promise<Record<string, string>>
+  getHealth(): Promise<HealthState>
   getSettings(): Promise<Settings>
   updateSettings(patch: SettingsPatch): Promise<Settings>
   onSettings(listener: (settings: Settings) => void): () => void
+  onHealth(listener: (state: HealthState) => void): () => void
   onUnread(listener: (counts: UnreadCounts) => void): () => void
 }
 

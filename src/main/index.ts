@@ -9,6 +9,7 @@ const paths = configurePaths()
 import { join } from 'node:path'
 import { APP_ID, DISPLAY_NAME, WA_PARTITION } from '@shared/app-identity'
 import { settingsPatchSchema, type Settings } from '@shared/settings'
+import { assess } from '@shared/health/degraded'
 import { configureLogging, log } from './logging'
 import { applyUserAgent } from './user-agent'
 import { startEventLoopWatchdog } from './watchdog'
@@ -21,6 +22,7 @@ import { NotificationManager, type IncomingNotification } from './notifications'
 import { UiLayer } from './ui-layer'
 import { installDownloadHandler } from './downloads'
 import { configureUpdater } from './updater'
+import { HealthMonitor } from './health/monitor'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -33,6 +35,7 @@ let mainWindow: MainWindow | undefined
 let tray: TrayController | undefined
 let notifications: NotificationManager | undefined
 let uiLayer: UiLayer | undefined
+let health: HealthMonitor | undefined
 let stopWatchdog: (() => void) | undefined
 
 let activeChat = ''
@@ -125,6 +128,23 @@ async function bootstrap(): Promise<void> {
     mainWindow?.panel.webContents.send('app:settings', next)
   })
 
+  health = new HealthMonitor({
+    workerReady: (name) => supervisor.isReady(name),
+    // A document that failed to load, or never loaded, is indistinguishable to the user from
+    // WhatsApp being offline — and it is the same advice either way.
+    whatsappLoaded: () => mainWindow?.wa.webContents.getURL().startsWith('https://') === true,
+  })
+  health.onChange((state) => {
+    mainWindow?.panel.webContents.send('app:health', state)
+  })
+  health.start()
+
+  mainWindow.wa.webContents.on('did-fail-load', (_event, code, description) => {
+    log.warn(`WhatsApp view failed to load: ${description} (${code})`)
+    health?.refresh()
+  })
+  mainWindow.wa.webContents.on('did-finish-load', () => health?.refresh())
+
   configureUpdater({ enabled: true })
 
   app.on('activate', () => {
@@ -199,8 +219,17 @@ function registerIpcHandlers(): void {
   // One channel for the whole archive data plane. The renderer never speaks to the worker
   // directly, and the worker validates the payload itself — see archive-protocol.ts.
   ipcMain.handle('archive:request', async (_event, payload: unknown): Promise<unknown> => {
-    return supervisor.request('archive', payload)
+    try {
+      return await supervisor.request('archive', payload)
+    } catch (error: unknown) {
+      // The renderer gets the rejection either way; the monitor turns the ones it recognises —
+      // a full disk, a locked database — into something the user can read and act on.
+      health?.report(error)
+      throw error
+    }
   })
+
+  ipcMain.handle('app:health', () => health?.state() ?? assess([]))
 
   ipcMain.on('app:toggle-panel', () => {
     mainWindow?.togglePanel()
@@ -251,6 +280,7 @@ app.on('will-quit', (event) => {
   event.preventDefault()
   shuttingDown = true
   stopWatchdog?.()
+  health?.stop()
   notifications?.dispose()
   tray?.dispose()
   void supervisor.stopAll('app quitting').finally(() => {

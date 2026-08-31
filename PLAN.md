@@ -553,7 +553,10 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 - [~] Storage-Übersicht als Berechnung **fertig** — Archiv und Medien sind ausdrücklich **nicht**
   löschbar markiert, der Browser-Cache schon; offen: die Anbindung an die echten Verzeichnisse
 - [ ] Lasttest-Suite als Release-Gate (§8): Import, Suche p50/p95, Event-Loop-Lag, Speicher, Index-Durchsatz
-- [ ] Fehlerpfade: WA Web offline, Handy offline, Bridge tot, Festplatte voll, Archiv gesperrt
+- [x] Fehlerpfade: WA Web offline, Handy offline, Bridge tot, Festplatte voll, Archiv gesperrt —
+      `shared/health/degraded.ts` bildet Störung auf verlorene Fähigkeit ab, `main/health/monitor.ts`
+      sammelt sie, ein Banner im Panel sagt was kaputt ist und was weiter geht. Lesen wird nie
+      abgeschaltet
 - [ ] Performance-Profil: RAM/CPU im Leerlauf und unter Last, Vergleich mit Store-App dokumentieren
 - [ ] README (Quick Start < 5 min), `docs/architecture.md`, `docs/bridge-map.md`, Changelog
 - [ ] Code-Signing: Windows – unsigniert zeigt SmartScreen „Windows hat den PC geschützt" (Ausführen über

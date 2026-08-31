@@ -111,6 +111,42 @@ test('brings both utility processes to ready', async () => {
     .toEqual({ archive: true, contentIndex: true })
 })
 
+test('reports its own health, and never takes reading away', async () => {
+  const read = async (): Promise<{
+    capabilities: { key: string; available: boolean }[]
+    severity: string
+  }> =>
+    (await app.evaluate(async ({ webContents }) => {
+      const panel = webContents
+        .getAllWebContents()
+        .find((contents) => contents.getURL().includes('index.html'))
+      return (await panel?.executeJavaScript('window.watis.getHealth()')) as unknown
+    })) as { capabilities: { key: string; available: boolean }[]; severity: string }
+
+  // The monitor is level-triggered and polls, so it trails the workers by up to a second.
+  await expect
+    .poll(async () => (await read()).severity, {
+      timeout: 20_000,
+      message: 'health should follow the workers back up',
+    })
+    // WhatsApp Web is unreachable in the test environment, so a fault here is expected. What is
+    // pinned down is that the failure stays contained rather than reading as a dead application.
+    .toBe('degraded')
+
+  const state = await read()
+  expect(state.capabilities.map((c) => c.key).sort()).toEqual([
+    'archiveGrows',
+    'backfill',
+    'contentIndex',
+    'export',
+    'mediaFetch',
+    'read',
+    'search',
+  ])
+  expect(state.capabilities.find((c) => c.key === 'read')?.available).toBe(true)
+  expect(state.capabilities.find((c) => c.key === 'search')?.available).toBe(true)
+})
+
 test('runs the pinned Electron and Chromium', async () => {
   const versions = await app.evaluate(() => ({
     electron: process.versions.electron,
