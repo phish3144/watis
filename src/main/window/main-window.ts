@@ -24,6 +24,7 @@ export interface MainWindow {
   wa: WebContentsView
   panel: WebContentsView
   togglePanel(): void
+  setPanelVisible(visible: boolean): void
   isPanelVisible(): boolean
   show(): void
 }
@@ -260,6 +261,7 @@ export function createMainWindow(options: { startMinimised: boolean }): MainWind
     panel,
     show,
     isPanelVisible: () => panelVisible,
+    setPanelVisible,
     togglePanel: () => {
       setPanelVisible(!panelVisible)
     },

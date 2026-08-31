@@ -23,6 +23,8 @@ import { UiLayer } from './ui-layer'
 import { installDownloadHandler } from './downloads'
 import { configureUpdater } from './updater'
 import { HealthMonitor } from './health/monitor'
+import { BridgeHost } from './bridge/host'
+import { Importer } from './archive/importer'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -36,6 +38,8 @@ let tray: TrayController | undefined
 let notifications: NotificationManager | undefined
 let uiLayer: UiLayer | undefined
 let health: HealthMonitor | undefined
+let bridge: BridgeHost | undefined
+let importer: Importer | undefined
 let stopWatchdog: (() => void) | undefined
 
 let activeChat = ''
@@ -145,6 +149,25 @@ async function bootstrap(): Promise<void> {
   })
   mainWindow.wa.webContents.on('did-finish-load', () => health?.refresh())
 
+  // Bridge -> importer -> archive worker. The importer is what keeps the main process out of the
+  // per-message path: events land in its ring buffer and leave in batches (§3.1).
+  importer = new Importer((request) => supervisor.request('archive', request))
+  importer.start()
+
+  bridge = new BridgeHost({
+    onEvents: (events) => {
+      for (const event of events) importer?.push(event)
+    },
+    onHealth: (report) => {
+      health?.set('bridge-unavailable', !report.ok)
+      mainWindow?.panel.webContents.send('app:bridge', report)
+    },
+    onSnapshotDone: () => {
+      log.info('bridge finished its initial snapshot')
+    },
+  })
+  bridge.attach(mainWindow.wa.webContents)
+
   configureUpdater({ enabled: true })
 
   app.on('activate', () => {
@@ -231,6 +254,39 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('app:health', () => health?.state() ?? assess([]))
 
+  // Backpressure, so the panel can show a mirror that is falling behind instead of silently
+  // dropping events (PLAN.md Phase 3).
+  ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
+
+  // The initial mirror is a user action, not something that runs on its own at startup: it walks
+  // every collection WhatsApp has in memory and the user should decide when to pay for that.
+  ipcMain.handle('bridge:snapshot', async () => {
+    if (!bridge?.ready) throw new Error('bridge is not available')
+    return bridge.send('snapshot')
+  })
+
+  // "Im WhatsApp-Chat öffnen" (Phase 4). Opening a chat is a user action, so WhatsApp marking it
+  // read is accepted — ADR 0006. That is also why the panel closes first: what happens next has to
+  // be visible to the person who asked for it.
+  ipcMain.handle('bridge:open-chat', async (_event, payload: unknown) => {
+    const args = payload as { chatId?: unknown; msgId?: unknown }
+    if (typeof args?.chatId !== 'string') throw new Error('chatId is required')
+    if (!bridge?.ready) throw new Error('bridge is not available')
+    mainWindow?.setPanelVisible(false)
+    mainWindow?.show()
+    return bridge.send('openChat', {
+      chatId: args.chatId,
+      ...(typeof args.msgId === 'string' ? { msgId: args.msgId } : {}),
+    })
+  })
+
+  ipcMain.handle('bridge:load-older', async (_event, payload: unknown) => {
+    const args = payload as { chatId?: unknown }
+    if (typeof args?.chatId !== 'string') throw new Error('chatId is required')
+    if (!bridge?.ready) throw new Error('bridge is not available')
+    return bridge.send('loadOlder', { chatId: args.chatId })
+  })
+
   ipcMain.on('app:toggle-panel', () => {
     mainWindow?.togglePanel()
   })
@@ -282,6 +338,8 @@ app.on('will-quit', (event) => {
   stopWatchdog?.()
   health?.stop()
   notifications?.dispose()
+  bridge?.dispose()
+  void importer?.stop()
   tray?.dispose()
   void supervisor.stopAll('app quitting').finally(() => {
     app.exit(0)

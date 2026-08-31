@@ -5,6 +5,7 @@ import { t } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
 import { ArchivePanel } from './archive/ArchivePanel'
 import { HealthBanner } from './components/HealthBanner'
+import { MirrorStatus } from './components/MirrorStatus'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -102,8 +103,11 @@ export function App(): React.JSX.Element {
       <HealthBanner state={degraded} />
 
       {tab === 'archive' ? (
-        <div className="min-h-0 flex-1">
-          <ArchivePanel />
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <MirrorStatus />
+          <div className="min-h-0 flex-1">
+            <ArchivePanel />
+          </div>
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">

@@ -18,6 +18,36 @@ vorhanden, und `moduleRaid` entfällt.
 lädt nichts nach und liefert kein `undefined`. Jeder Aufruf ist deshalb gekapselt — ein blinder Aufruf
 würde die Exception in einem WhatsApp-Stackframe auslösen.
 
+## Wie der Code in die Seite kommt
+
+`window.require` existiert **nur in der Seitenwelt**. Das Preload läuft in der isolierten Welt und
+kommt nicht daran. Der Weg ist deshalb:
+
+1. `npm run build:bridge` bündelt `src/bridge/index.ts` zu **einer IIFE** ohne Imports, ohne
+   `process`, ohne Node-Builtins → `out/bridge/bridge.js`.
+2. `main/bridge/host.ts` liest die Datei einmal und ruft nach **jedem** `did-finish-load`
+   `webContents.executeJavaScript(source)` auf. Das läuft in der Seitenwelt.
+   Nach jedem Load, nicht einmal beim Start: WA Web lädt sich nach Logout, Update oder längerem
+   Socket-Verlust selbst neu.
+3. Die Bundle-Datei ruft beim Eintritt `window.__watisBridge?.stop()` auf, bevor sie sich
+   installiert. Ohne das würden sich bei jeder Navigation die Listener stapeln und jede Nachricht
+   mehrfach gespiegelt.
+
+### Der Draht zwischen den Welten
+
+| Richtung     | Träger                                                     | Wer                         |
+| ------------ | ---------------------------------------------------------- | --------------------------- |
+| Seite → Main | `CustomEvent('watis:bridge-out')` auf `document`           | Preload relayt per IPC      |
+| Main → Seite | IPC `wa:bridge-command` → `CustomEvent('watis:bridge-in')` | Preload relayt in die Seite |
+
+Nutzlast ist immer ein **JSON-String**, kein Objekt: ein structured clone würde lebende Referenzen
+aus der Seite heraustragen, ein String kann das nicht. Das Preload liest keine der beiden Nutzlasten
+— es ist Draht, nicht Teilnehmer.
+
+Ereignisse werden auf der Seitenseite **gebündelt** (250 ms, max. 2000 wartend), bevor sie die
+Weltgrenze überqueren; im Main landen sie im Ringpuffer des Importers. Beide Puffer verwerfen, statt
+zu wachsen — die Zähler stehen im Panel.
+
 ## Aufgelöste Module
 
 | Modul                          | Pfad                       | Verlangt                           | Wofür                           |

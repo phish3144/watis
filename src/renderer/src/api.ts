@@ -1,5 +1,7 @@
 import type { Settings, SettingsPatch } from '@shared/settings'
 import type { HealthState } from '@shared/health/degraded'
+import type { BridgeReady } from '../../bridge/protocol'
+import type { ImporterStats } from '../../main/archive/importer'
 
 export interface Versions {
   app: string
@@ -52,10 +54,17 @@ export interface WatIsApi {
   getWorkerHealth(): Promise<WorkerHealth>
   getPaths(): Promise<Record<string, string>>
   getHealth(): Promise<HealthState>
+  getImportStats(): Promise<ImporterStats | null>
+  bridge: {
+    snapshot(): Promise<unknown>
+    openChat(chatId: string, msgId?: string): Promise<unknown>
+    loadOlder(chatId: string): Promise<unknown>
+  }
   getSettings(): Promise<Settings>
   updateSettings(patch: SettingsPatch): Promise<Settings>
   onSettings(listener: (settings: Settings) => void): () => void
   onHealth(listener: (state: HealthState) => void): () => void
+  onBridge(listener: (report: BridgeReady) => void): () => void
   onUnread(listener: (counts: UnreadCounts) => void): () => void
 }
 

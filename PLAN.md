@@ -418,10 +418,12 @@ Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
 Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 
 - [~] Bridge-Grundgerüst: Modulauflösung über `window.require`, Healthcheck mit Signaturprüfung,
-  Feature-Abschaltung pro fehlendem Modul, `docs/bridge-map.md` **fertig**;
+  Feature-Abschaltung pro fehlendem Modul, `docs/bridge-map.md` **fertig**; Injektion in die
+  Seitenwelt nach jedem Load und der Draht über `CustomEvent` **fertig** (`main/bridge/host.ts`);
   offen: Verifikation gegen eine angemeldete Sitzung
 - [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
-- [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
+- [x] Archiv-Prozess: Batch-Schreiben in Transaktionen, WAL, Backpressure-Zähler im Panel
+      (geschrieben / wartend / verworfen, `MirrorStatus`)
 - [x] Ringpuffer (bounded, mit Drop-Zähler), Batch-Grenze 500, Taktung alle 250 ms, überlappende
       Flushes werden übersprungen statt gestapelt
 - [~] Initialer Import als Generator über die vorhandenen Collections, in Blöcken, damit WA Web
@@ -434,8 +436,8 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
       nennt ihren Grund
 - [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben
 - [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
-- [~] Kein Durchreichen von Exceptions in die WA-Seite **fertig** (jeder `require` gekapselt),
-  Feature-Abschaltung **fertig**; offen: das Banner in der UI
+- [x] Kein Durchreichen von Exceptions in die WA-Seite (jeder `require` gekapselt),
+      Feature-Abschaltung, und das Banner in der UI, wenn die Bridge steht
 - [x] Manuelle Smoke-Test-Checkliste (`docs/bridge-smoke.md`) — prüft ausdrücklich auch die
       Lesebestätigung und dass `logs/outgoing.log` leer bleibt
 - [~] Lasttest (§8) **gebaut** und bis 1 Mio. Nachrichten gefahren; die 5-Mio.-Läufe stehen aus
@@ -452,8 +454,11 @@ Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
       `before:/after:`, `has:file|image|audio|link`, `source:body|ocr|pdf|docx|transcript`. Trigram-Index bleibt offen
 - [~] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste, Endlos-Scroll nach oben, Keyset-Pagination
   über `(ts, id)` **fertig**; offen: Datumssprung und Kalender
-- [~] Kontext (±3 Nachrichten) im Repository **fertig** (`contextAround`); offen: die Trefferliste selbst
-- [ ] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht (Feature-Flag, fragil)
+- [x] Kontext (±3 Nachrichten) im Repository (`contextAround`) und in der Trefferliste — pro Treffer
+      aufklappbar, nicht mit der Liste geladen: 60 Treffer wären sonst 60 Abfragen für Kontext, den
+      niemand aufmacht
+- [x] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht; das Panel schließt
+      vorher, damit sichtbar ist was passiert. Lesebestätigung dabei ist in Ordnung ([ADR 0006](docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md))
 - [ ] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Links), Filter und Sortierung
 - [~] Strg+K springt in die Suche **fertig**; offen: Chats und Kontakte als eigene Trefferarten
 - [x] Suche < 200 ms (p95): **6,20 ms bei 1 Mio.** in der Standardreihenfolge, Benchmark unter

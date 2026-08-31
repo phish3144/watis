@@ -4,13 +4,14 @@ import { ENTER_KEY_SHIM, NOTIFICATION_SHIM } from './wa-notification-shim'
 /**
  * Preload for the WhatsApp view. Runs in the isolated world, sandboxed, CommonJS.
  *
- * It does three things and nothing else:
+ * It does four things and nothing else:
  *  1. installs the main-world shims (notifications, Enter key) before any page script runs,
  *  2. reads the unread count out of WhatsApp's own IndexedDB,
- *  3. relays between the page and the main process.
+ *  3. relays between the page and the main process,
+ *  4. carries the bridge's messages across the world boundary, without reading them.
  *
- * It never writes to WhatsApp. The read-only bridge into WhatsApp's internal stores is a
- * separate, later thing and lives in the page world; this file will not grow into it.
+ * It never writes to WhatsApp. The read-only bridge into WhatsApp's internal stores lives in the
+ * page world, in `src/bridge/`; this file relays for it and will not grow into it.
  */
 
 // Main-world injection. Must happen at top level: WhatsApp captures window.Notification while
@@ -36,6 +37,21 @@ document.addEventListener('watis:notify-close', (event) => {
   } catch {
     /* drop */
   }
+})
+
+// --- bridge relay -----------------------------------------------------------
+//
+// The bridge itself runs in the page world, where `window.require` lives and `ipcRenderer` must
+// never go. Both worlds share the document, so a CustomEvent is the whole channel. This preload
+// forwards in both directions and reads neither payload — it is a wire, not a participant.
+
+document.addEventListener('watis:bridge-out', (event) => {
+  ipcRenderer.send('wa:bridge-message', (event as CustomEvent<string>).detail)
+})
+
+ipcRenderer.on('wa:bridge-command', (_event, detail: unknown) => {
+  if (typeof detail !== 'string') return
+  document.dispatchEvent(new CustomEvent('watis:bridge-in', { detail }))
 })
 
 // --- main -> page -----------------------------------------------------------

@@ -41,6 +41,103 @@ function MessageRow({ message }: { message: ArchiveMessage }): React.JSX.Element
   )
 }
 
+/**
+ * One search hit with the three messages either side of it.
+ *
+ * The context is fetched when the row is expanded, not with the hit list: a page of 60 hits would
+ * otherwise mean 60 extra queries for context nobody looked at.
+ */
+function HitRow({
+  hit,
+  onOpenInArchive,
+}: {
+  hit: ArchiveHit
+  onOpenInArchive: () => void
+}): React.JSX.Element {
+  const [context, setContext] = useState<ArchiveMessage[] | undefined>(undefined)
+  const [open, setOpen] = useState(false)
+  const [waError, setWaError] = useState<string | undefined>(undefined)
+  // Bound where the chat id is still known to be there, so the handler needs no null check of
+  // its own — and a hit without a chat simply has no button.
+  const chatId = hit.chatId
+  const openInWhatsApp =
+    chatId === null
+      ? undefined
+      : (): void => {
+          setWaError(undefined)
+          void api()
+            .bridge.openChat(chatId, hit.msgId ?? undefined)
+            .catch((error: unknown) => {
+              setWaError(String(error))
+            })
+        }
+
+  const expand = (): void => {
+    setOpen((was) => !was)
+    if (context !== undefined || !hit.msgId) return
+    void ask<{ messages: ArchiveMessage[] }>({ op: 'context', msgId: hit.msgId, radius: 3 })
+      .then((result) => {
+        setContext(result.messages)
+      })
+      .catch(() => {
+        setContext([])
+      })
+  }
+
+  return (
+    <li className="border-b border-wa-hairline px-3 py-2">
+      <div className="text-xs text-wa-muted">
+        {hit.ts !== null ? formatWhen(hit.ts) : '—'} · gefunden in {hit.source}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <button
+          type="button"
+          className="underline-offset-2 hover:underline"
+          onClick={onOpenInArchive}
+        >
+          Im Archiv öffnen
+        </button>
+        <button
+          type="button"
+          className="underline-offset-2 hover:underline"
+          onClick={expand}
+          aria-expanded={open}
+        >
+          {open ? 'Umgebung ausblenden' : 'Umgebung zeigen'}
+        </button>
+        {openInWhatsApp && (
+          <button
+            type="button"
+            className="underline-offset-2 hover:underline"
+            onClick={openInWhatsApp}
+          >
+            In WhatsApp öffnen
+          </button>
+        )}
+      </div>
+
+      {waError !== undefined && <p className="text-xs text-red-400">{waError}</p>}
+
+      {open && (
+        <ol className="mt-1 border-l border-wa-hairline pl-3 text-xs">
+          {context === undefined && <li className="text-wa-muted">Lade Umgebung …</li>}
+          {context?.length === 0 && <li className="text-wa-muted">Keine Umgebung im Archiv.</li>}
+          {context?.map((m) => (
+            <li
+              key={m.id}
+              className={m.id === hit.msgId ? 'py-0.5 text-slate-200' : 'py-0.5 text-wa-muted'}
+            >
+              <span className="tabular-nums">{formatWhen(m.ts)}</span>{' '}
+              {m.revoked ? <em>gelöscht</em> : (m.body ?? '(Anhang)')}
+            </li>
+          ))}
+        </ol>
+      )}
+    </li>
+  )
+}
+
 export function ArchivePanel(): React.JSX.Element {
   const [chats, setChats] = useState<ArchiveChat[]>([])
   const [chatId, setChatId] = useState<string | undefined>(undefined)
@@ -252,24 +349,14 @@ export function ArchivePanel(): React.JSX.Element {
           <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
             {hits.length === 0 && <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>}
             {hits.map((hit) => (
-              <li
+              <HitRow
                 key={`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`}
-                className="border-b border-wa-hairline px-3 py-2"
-              >
-                <div className="text-xs text-wa-muted">
-                  {hit.ts !== null ? formatWhen(hit.ts) : '—'} · gefunden in {hit.source}
-                </div>
-                <button
-                  type="button"
-                  className="text-left text-sm underline-offset-2 hover:underline"
-                  onClick={() => {
-                    if (hit.chatId) setChatId(hit.chatId)
-                    setHits(undefined)
-                  }}
-                >
-                  Im Chat öffnen
-                </button>
-              </li>
+                hit={hit}
+                onOpenInArchive={() => {
+                  if (hit.chatId) setChatId(hit.chatId)
+                  setHits(undefined)
+                }}
+              />
             ))}
           </ul>
         ) : (

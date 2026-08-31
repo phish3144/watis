@@ -16,7 +16,8 @@
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
-    "build": "electron-vite build",
+    "build:bridge": "vite build --config vite.bridge.config.ts",
+    "build": "npm run build:bridge && electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
