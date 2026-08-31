@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "smoke:sqlite": "node scripts/smoke-sqlite.mjs",
+    "loadtest:archive": "node scripts/loadtest-archive.mjs",
     "package": "npm run build && electron-builder --dir",
     "dist:win": "npm run build && electron-builder --win --publish never",
     "dist:win:unpacked": "npm run build && electron-builder --win --dir",

@@ -418,7 +418,7 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 
 - [ ] Bridge-Grundgerüst: Modulauflösung, Healthcheck, Feature-Flags, `docs/bridge-map.md`
 - [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
-- [ ] Archiv-Prozess: Batch-Schreiben in Transaktionen, WAL, Backpressure-Zähler (sichtbar in der UI)
+- [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
 - [ ] Ringpuffer in der Bridge, Batch-IPC alle ~250 ms; Import-Batches ≤ 500 mit Yield, WA Web bleibt bedienbar
 - [ ] Initialer Import aller lokal vorhandenen Chats/Nachrichten/Kontakte, fortsetzbar, Fortschritt in `sync_state`
 - [ ] Live-Spiegelung: neue, editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
@@ -429,7 +429,7 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
 - [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
 - [ ] Healthcheck-Ausfall: Banner + Features aus + Log; keine Exceptions in die WA-Seite durchreichen
 - [ ] Manuelle Smoke-Test-Checkliste gegen die aktuelle WA-Web-Version (`docs/bridge-smoke.md`)
-- [ ] Lasttest (§8): synthetischer Import von 5 Mio. Nachrichten und 100k Medien-Einträgen
+- [~] Lasttest (§8) **gebaut** und bis 1 Mio. Nachrichten gefahren; die 5-Mio.-Läufe stehen aus
 
 **DoD:** Archiv entspricht nach Import dem, was WA Web anzeigt (Stichproben in 10 Chats); nach WA-Web-Update
 ohne Bridge bleibt die App nutzbar und zeigt den Ausfall an; Lasttest ohne Main-Prozess-Blockaden > 16 ms,
@@ -439,15 +439,17 @@ WA Web bleibt während des Imports bedienbar.
 
 Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
 
-- [ ] `search_docs`/`search_fts` mit Triggern, optional Trigram-Index; Suchsyntax: Wörter, Phrasen, `from:`, `in:`,
-      `before:/after:`, `has:file|image|audio|link`, `source:body|ocr|pdf|docx|transcript`
+- [x] `search_docs`/`search_fts` mit Triggern; Suchsyntax vollständig: Wörter, Phrasen, `from:`, `in:`,
+      `before:/after:`, `has:file|image|audio|link`, `source:body|ocr|pdf|docx|transcript`. Trigram-Index bleibt offen
 - [ ] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste mit Endlos-Scroll in beide Richtungen, Datumssprung,
       Kalender; Keyset-Pagination über `(ts, id)`, nie „alles laden"
-- [ ] Trefferliste mit Kontext (±3 Nachrichten), Sprung zur Stelle im Archiv
+- [~] Kontext (±3 Nachrichten) im Repository **fertig** (`contextAround`); offen: die Trefferliste selbst
 - [ ] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht (Feature-Flag, fragil)
 - [ ] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Links), Filter und Sortierung
 - [ ] Globale Shortcut-Suche (Strg+K) über Chats, Kontakte, Nachrichten
-- [ ] Suche < 200 ms (p95) bei 5 Mio. Nachrichten und 1 Mio. Index-Dokumenten (Benchmark-Script, §8)
+- [x] Suche < 200 ms (p95): **6,20 ms bei 1 Mio.** in der Standardreihenfolge, Benchmark unter
+      `scripts/loadtest-archive.mjs` ([ADR 0007](docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md)).
+      Relevanz-Sortierung verfehlt das Gate bei sehr häufigen Begriffen bauartbedingt
 
 **DoD:** Eine beliebig alte Nachricht **aus dem Archivzeitraum** in < 5 s finden, öffnen und die Datei
 daneben öffnen. Der Archivzeitraum beginnt bei der Installation plus dem, was der Erstsync liefert
