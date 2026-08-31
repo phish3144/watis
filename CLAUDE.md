@@ -28,8 +28,12 @@ Diese sind nicht verhandelbar. Ein PR, der eine davon verletzt, ist falsch, auch
 ### Read-only gegenüber WhatsApp
 
 - **Die Bridge ist read-only. Ohne Ausnahme.** Niemals Code, der über die Internals sendet, löscht,
-  blockiert, Kontakte oder Gruppen ändert, Nachrichten als gelesen markiert oder Status postet. Auch nicht
-  als Experiment, auch nicht hinter einem Feature-Flag, auch nicht auskommentiert.
+  blockiert, Kontakte oder Gruppen ändert, Nachrichten als gelesen markiert **ohne dass die Nutzerin den
+  Chat öffnen wollte**, oder Status postet. Auch nicht als Experiment, auch nicht hinter einem
+  Feature-Flag, auch nicht auskommentiert.
+- Öffnet die Nutzerin einen Chat, darf WhatsApp ihn als gelesen markieren — das ist dasselbe, als hätte
+  sie ihn selbst angeklickt ([ADR 0006](docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md)).
+  Verboten bleibt das Durcharbeiten von Chats, die niemand sehen will.
 - Erlaubt sind: lesen, beobachten, Medien laden, aktuellen Chat ermitteln, Chat öffnen, zu einer Nachricht
   scrollen, „ältere Nachrichten laden" auslösen – letzteres in menschlichem Tempo.
 - Kein Protokoll-Client (whatsmeow, Baileys). Kein Scheduling, keine Bots, kein Bulk, kein Auto-Reply.

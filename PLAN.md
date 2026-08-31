@@ -426,7 +426,7 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
       Status in `media`, Index-Job anlegen
 - [ ] Regeln: welche Medien automatisch geholt werden (Dokumente immer, Bilder ja, Videos ab X MB nur manuell)
 - [ ] Quota für den Blob-Store mit Warnung; Speicherort in der Config, Verschieben mit Fortschritt und Verifikation
-- [ ] Migrations-System, regelmäßiges `VACUUM INTO` für Snapshots, alle Indizes aus §5.4
+- [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
 - [ ] Healthcheck-Ausfall: Banner + Features aus + Log; keine Exceptions in die WA-Seite durchreichen
 - [ ] Manuelle Smoke-Test-Checkliste gegen die aktuelle WA-Web-Version (`docs/bridge-smoke.md`)
 - [ ] Lasttest (§8): synthetischer Import von 5 Mio. Nachrichten und 100k Medien-Einträgen

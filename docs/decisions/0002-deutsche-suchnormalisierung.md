@@ -44,12 +44,17 @@ const toDigraph = (s: string): string => s.replace(/[äöüÄÖÜ]/g, (c) => UML
 
 /** Written into search_docs.text; search_fts indexes this form, never the raw text. */
 export function indexForm(text: string): string {
-  const out: string[] = []
-  for (const token of foldEszett(text.normalize('NFC')).split(/(\s+)/)) {
-    out.push(token)
-    if (HAS_UMLAUT.test(token)) out.push(toDigraph(token))
+  let out = ''
+  for (const piece of foldEszett(text.normalize('NFC')).split(/(\s+)/)) {
+    if (piece === '') continue
+    if (/^\s+$/.test(piece)) {
+      out += piece
+      continue
+    }
+    out += piece
+    if (HAS_UMLAUT.test(piece)) out += ` ${toDigraph(piece)}`
   }
-  return out.join(' ')
+  return out
 }
 
 /** Applied to every term of a parsed query before it becomes an FTS5 MATCH expression. */
@@ -59,6 +64,11 @@ export function queryForm(term: string): string {
   return digraph === folded ? `"${folded}"` : `("${folded}" OR "${digraph}")`
 }
 ```
+
+> **Korrektur 2026-08-31.** Die erste Fassung dieses Schnipsels sammelte die Stücke in ein Array und
+> fügte sie mit `join(' ')` zusammen. Weil `split` mit Fangklammer die Trenner als eigene Elemente
+> behält, wurde damit aus jedem einzelnen Leerzeichen ein dreifaches. Für die Trefferqualität war das
+> harmlos, für die Indexgröße nicht. Ein Unit-Test in `test/unit/normalise.test.ts` hält die Gaps jetzt fest.
 
 ## Messergebnis
 
