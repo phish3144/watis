@@ -17,6 +17,14 @@ export type WorkerName = (typeof WORKER_NAMES)[number]
 export const hostToWorkerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping'), nonce: z.number().int().nonnegative() }),
   z.object({ type: z.literal('shutdown'), reason: z.string().max(200) }),
+  // The data-plane envelope. `payload` stays unknown here on purpose: validating an import batch of
+  // 500 rows against the control-plane schema on every message is exactly the overhead §3.1 forbids.
+  // The worker validates it once, at its own boundary, with the schema that actually describes it.
+  z.object({
+    type: z.literal('request'),
+    id: z.number().int().nonnegative(),
+    payload: z.unknown(),
+  }),
 ])
 
 export const workerToHostSchema = z.discriminatedUnion('type', [
@@ -28,6 +36,13 @@ export const workerToHostSchema = z.discriminatedUnion('type', [
     message: z.string().max(4000),
   }),
   z.object({ type: z.literal('fatal'), message: z.string().max(4000) }),
+  z.object({
+    type: z.literal('response'),
+    id: z.number().int().nonnegative(),
+    ok: z.boolean(),
+    result: z.unknown().optional(),
+    error: z.string().max(4000).optional(),
+  }),
 ])
 
 export type HostToWorker = z.infer<typeof hostToWorkerSchema>

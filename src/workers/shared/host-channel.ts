@@ -17,9 +17,13 @@ export interface HostChannel {
   log(level: 'debug' | 'info' | 'warn' | 'error', message: string): void
 }
 
+/** Handles one data-plane request. Throwing turns into an error response, never a dead worker. */
+export type RequestHandler = (payload: unknown) => unknown
+
 export function connectToHost(options: {
   name: WorkerName
   onShutdown: (reason: string) => Promise<void> | void
+  onRequest?: RequestHandler
 }): Promise<HostChannel> {
   return new Promise((resolve) => {
     process.parentPort.once('message', (event) => {
@@ -43,6 +47,20 @@ export function connectToHost(options: {
         }
         if (parsed.type === 'ping') {
           channel.send({ type: 'pong', nonce: parsed.nonce })
+          return
+        }
+        if (parsed.type === 'request') {
+          const { id } = parsed
+          // Every request answers exactly once, success or failure. A handler that throws must not
+          // leave the caller's promise hanging for the life of the process.
+          void (async () => {
+            try {
+              const result = await options.onRequest?.(parsed.payload)
+              channel.send({ type: 'response', id, ok: true, result })
+            } catch (error) {
+              channel.send({ type: 'response', id, ok: false, error: String(error) })
+            }
+          })()
           return
         }
         void Promise.resolve(options.onShutdown(parsed.reason)).then(

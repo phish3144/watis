@@ -13,45 +13,45 @@ import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
 
 export interface ChatRow {
   id: string
-  jid?: string | null
-  name?: string | null
-  kind?: 'dm' | 'group' | 'broadcast' | 'channel' | null
-  lastMsgTs?: number | null
-  isArchived?: boolean
-  rawJson?: string | null
+  jid?: string | null | undefined
+  name?: string | null | undefined
+  kind?: 'dm' | 'group' | 'broadcast' | 'channel' | null | undefined
+  lastMsgTs?: number | null | undefined
+  isArchived?: boolean | undefined
+  rawJson?: string | null | undefined
 }
 
 export interface ContactRow {
   jid: string
-  name?: string | null
-  pushname?: string | null
-  phone?: string | null
+  name?: string | null | undefined
+  pushname?: string | null | undefined
+  phone?: string | null | undefined
 }
 
 export interface MessageRow {
   id: string
   chatId: string
-  senderJid?: string | null
+  senderJid?: string | null | undefined
   ts: number
-  kind?: string | null
-  body?: string | null
-  quotedId?: string | null
-  mediaId?: string | null
-  edited?: boolean
-  revoked?: boolean
-  fromMe?: boolean
-  rawJson?: string | null
+  kind?: string | null | undefined
+  body?: string | null | undefined
+  quotedId?: string | null | undefined
+  mediaId?: string | null | undefined
+  edited?: boolean | undefined
+  revoked?: boolean | undefined
+  fromMe?: boolean | undefined
+  rawJson?: string | null | undefined
 }
 
 export interface MediaRow {
   id: string
-  msgId?: string | null
-  chatId?: string | null
-  mime?: string | null
-  size?: number | null
-  sha256?: string | null
-  filename?: string | null
-  status?: 'pending' | 'done' | 'failed' | 'skipped'
+  msgId?: string | null | undefined
+  chatId?: string | null | undefined
+  mime?: string | null | undefined
+  size?: number | null | undefined
+  sha256?: string | null | undefined
+  filename?: string | null | undefined
+  status?: 'pending' | 'done' | 'failed' | 'skipped' | undefined
 }
 
 /** A position in a chat, used to page in either direction without OFFSET. */
@@ -388,6 +388,56 @@ export class ArchiveRepository {
     }
 
     return { where, params }
+  }
+
+  /** The chat list, most recently active first — the archive panel's left column. */
+  chats(limit = 200): ChatRow[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT id, jid, name, kind, last_msg_ts, is_archived, raw_json
+         FROM chats ORDER BY IFNULL(last_msg_ts, 0) DESC LIMIT ?`,
+      )
+      .all(limit) as Record<string, unknown>[]
+    return rows.map((r) => ({
+      id: r.id as string,
+      jid: r.jid as string | null,
+      name: r.name as string | null,
+      kind: (r.kind ?? null) as 'dm' | 'group' | 'broadcast' | 'channel' | null,
+      lastMsgTs: r.last_msg_ts as number | null,
+      isArchived: Boolean(r.is_archived),
+      rawJson: r.raw_json as string | null,
+    }))
+  }
+
+  stats(pendingWrites = 0): {
+    messages: number
+    chats: number
+    media: number
+    searchDocs: number
+    databaseBytes: number
+    pendingWrites: number
+  } {
+    const count = (table: string): number =>
+      (this.#db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n
+    const pageCount = Number(this.#db.pragma('page_count', { simple: true }))
+    const pageSize = Number(this.#db.pragma('page_size', { simple: true }))
+    return {
+      messages: count('messages'),
+      chats: count('chats'),
+      media: count('media'),
+      searchDocs: count('search_docs'),
+      databaseBytes: pageCount * pageSize,
+      pendingWrites,
+    }
+  }
+
+  /**
+   * A defragmented copy, for backup. VACUUM INTO does not lock readers out for the duration the way
+   * a plain VACUUM does, and the result is a single consistent file rather than a database plus a
+   * WAL that a naive copy would miss.
+   */
+  snapshot(toFile: string): void {
+    this.#db.prepare('VACUUM INTO ?').run(toFile)
   }
 
   /** Messages either side of a hit, for the ±3 context the result list shows. */
