@@ -621,7 +621,12 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
       `shared/health/degraded.ts` bildet Störung auf verlorene Fähigkeit ab, `main/health/monitor.ts`
       sammelt sie, ein Banner im Panel sagt was kaputt ist und was weiter geht. Lesen wird nie
       abgeschaltet
-- [ ] Performance-Profil: RAM/CPU im Leerlauf und unter Last, Vergleich mit Store-App dokumentieren
+- [~] Performance-Profil ([`docs/performance.md`](docs/performance.md)): gemessen von
+  `test/e2e/performance.spec.ts` gegen die echte App, pro Prozesstyp statt als Summe — Working Sets
+  zu addieren zählt das gemeinsame Framework in jedem Prozess mit und ergibt eine Zahl, die nur
+  aussagt, wie viele Prozesse laufen. Main wächst unter 50 000 importierten Nachrichten um 31 MiB.
+  Offen: der Vergleich mit der Store-App, der beide Anwendungen auf derselben Windows-Maschine mit
+  demselben Konto braucht
 - [x] README mit Quick Start (Clone, `npm ci`, `npm run dev` — kein Compiler, keine Adminrechte),
       [`docs/architecture.md`](docs/architecture.md), [`docs/bridge-map.md`](docs/bridge-map.md),
       [`CHANGELOG.md`](CHANGELOG.md) mit den bekannten Einschränkungen ausdrücklich darin

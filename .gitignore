@@ -63,3 +63,4 @@ npm-debug.log*
 
 # Written by the release gate; the numbers belong in a release note, not in git
 loadtest-report.json
+performance-profile.json
