@@ -580,7 +580,11 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 ### Phase 8 – Erweiterungen (je S–M, frei wählbar)
 
 - [ ] **Multi-Account:** Tabs mit getrennten Partitionen, getrennte Archive, Badge pro Account
-- [ ] **App-Sperre:** PIN beim Start/Leerlauf, Fenster bei Fokusverlust weichzeichnen (Privatsphäre-Modus)
+- [x] **App-Sperre:** PIN beim Start und nach Inaktivität, Weichzeichnen bei Fokusverlust. Die UI sagt
+      ausdrücklich, was das ist: **Sichtschutz, keine Verschlüsselung.** Das Archiv bleibt lesbar auf
+      der Platte. Mehr zu behaupten wäre schlimmer als keine Sperre — jemand könnte sich darauf
+      verlassen. Die PIN liegt trotzdem als scrypt-Hash da: nicht weil das das Archiv schützt,
+      sondern weil PINs wiederverwendet werden
 - [x] **Chat mit Nummer:** Normalisierung, Parser, Dialog und Handler-Registrierung (HKCU,
       abschaltbar). Geht über WhatsApps eigene `/send`-Adresse, nicht über die Bridge — einen Chat
       per Nummer zu öffnen kann der Web-Client selbst, und dafür in die Interna zu greifen wäre ein
@@ -593,7 +597,7 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
       statt pro Erinnerung ein Timer: ein Timer für morgen überlebt weder ein Beenden noch einen
       Ruhezustand. Als **gezeigt** abgehakt, nicht als geklickt — eine Erinnerung, die niemand
       anklickt, wurde trotzdem zugestellt
-- [ ] **Storage-Übersicht** vorziehen, falls der Cache früh wächst
+- [x] **Storage-Übersicht** — bereits in Phase 9 umgesetzt und an die echten Verzeichnisse angebunden
 
 ### Phase 9 – Hardening & Release (M)
 
@@ -626,7 +630,11 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
       Signing bewerten (Kosten vs. Komfort). macOS – Signierung + Notarisierung sind für ein Release Pflicht
       (Apple Developer Program), erst zum Mac-Release
 - [ ] Update-E2E auf Standardbenutzer-Konto: Auto-Update von Version n auf n+1 ohne UAC, Session bleibt
-- [ ] Deinstallation per-user sauber: Programmordner weg, Daten unter `%LOCALAPPDATA%` optional behalten (Abfrage)
+- [~] Deinstallation per-user sauber: `build/installer.nsh` fragt beim Deinstallieren, ob Archiv,
+  Medien und Anmeldung mitgehen sollen — Standardantwort **behalten**, weil sonst wer neu installieren
+  will Jahre an Nachrichten an einen weggeklickten Dialog verliert. `verify:no-elevate` prüft, dass
+  dieses Skript nicht die vierte Umgehung der Per-User-Installation wird (kein `runas`, kein HKLM,
+  kein UAC-Plugin). Offen: der Lauf gegen einen echten Installer unter Windows
 
 ---
 

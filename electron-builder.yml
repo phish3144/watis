@@ -71,6 +71,9 @@ nsis:
   # Never destroy the archive on uninstall. It can be 20 GB of the user's own history.
   deleteAppDataOnUninstall: false
   differentialPackage: true
+  # Asks on uninstall whether the archive should go too, defaulting to keeping it. The script must
+  # never elevate — see the header in that file and scripts/verify-no-elevate.mjs.
+  include: build/installer.nsh
   # Stable name so the landing page can link straight at
   # /releases/latest/download/WatIs-Setup-x64.exe forever. The version lives in latest.yml,
   # which is what electron-updater actually reads.

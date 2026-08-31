@@ -4,6 +4,9 @@ import type { BridgeReady } from '../../bridge/protocol'
 import type { ImporterStats } from '../../main/archive/importer'
 import type { BackfillSnapshot } from '../../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
+import type { LockState } from '../../main/lock'
+
+export type { LockState }
 import type { ExportScheduleState } from '../../preload/app'
 
 export type { ExportScheduleState }
@@ -65,6 +68,13 @@ export interface WatIsApi {
   getHealth(): Promise<HealthState>
   getImportStats(): Promise<ImporterStats | null>
   getStorage(): Promise<StorageOverview>
+  lock: {
+    state(): Promise<LockState>
+    configure(pin: string, idleSeconds: number): Promise<LockState>
+    unlock(pin: string): Promise<boolean>
+    now(): Promise<LockState>
+  }
+  onLock(listener: (state: LockState) => void): () => void
   getSpellcheckLanguages(): Promise<string[]>
   openNumber(input: string): Promise<{ ok: boolean; number?: string; reason?: string }>
   files: {

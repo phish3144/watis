@@ -15,6 +15,7 @@ const de = {
   'section.files': 'Dateien',
   'section.media': 'Medien und Eingabe',
   'section.number': 'Chat mit Nummer',
+  'section.lock': 'App-Sperre',
   'section.status': 'Status',
   'section.index': 'Inhaltsindex',
   'section.backup': 'Export und Sicherung',

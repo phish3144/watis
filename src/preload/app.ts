@@ -5,6 +5,7 @@ import type { BridgeReady } from '../bridge/protocol'
 import type { ImporterStats } from '../main/archive/importer'
 import type { BackfillSnapshot } from '../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
+import type { LockState } from '../main/lock'
 
 export interface ExportScheduleState {
   lastRunMs?: number
@@ -25,6 +26,15 @@ const api = {
   getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
   getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
+
+  /** The app lock. A screen, not encryption — see main/lock/index.ts. */
+  lock: {
+    state: (): Promise<LockState> => ipcRenderer.invoke('app:lock-state'),
+    configure: (pin: string, idleSeconds: number): Promise<LockState> =>
+      ipcRenderer.invoke('app:lock-configure', { pin, idleSeconds }),
+    unlock: (pin: string): Promise<boolean> => ipcRenderer.invoke('app:unlock', { pin }),
+    now: (): Promise<LockState> => ipcRenderer.invoke('app:lock-now'),
+  },
   getSpellcheckLanguages: (): Promise<string[]> => ipcRenderer.invoke('app:spellcheck-languages'),
   /** A phone number or a whatsapp://-style link; opens the chat through WhatsApp's own /send URL. */
   openNumber: (input: string): Promise<{ ok: boolean; number?: string; reason?: string }> =>
@@ -84,6 +94,13 @@ const api = {
     }
     ipcRenderer.on('app:settings', handler)
     return () => ipcRenderer.removeListener('app:settings', handler)
+  },
+  onLock: (listener: (state: LockState) => void): (() => void) => {
+    const handler = (_event: unknown, value: LockState): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:lock', handler)
+    return () => ipcRenderer.removeListener('app:lock', handler)
   },
   onBackfill: (listener: (snapshot: BackfillSnapshot) => void): (() => void) => {
     const handler = (_event: unknown, value: BackfillSnapshot): void => {

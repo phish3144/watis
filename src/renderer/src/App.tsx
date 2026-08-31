@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Settings, SettingsPatch } from '@shared/settings'
-import { api, type UnreadCounts, type Versions, type WorkerHealth } from './api'
+import { api, type LockState, type UnreadCounts, type Versions, type WorkerHealth } from './api'
 import { t } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
 import { ArchivePanel } from './archive/ArchivePanel'
@@ -9,6 +9,8 @@ import { MirrorStatus } from './components/MirrorStatus'
 import { StoragePanel } from './components/StoragePanel'
 import { AudioOutputPicker } from './components/AudioOutputPicker'
 import { NumberDialog } from './components/NumberDialog'
+import { LockScreen } from './components/LockScreen'
+import { LockSettings } from './components/LockSettings'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -30,16 +32,19 @@ export function App(): React.JSX.Element {
   const [paths, setPaths] = useState<Record<string, string> | undefined>(undefined)
   const [unread, setUnread] = useState<UnreadCounts>({ unread: 0, mutedUnread: 0 })
   const [degraded, setDegraded] = useState<HealthState | undefined>(undefined)
+  const [lock, setLock] = useState<LockState | undefined>(undefined)
 
   useEffect(() => {
     void api().getSettings().then(setSettings)
     void api().getVersions().then(setVersions)
     void api().getPaths().then(setPaths)
     void api().getHealth().then(setDegraded)
+    void api().lock.state().then(setLock)
 
     const offSettings = api().onSettings(setSettings)
     const offUnread = api().onUnread(setUnread)
     const offHealth = api().onHealth(setDegraded)
+    const offLock = api().onLock(setLock)
 
     const poll = (): void => {
       void api().getWorkerHealth().then(setHealth)
@@ -51,6 +56,7 @@ export function App(): React.JSX.Element {
       offSettings()
       offUnread()
       offHealth()
+      offLock()
     }
   }, [])
 
@@ -78,7 +84,8 @@ export function App(): React.JSX.Element {
     : `${settings.downloadDir}/2026-08-30_Angebot.pdf`
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-wa-panel px-5 py-4 text-sm text-slate-200">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-wa-panel px-5 py-4 text-sm text-slate-200">
+      <LockScreen state={lock} />
       <header className="mb-4 flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-base font-semibold">{t('app.title')}</h1>
@@ -409,6 +416,10 @@ export function App(): React.JSX.Element {
               }
             />
             <p className="pt-1 text-[11px] text-slate-500">{t('media.zoom.hint')}</p>
+          </Section>
+
+          <Section title={t('section.lock')}>
+            <LockSettings state={lock} onChange={setLock} />
           </Section>
 
           <Section title={t('section.number')}>

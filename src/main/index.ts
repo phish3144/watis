@@ -1,4 +1,4 @@
-import { app, globalShortcut, ipcMain, nativeImage, shell } from 'electron'
+import { app, globalShortcut, ipcMain, nativeImage, powerMonitor, shell } from 'electron'
 
 // This has to happen before app.whenReady() and before anything touches `session`, so it is the
 // very first statement in the entry point. Called late, setPath fails silently and the session
@@ -44,6 +44,7 @@ import {
 import { MediaFetcher } from './archive/media-fetcher'
 import { ExportSchedule } from './export/schedule'
 import { createReminderService, type ReminderService } from './reminders'
+import { AppLock } from './lock'
 import { clearDisposableCaches, measureStorage } from './storage/overview'
 import { platform } from '@platform/current'
 
@@ -64,6 +65,7 @@ let backfill: BackfillController | undefined
 let mediaFetcher: MediaFetcher | undefined
 let exportSchedule: ExportSchedule | undefined
 let reminders: ReminderService | undefined
+const appLock = new AppLock()
 let stopWatchdog: (() => void) | undefined
 let stopIndexSignals: (() => void) | undefined
 
@@ -106,6 +108,7 @@ async function bootstrap(): Promise<void> {
   supervisor.start('archive')
   supervisor.start('contentIndex')
 
+  await appLock.load()
   await initWindowState()
   const startMinimised = process.argv.includes('--minimised') || settings().startMinimised
   mainWindow = createMainWindow({ startMinimised })
@@ -235,6 +238,9 @@ async function bootstrap(): Promise<void> {
   })
   reminders.start()
 
+  applyLockToWindow()
+  startLockIdleWatch()
+
   stopIndexSignals = startIndexSignals(supervisor)
 
   // whatsapp:// and wa.me links open here instead of the browser. HKCU only — never HKLM, which
@@ -309,9 +315,69 @@ function handleProtocolArgv(argv: readonly string[]): void {
   else log.warn(`could not make sense of the link ${link.slice(0, 120)}`)
 }
 
+/**
+ * Blurs the WhatsApp view, or takes the blur away.
+ *
+ * `insertCSS` returns a key and the only way to undo it is `removeInsertedCSS`; inserting an empty
+ * stylesheet does nothing at all, which would leave the blur on forever. So the key is held.
+ *
+ * A CSS filter rather than a screenshot or an overlay window: it survives resizing, costs nothing,
+ * and cannot get out of step with what is underneath.
+ */
+let blurKey: string | undefined
+
+async function setBlur(on: boolean, block: boolean): Promise<void> {
+  const contents = mainWindow?.wa.webContents
+  if (!contents) return
+  if (blurKey) {
+    await contents.removeInsertedCSS(blurKey).catch(() => undefined)
+    blurKey = undefined
+  }
+  if (!on) return
+  const pointer = block ? 'pointer-events:none!important;' : ''
+  blurKey = await contents.insertCSS(`html{filter:blur(18px) saturate(0.6)!important;${pointer}}`)
+}
+
+/** Puts the window into or out of the locked state. The panel hosts the unlock screen. */
+function applyLockToWindow(): void {
+  const locked = appLock.isLocked
+  // Locked: the panel must be on screen, because that is where the PIN is entered. Unlocked: leave
+  // it however the user had it.
+  if (locked) mainWindow?.setPanelVisible(true)
+  void setBlur(locked, true)
+  mainWindow?.panel.webContents.send('app:lock', appLock.state())
+}
+
+/** Locks again after the configured idle time. Polled, because idle time has no event. */
+function startLockIdleWatch(): void {
+  const timer = setInterval(() => {
+    if (!appLock.state().configured) return
+    let idle: number
+    try {
+      idle = powerMonitor.getSystemIdleTime()
+    } catch {
+      // No idle information on this platform: the lock then only applies at start, which is what
+      // the setting already allows for.
+      return
+    }
+    if (appLock.lockIfIdle(idle)) applyLockToWindow()
+  }, 15_000)
+  timer.unref?.()
+}
+
 function installWindowBehaviour(): void {
   const window = mainWindow?.window
   if (!window) return
+
+  // Losing focus with a PIN set means somebody may be looking at the screen who should not be.
+  window.on('blur', () => {
+    if (!appLock.state().configured || appLock.isLocked) return
+    void mainWindow?.wa.webContents.insertCSS('html{filter:blur(18px) saturate(0.6)!important}')
+  })
+  window.on('focus', () => {
+    if (appLock.isLocked) return
+    void mainWindow?.wa.webContents.insertCSS('')
+  })
 
   window.on('close', (event) => {
     // Close-to-tray is what makes this a day client: the window goes away, the process stays,
@@ -395,6 +461,33 @@ function registerIpcHandlers(): void {
   ipcMain.handle('app:spellcheck-languages', () => {
     const waSession = mainWindow?.wa.webContents.session
     return waSession ? availableLanguages(waSession) : []
+  })
+
+  ipcMain.handle('app:lock-state', () => appLock.state())
+
+  ipcMain.handle('app:lock-configure', async (_event, payload: unknown) => {
+    const args = payload as { pin?: unknown; idleSeconds?: unknown }
+    if (typeof args?.pin !== 'string') throw new Error('pin is required')
+    const state = await appLock.configure(
+      args.pin,
+      typeof args.idleSeconds === 'number' ? args.idleSeconds : 0,
+    )
+    applyLockToWindow()
+    return state
+  })
+
+  ipcMain.handle('app:unlock', (_event, payload: unknown) => {
+    const pin = (payload as { pin?: unknown })?.pin
+    if (typeof pin !== 'string') throw new Error('pin is required')
+    const ok = appLock.unlock(pin)
+    applyLockToWindow()
+    return ok
+  })
+
+  ipcMain.handle('app:lock-now', () => {
+    appLock.lock()
+    applyLockToWindow()
+    return appLock.state()
   })
 
   ipcMain.handle('app:storage', () => measureStorage())

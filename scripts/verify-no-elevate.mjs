@@ -40,6 +40,37 @@ for (const [needle, why] of required) {
 }
 
 // --- 2. packaged output -----------------------------------------------------
+// The custom NSIS include is the one place project code lands inside the installer, so it is the
+// one place a "just this once" elevation could be added without touching the three config flags.
+const nsis = 'build/installer.nsh'
+if (existsSync(nsis)) {
+  // Comments are stripped first: the header of that file explains which elevation mechanisms are
+  // forbidden, and a check that trips on the sentence forbidding a thing is a check nobody keeps.
+  const script = readFileSync(nsis, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n')
+    .map((line) => line.replace(/(^|\s)[;#].*$/, ''))
+    .join('\n')
+  const forbidden = [
+    [/RequestExecutionLevel\s+(admin|highest)/i, 'RequestExecutionLevel admin'],
+    [/UAC::/i, 'the UAC plugin'],
+    [/"runas"/i, 'ExecShell runas'],
+    [/HKLM/i, 'a HKLM write'],
+    [/SetShellVarContext\s+all/i, 'SetShellVarContext all'],
+  ]
+  let clean = true
+  for (const [pattern, what] of forbidden) {
+    if (pattern.test(script)) {
+      console.error(`FAIL  ${nsis} contains ${what}`)
+      clean = false
+      process.exitCode = 1
+    }
+  }
+  if (clean) console.log(`ok    ${nsis} does not elevate`)
+} else {
+  console.log(`note  ${nsis} is absent; nothing to check`)
+}
+
 function findElevate(dir) {
   if (!existsSync(dir)) return []
   const hits = []
