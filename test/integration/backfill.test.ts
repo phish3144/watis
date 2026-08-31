@@ -136,7 +136,7 @@ describe('BackfillMachine', () => {
 
   it('keeps one failing chat from stopping the others', async () => {
     const { effects } = fakeBridge({ c2: 1 })
-    const original = effects.loadOlder
+    const original = effects.loadOlder.bind(effects)
     effects.loadOlder = (id) => (id === 'c1' ? Promise.reject(new Error('kaputt')) : original(id))
 
     const machine = new BackfillMachine(effects, { maxAttempts: 1 })

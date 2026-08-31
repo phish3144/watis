@@ -91,7 +91,7 @@ export function toHtml(chat: ExportChat, options: { mediaDir?: string } = {}): s
         : escapeHtml(m.body ?? '').replace(/\n/g, '<br>')
       const attachment = m.media
         ? `<div class="att"><a href="${escapeHtml(mediaDir)}/${escapeHtml(
-            m.media.filename ?? `${m.media.sha256 ?? m.media.id}`,
+            m.media.filename ?? m.media.sha256 ?? m.media.id,
           )}">${escapeHtml(m.media.filename ?? m.media.mime ?? 'Anhang')}</a></div>`
         : ''
       const edited = m.edited ? ' <span class="tag">bearbeitet</span>' : ''
