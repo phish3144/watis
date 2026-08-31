@@ -11,6 +11,12 @@ import { join } from 'node:path'
 import { APP_ID, DISPLAY_NAME, WA_PARTITION } from '@shared/app-identity'
 import { settingsPatchSchema, type Settings } from '@shared/settings'
 import { assess } from '@shared/health/degraded'
+import {
+  chatUrlFor,
+  normaliseNumber,
+  parseWhatsAppUrl,
+  type ParsedTarget,
+} from '@shared/extras/phone'
 import { configureLogging, log } from './logging'
 import { applyUserAgent } from './user-agent'
 import { startEventLoopWatchdog } from './watchdog'
@@ -29,8 +35,15 @@ import { Importer } from './archive/importer'
 import { BackfillController } from './backfill/controller'
 import { startIndexSignals } from './index-signals'
 import { applySpellcheck, availableLanguages } from './session/spellcheck'
+import {
+  installDisplayPicker,
+  labelFor,
+  type PickerResult,
+  type PickerSource,
+} from './media/display-picker'
 import { MediaFetcher } from './archive/media-fetcher'
 import { ExportSchedule } from './export/schedule'
+import { createReminderService, type ReminderService } from './reminders'
 import { clearDisposableCaches, measureStorage } from './storage/overview'
 import { platform } from '@platform/current'
 
@@ -50,6 +63,7 @@ let importer: Importer | undefined
 let backfill: BackfillController | undefined
 let mediaFetcher: MediaFetcher | undefined
 let exportSchedule: ExportSchedule | undefined
+let reminders: ReminderService | undefined
 let stopWatchdog: (() => void) | undefined
 let stopIndexSignals: (() => void) | undefined
 
@@ -63,8 +77,13 @@ if (!app.requestSingleInstanceLock()) {
   log.info('another instance holds the lock; exiting')
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
     mainWindow?.show()
+    handleProtocolArgv(argv)
+  })
+  app.on('open-url', (event, url) => {
+    event.preventDefault()
+    handleProtocolArgv([url])
   })
   void bootstrap()
 }
@@ -108,6 +127,10 @@ async function bootstrap(): Promise<void> {
     },
   })
   tray.start()
+
+  // Screen sharing. Without a handler Chromium's picker never appears in an Electron app and the
+  // share fails silently, which reads as a broken feature rather than a missing one.
+  installDisplayPicker(mainWindow.wa.webContents.session, askForDisplaySource)
 
   installDownloadHandler(
     // The WhatsApp view's session, not the default one.
@@ -202,13 +225,88 @@ async function bootstrap(): Promise<void> {
   })
   void exportSchedule.start()
 
+  reminders = createReminderService({
+    archive: (request) => supervisor.request('archive', request),
+    openChat: (chatId, msgId) => {
+      mainWindow?.setPanelVisible(false)
+      mainWindow?.show()
+      void bridge?.send('openChat', { chatId, msgId })
+    },
+  })
+  reminders.start()
+
   stopIndexSignals = startIndexSignals(supervisor)
+
+  // whatsapp:// and wa.me links open here instead of the browser. HKCU only — never HKLM, which
+  // would need admin rights the project does not ask for.
+  if (settings().handleWhatsappLinks) {
+    for (const scheme of ['whatsapp']) {
+      const ok = platform().registerProtocolHandler(scheme)
+      log.info(`protocol handler for ${scheme}: ${ok ? 'registered' : 'refused'}`)
+    }
+  }
 
   configureUpdater({ enabled: true })
 
   app.on('activate', () => {
     mainWindow?.show()
   })
+
+  // A link that started this instance, rather than one handed to a running one.
+  handleProtocolArgv(process.argv)
+}
+
+/**
+ * Asks the user which screen or window to share.
+ *
+ * A native message box rather than a custom window: it is modal to the right window, it cannot be
+ * missed behind the WhatsApp view, and a share request is exactly the moment not to be inventing
+ * interface. `useSystemPicker` means this is only reached where the OS has no picker of its own.
+ */
+async function askForDisplaySource(sources: PickerSource[]): Promise<PickerResult> {
+  const window = mainWindow?.window
+  if (!window || sources.length === 0) return { cancelled: true }
+
+  const { dialog } = await import('electron')
+  const labels = sources.map((source) => labelFor(source.name, source.kind))
+  const result = await dialog.showMessageBox(window, {
+    type: 'question',
+    title: 'Bildschirm teilen',
+    message: 'Was soll geteilt werden?',
+    detail: 'WhatsApp bekommt nur das ausgewählte Bild. Ton wird nicht mit übertragen.',
+    buttons: [...labels, 'Abbrechen'],
+    cancelId: labels.length,
+    defaultId: 0,
+    noLink: true,
+  })
+
+  const chosen = sources[result.response]
+  return chosen ? { source: chosen } : { cancelled: true }
+}
+
+function numberTarget(raw: string): ParsedTarget | undefined {
+  const number = normaliseNumber(raw)
+  return number ? { number } : undefined
+}
+
+function openNumber(target: ParsedTarget): void {
+  mainWindow?.setPanelVisible(false)
+  mainWindow?.show()
+  void mainWindow?.wa.webContents.loadURL(chatUrlFor(target))
+}
+
+/**
+ * A `whatsapp://` link handed over by the OS.
+ *
+ * On Windows it arrives as an argument to a second launch, which the single-instance lock turns
+ * into `second-instance`; on macOS it arrives as `open-url`. Both end up here.
+ */
+function handleProtocolArgv(argv: readonly string[]): void {
+  const link = argv.find((arg) => arg.startsWith('whatsapp:') || arg.includes('wa.me/'))
+  if (!link) return
+  const target = parseWhatsAppUrl(link)
+  if (target) openNumber(target)
+  else log.warn(`could not make sense of the link ${link.slice(0, 120)}`)
 }
 
 function installWindowBehaviour(): void {
@@ -456,6 +554,22 @@ function registerIpcHandlers(): void {
     notifications?.setActiveChat(title)
   })
 
+  // "Chat with a number" (PLAN.md Phase 8). Goes through WhatsApp's own /send URL rather than the
+  // bridge: opening a chat by number is something the web client supports itself, and routing it
+  // through the internals would be reaching for a lever we do not need.
+  ipcMain.handle('app:open-number', (_event, payload: unknown) => {
+    const raw = (payload as { input?: unknown })?.input
+    if (typeof raw !== 'string') throw new Error('input is required')
+    const target = parseWhatsAppUrl(raw) ?? numberTarget(raw)
+    if (!target) return { ok: false, reason: 'Das ist weder eine Nummer noch ein WhatsApp-Link.' }
+    openNumber(target)
+    return { ok: true, number: target.number }
+  })
+
+  ipcMain.on('wa:open-link', (_event, url: unknown) => {
+    if (typeof url === 'string' && /^https?:/.test(url)) void shell.openExternal(url)
+  })
+
   ipcMain.on('wa:download-name', (_event, name: unknown) => {
     if (typeof name === 'string' && name.trim()) pendingDownloadName = name.trim()
   })
@@ -497,6 +611,7 @@ app.on('will-quit', (event) => {
   backfill?.stop()
   mediaFetcher?.stop()
   exportSchedule?.stop()
+  reminders?.stop()
   bridge?.dispose()
   void importer?.stop()
   tray?.dispose()

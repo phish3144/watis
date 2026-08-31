@@ -66,6 +66,7 @@ export interface WatIsApi {
   getImportStats(): Promise<ImporterStats | null>
   getStorage(): Promise<StorageOverview>
   getSpellcheckLanguages(): Promise<string[]>
+  openNumber(input: string): Promise<{ ok: boolean; number?: string; reason?: string }>
   files: {
     blobPath(mediaId: string): Promise<string | null>
     open(path: string): Promise<string>

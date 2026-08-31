@@ -50,6 +50,69 @@ function MessageRow({ message }: { message: ArchiveMessage }): React.JSX.Element
  * The context is fetched when the row is expanded, not with the hit list: a page of 60 hits would
  * otherwise mean 60 extra queries for context nobody looked at.
  */
+/**
+ * "Remind me about this" — a local note, nothing sent anywhere (PLAN.md Phase 8).
+ *
+ * Offers a few intervals rather than a date picker. A reminder about a message is nearly always
+ * "later today" or "tomorrow"; making somebody pick a date and a time for that is the kind of
+ * thoroughness that stops a feature from being used.
+ */
+function RemindButton({ msgId }: { msgId: string }): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const [done, setDone] = useState<string | undefined>(undefined)
+
+  const set = (hours: number, label: string): void => {
+    void ask({
+      op: 'addReminder',
+      msgId,
+      dueTs: Math.floor(Date.now() / 1000) + Math.round(hours * 3600),
+    })
+      .then(() => {
+        setDone(label)
+        setOpen(false)
+      })
+      .catch((e: unknown) => {
+        setDone(String(e))
+      })
+  }
+
+  if (done) return <span className="text-xs text-wa-muted">Erinnerung: {done}</span>
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        className="underline-offset-2 hover:underline"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((was) => !was)
+        }}
+      >
+        Erinnern
+      </button>
+      {open &&
+        (
+          [
+            [3, 'in 3 Stunden'],
+            [24, 'morgen'],
+            [24 * 7, 'nächste Woche'],
+          ] as const
+        ).map(([hours, label]) => (
+          <button
+            key={label}
+            type="button"
+            className="rounded-full border border-wa-hairline px-2 py-0.5 text-[11px] text-wa-muted hover:text-slate-200"
+            onClick={() => {
+              set(hours, label)
+            }}
+          >
+            {label}
+          </button>
+        ))}
+    </span>
+  )
+}
+
 /** Human names for the index sources, so a hit says where it came from in plain German. */
 const SOURCE_LABEL: Record<string, string> = {
   body: 'Nachricht',
@@ -137,6 +200,7 @@ function HitRow({
         >
           Im Archiv öffnen
         </button>
+        {hit.msgId && <RemindButton msgId={hit.msgId} />}
         <button
           type="button"
           className="underline-offset-2 hover:underline"

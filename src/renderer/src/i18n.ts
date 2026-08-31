@@ -14,6 +14,7 @@ const de = {
   'section.input': 'Eingabe',
   'section.files': 'Dateien',
   'section.media': 'Medien und Eingabe',
+  'section.number': 'Chat mit Nummer',
   'section.status': 'Status',
   'section.index': 'Inhaltsindex',
   'section.backup': 'Export und Sicherung',
@@ -62,6 +63,13 @@ const de = {
   'media.audioOut.hint':
     'Gilt für Sprachnachrichten und Videos. Leer heißt: das Gerät, das das System vorgibt.',
   'media.audioOut.default': 'Systemvorgabe',
+  'number.hint':
+    'Nummer oder wa.me-Link. Öffnet den Chat über WhatsApps eigene /send-Adresse — die Nummer muss nicht gespeichert sein.',
+  'number.open': 'Chat öffnen',
+  'links.handle': 'whatsapp://-Links übernehmen',
+  'links.handle.hint':
+    'Trägt WatIs? als Handler in die Benutzer-Registry ein (HKCU). Keine Adminrechte, keine systemweite Änderung.',
+
   'media.zoom.hint':
     'Im Bildbetrachter zoomt das Mausrad, Ziehen verschiebt, + − 0 gehen auch über die Tastatur.',
 

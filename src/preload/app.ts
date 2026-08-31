@@ -26,6 +26,9 @@ const api = {
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
   getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
   getSpellcheckLanguages: (): Promise<string[]> => ipcRenderer.invoke('app:spellcheck-languages'),
+  /** A phone number or a whatsapp://-style link; opens the chat through WhatsApp's own /send URL. */
+  openNumber: (input: string): Promise<{ ok: boolean; number?: string; reason?: string }> =>
+    ipcRenderer.invoke('app:open-number', { input }),
 
   /** Files on disk: where a blob is, opening it, showing it, and dragging it out. */
   files: {

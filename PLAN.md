@@ -388,8 +388,10 @@ Ziel: Der Wrapper ist als Tagesclient besser als die Store-App, ganz ohne Intern
 - [x] Medien-Viewer-Ergänzung: Zoom/Pan per Mausrad, Ziehen und Tastatur (+ − 0) im WA-Bildviewer.
       Der Betrachter wird über `role="dialog"` gefunden, nicht über Klassennamen — die sind generiert
       und ändern sich zwischen Builds
-- [~] Quellenliste für den Display-Media-Picker **fertig** (Bildschirme zuerst, lesbare Namen);
-  offen: die Anbindung an `setDisplayMediaRequestHandler` und die Auswahl-UI
+- [x] Display-Media-Picker angebunden: ohne Handler erscheint in einer Electron-App gar kein Picker
+      und das Teilen scheitert wortlos. Wo das Betriebssystem einen eigenen Dialog hat (Windows 11,
+      macOS), bekommt der den Vorzug; sonst ein modaler Dialog mit Bildschirmen zuerst. Ton wird nie
+      mitübertragen
 - [x] Audio-Ausgabegerät wählbar (`setSinkId`), auch für Elemente, die WhatsApp erst später anlegt;
       ein Gerät, das inzwischen abgezogen wurde, fällt auf die Systemvorgabe zurück statt stumm zu bleiben
 
@@ -579,11 +581,18 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 - [ ] **Multi-Account:** Tabs mit getrennten Partitionen, getrennte Archive, Badge pro Account
 - [ ] **App-Sperre:** PIN beim Start/Leerlauf, Fenster bei Fokusverlust weichzeichnen (Privatsphäre-Modus)
-- [~] **Chat mit Nummer:** Nummern-Normalisierung und `whatsapp://`/`wa.me`-Parser **fertig**;
-  offen: Dialog und die Handler-Registrierung
+- [x] **Chat mit Nummer:** Normalisierung, Parser, Dialog und Handler-Registrierung (HKCU,
+      abschaltbar). Geht über WhatsApps eigene `/send`-Adresse, nicht über die Bridge — einen Chat
+      per Nummer zu öffnen kann der Web-Client selbst, und dafür in die Interna zu greifen wäre ein
+      Hebel, den wir nicht brauchen. Links, die die App starten oder an eine laufende Instanz gehen,
+      landen über `second-instance` bzw. `open-url` an derselben Stelle
 - [x] **Link-Sammlung:** alle geteilten Links pro Chat, nach Host gruppiert. **Ohne** Titel-Vorschau —
       die hieße, jeden je geteilten Link abzurufen, was die Netz-Regel verbietet
-- [ ] **Erinnerungen:** „Erinnere mich an diese Nachricht" (lokal, ohne Senden)
+- [x] **Erinnerungen:** „Erinnere mich an diese Nachricht" — rein lokal, nichts wird gesendet oder
+      markiert; genau deshalb ist die Funktion unter der Read-only-Regel überhaupt möglich. Gepollt
+      statt pro Erinnerung ein Timer: ein Timer für morgen überlebt weder ein Beenden noch einen
+      Ruhezustand. Als **gezeigt** abgehakt, nicht als geklickt — eine Erinnerung, die niemand
+      anklickt, wurde trotzdem zugestellt
 - [ ] **Storage-Übersicht** vorziehen, falls der Cache früh wächst
 
 ### Phase 9 – Hardening & Release (M)

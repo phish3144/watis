@@ -47,6 +47,8 @@ export const settingsSchema = z.object({
   spellcheckLanguages: z.array(z.string().max(16)).max(6),
   /** `deviceId` for setSinkId. Empty means the system default. */
   audioOutputDeviceId: z.string().max(200),
+  /** Register for whatsapp:// links. Per-user registry only; never HKLM. */
+  handleWhatsappLinks: z.boolean(),
 
   // --- Dateien -----------------------------------------------------------
   downloadDir: z.string(),
@@ -104,6 +106,7 @@ export const defaultSettings: Settings = {
   enterInsertsNewline: false,
   spellcheckLanguages: [],
   audioOutputDeviceId: '',
+  handleWhatsappLinks: false,
 
   downloadDir: '',
   sortDownloadsByChat: true,

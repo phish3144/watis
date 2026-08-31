@@ -239,8 +239,32 @@ CREATE TRIGGER content_text_ad_search AFTER DELETE ON content_text BEGIN
 END;
 `
 
+/**
+ * Local reminders (PLAN.md Phase 8): "remind me about this message".
+ *
+ * Nothing here leaves the machine and nothing is sent to WhatsApp — a reminder is a note to
+ * yourself about a message, which is precisely why it can exist under the read-only rule at all.
+ *
+ * `msg_id` carries no foreign key on purpose. A reminder about a message that later turns out not
+ * to be archived is still a reminder; losing it because a row went missing would be worse than a
+ * dangling reference.
+ */
+const REMINDERS = `
+CREATE TABLE reminders (
+  id         INTEGER PRIMARY KEY,
+  msg_id     TEXT NOT NULL,
+  due_ts     INTEGER NOT NULL,
+  note       TEXT,
+  created_ts INTEGER NOT NULL,
+  done_ts    INTEGER
+) STRICT;
+
+CREATE INDEX reminders_due ON reminders (done_ts, due_ts);
+`
+
 export const MIGRATIONS: readonly Migration[] = [
   { version: 1, name: 'initial schema', sql: INITIAL },
+  { version: 2, name: 'local reminders', sql: REMINDERS },
 ]
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0)

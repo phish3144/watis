@@ -8,6 +8,7 @@ import { HealthBanner } from './components/HealthBanner'
 import { MirrorStatus } from './components/MirrorStatus'
 import { StoragePanel } from './components/StoragePanel'
 import { AudioOutputPicker } from './components/AudioOutputPicker'
+import { NumberDialog } from './components/NumberDialog'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -408,6 +409,23 @@ export function App(): React.JSX.Element {
               }
             />
             <p className="pt-1 text-[11px] text-slate-500">{t('media.zoom.hint')}</p>
+          </Section>
+
+          <Section title={t('section.number')}>
+            <NumberDialog />
+            <Row
+              label={t('links.handle')}
+              hint={t('links.handle.hint')}
+              control={
+                <Toggle
+                  label={t('links.handle')}
+                  checked={settings.handleWhatsappLinks}
+                  onChange={(handleWhatsappLinks) => {
+                    patch({ handleWhatsappLinks })
+                  }}
+                />
+              }
+            />
           </Section>
 
           <Section title={t('section.files')}>

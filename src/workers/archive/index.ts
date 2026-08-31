@@ -101,6 +101,15 @@ async function handle(payload: unknown): Promise<unknown> {
       const path = blobs.pathFor(row.sha256, row.mime, row.filename)
       return { path: (await blobs.has(row.sha256, row.mime, row.filename)) ? path : null }
     }
+    case 'addReminder':
+      return { id: repo.addReminder(request.msgId, request.dueTs, request.note) }
+    case 'reminders':
+      return { reminders: repo.reminders(request.includeDone) }
+    case 'dueReminders':
+      return { reminders: repo.dueReminders(request.nowTs) }
+    case 'completeReminder':
+      repo.completeReminder(request.id)
+      return { ok: true }
     case 'quota':
       return blobs ? blobs.quota(repo.stats().databaseBytes) : null
     case 'export': {

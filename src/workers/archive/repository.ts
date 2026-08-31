@@ -751,6 +751,55 @@ export class ArchiveRepository {
       .all(chatId) as { month: string; count: number }[]
   }
 
+  /**
+   * Reminders (PLAN.md Phase 8). Local notes about a message; nothing is sent anywhere.
+   */
+  addReminder(msgId: string, dueTs: number, note?: string): number {
+    const result = this.#db
+      .prepare(`INSERT INTO reminders (msg_id, due_ts, note, created_ts) VALUES (?, ?, ?, ?)`)
+      .run(msgId, dueTs, note ?? null, Math.floor(Date.now() / 1000))
+    return Number(result.lastInsertRowid)
+  }
+
+  reminders(includeDone = false): ReminderRow[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT r.id, r.msg_id, r.due_ts, r.note, r.created_ts, r.done_ts,
+                m.chat_id, m.body, m.ts
+         FROM reminders r
+         LEFT JOIN messages m ON m.id = r.msg_id
+         WHERE (@includeDone = 1 OR r.done_ts IS NULL)
+         ORDER BY r.due_ts ASC`,
+      )
+      .all({ includeDone: includeDone ? 1 : 0 }) as Record<string, unknown>[]
+    return rows.map(toReminder)
+  }
+
+  /** Reminders that have come due and are not done. What the timer in main asks for. */
+  dueReminders(nowTs: number): ReminderRow[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT r.id, r.msg_id, r.due_ts, r.note, r.created_ts, r.done_ts,
+                m.chat_id, m.body, m.ts
+         FROM reminders r
+         LEFT JOIN messages m ON m.id = r.msg_id
+         WHERE r.done_ts IS NULL AND r.due_ts <= ?
+         ORDER BY r.due_ts ASC`,
+      )
+      .all(nowTs) as Record<string, unknown>[]
+    return rows.map(toReminder)
+  }
+
+  /**
+   * Marks one done. Idempotent: the timer and a click can both arrive, and a reminder that fires
+   * twice because the second write was refused would be the worse outcome.
+   */
+  completeReminder(id: number): void {
+    this.#db
+      .prepare('UPDATE reminders SET done_ts = ? WHERE id = ? AND done_ts IS NULL')
+      .run(Math.floor(Date.now() / 1000), id)
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number
@@ -852,6 +901,19 @@ function hasPredicate(has: string): string {
   }
 }
 
+export interface ReminderRow {
+  id: number
+  msgId: string
+  dueTs: number
+  note: string | null
+  createdTs: number
+  doneTs: number | null
+  /** From the message, when it is archived. A reminder outlives a missing message. */
+  chatId: string | null
+  body: string | null
+  messageTs: number | null
+}
+
 export interface GalleryItem {
   kind: 'image' | 'video' | 'document' | 'audio' | 'link'
   msgId: string | null
@@ -924,4 +986,18 @@ function matchingLine(
   // No line contains the term because the index matched the folded form; the first line is still
   // better than nothing, and the page it carries is usually right.
   return hit ?? lines[0]
+}
+
+function toReminder(r: Record<string, unknown>): ReminderRow {
+  return {
+    id: r.id as number,
+    msgId: r.msg_id as string,
+    dueTs: r.due_ts as number,
+    note: r.note as string | null,
+    createdTs: r.created_ts as number,
+    doneTs: r.done_ts as number | null,
+    chatId: (r.chat_id ?? null) as string | null,
+    body: (r.body ?? null) as string | null,
+    messageTs: (r.ts ?? null) as number | null,
+  }
 }
