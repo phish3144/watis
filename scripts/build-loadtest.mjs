@@ -20,6 +20,7 @@ const ENTRIES = {
   repository: 'src/workers/archive/repository.ts',
   queue: 'src/workers/content-index/queue.ts',
   pdfeng: 'src/workers/content-index/pdf-engine.ts',
+  ocr: 'src/workers/content-index/ocr-engine.ts',
 }
 
 await Promise.all(

@@ -15,6 +15,7 @@ export interface ExtractedLine {
   page?: number | undefined
   startSeconds?: number | undefined
   endSeconds?: number | undefined
+  /** 0–1. Engines that report another scale normalise before returning. */
   confidence?: number | undefined
 }
 

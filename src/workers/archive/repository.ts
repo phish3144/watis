@@ -938,6 +938,7 @@ export interface HitPreview {
   box?: readonly [number, number, number, number] | undefined
   /** Seconds into the audio, for a transcript hit. */
   startSeconds?: number | undefined
+  /** 0–1, the scale `content_text.confidence` is stored on. Not a percentage. */
   confidence?: number | undefined
   filename?: string | null
   mime?: string | null

@@ -134,7 +134,9 @@ function whereIn(preview: HitPreview | undefined): string | undefined {
     parts.push(`bei ${String(Math.floor(total / 60))}:${String(total % 60).padStart(2, '0')}`)
   }
   if (preview.confidence !== undefined) {
-    parts.push(`${String(Math.round(preview.confidence))}% sicher`)
+    // Stored on a 0–1 scale (the OCR engine divides tesseract's 0–100 down before writing it).
+    // Rendering it raw as a percentage turned a 91 %-confident line into "1 % sicher".
+    parts.push(`${String(Math.round(preview.confidence * 100))} % sicher`)
   }
   return parts.length > 0 ? parts.join(' · ') : undefined
 }

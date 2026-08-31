@@ -577,8 +577,13 @@ im Leerlauf, ohne die Bedienung zu bremsen.
   zurückzuzeigen sähe aus, als hätte das Archiv die Nachricht verstümmelt.
   Offen: der Klick, der Bild oder PDF an genau dieser Stelle öffnet
 - [x] Neu-Indizierung pro Quelle, ohne die anderen Quellen derselben Datei anzufassen
-- [ ] Fixtures mit Erwartungswerten (§8): Screenshots, Rechnungen, Whiteboard-Fotos, schräge Handyfotos,
-      gescanntes PDF, DOCX, kurze und lange Sprachnachricht (DE/EN)
+- [~] Fixtures mit Erwartungswerten (§8): Chat-Screenshot, dichte Rechnung, fotografiertes Whiteboard,
+  schräg fotografiertes Dokument und gescanntes PDF — alle aus erfundenem Text gerendert
+  (`scripts/make-ocr-fixtures.mjs`), die Erwartungen **erst gemessen, dann aufgeschrieben**. Sie
+  prüfen Auffindbarkeit, nicht Zeichengleichheit: OCR ist probabilistisch, und eine buchstabengenaue
+  Erwartung wäre bei jedem tesseract-Update rot, ohne dass etwas schlechter geworden wäre.
+  Festgehalten ist auch, was **nicht** erkannt wird — helle Schrift auf der grünen Sprechblase fällt
+  weg. Offen: DOCX (mammoth nicht freigegeben) und Sprachnachrichten (vertagt, ADR 0008)
 
 **DoD:** Backlog von 20.000 Bildern läuft im Hintergrund durch, ohne dass die App spürbar langsamer wird;
 ein Betrag aus einem fotografierten Beleg, ein Satz aus einem gescannten PDF und ein Wort aus einer
