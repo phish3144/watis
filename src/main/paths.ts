@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app } from 'electron'
 import { APP_SLUG } from '@shared/app-identity'
+import { isValidAccountId, PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 
 /**
  * Electron puts userData in the ROAMING profile on Windows (%APPDATA%). On a domain account with
@@ -62,6 +63,42 @@ export function configurePaths(): AppPaths {
   app.setPath('logs', resolved.logs)
 
   paths = resolved
+  return resolved
+}
+
+/**
+ * Where one account's data lives (PLAN.md Phase 8).
+ *
+ * The primary account returns exactly what `appPaths()` returns — the same `session/`, `archive/`
+ * and `blobs/` an installation that never heard of accounts already uses. Everything else sits
+ * under `accounts/<id>/`. The id is generated, never typed, and validated before it reaches here;
+ * this function refuses anything else rather than trusting the caller with a path segment.
+ */
+export function accountPaths(id: string): AppPaths {
+  const base = appPaths()
+  if (id === PRIMARY_ACCOUNT_ID) return base
+  if (!isValidAccountId(id)) throw new Error(`refusing to build a path for the account id ${id}`)
+
+  const root = join(base.root, 'accounts', id)
+  return {
+    root,
+    session: join(root, 'session'),
+    archive: join(root, 'archive'),
+    blobs: join(root, 'blobs'),
+    // Models and logs are shared: they are neither personal nor per-account, and a second copy of
+    // the OCR language data per account would be waste for nothing.
+    models: base.models,
+    logs: base.logs,
+    downloads: base.downloads,
+  }
+}
+
+/** Creates an account's directories. Called when an account is added, not at every start. */
+export function ensureAccountDirs(id: string): AppPaths {
+  const resolved = accountPaths(id)
+  for (const dir of [resolved.root, resolved.session, resolved.archive, resolved.blobs]) {
+    mkdirSync(dir, { recursive: true })
+  }
   return resolved
 }
 

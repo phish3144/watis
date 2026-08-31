@@ -2,7 +2,8 @@ import { join } from 'node:path'
 import { MessageChannelMain, utilityProcess } from 'electron'
 import type { MessagePortMain, UtilityProcess } from 'electron'
 import { parseWorkerMessage, type HostToWorker, type WorkerName } from '@shared/ipc/worker-protocol'
-import { appPaths } from '../paths'
+import { accountPaths, appPaths } from '../paths'
+import { PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 import { resourcePath } from '../resources'
 import { log } from '../logging'
 
@@ -22,8 +23,12 @@ const PING_TIMEOUT_MS = 5_000
 const RESTART_BASE_DELAY_MS = 500
 const RESTART_MAX_DELAY_MS = 30_000
 
+/** One worker of one kind, for one account. The pair is what identifies it (PLAN.md Phase 8). */
 interface Supervised {
   name: WorkerName
+  accountId: string
+  /** `${name}@${accountId}`; what the map is keyed on and what appears in the log. */
+  key: string
   entry: string
   process?: UtilityProcess
   port?: MessagePortMain
@@ -33,6 +38,8 @@ interface Supervised {
   pingTimer?: NodeJS.Timeout
   stopping: boolean
 }
+
+const workerKey = (name: WorkerName, accountId: string): string => `${name}@${accountId}`
 
 const WORKER_ENTRIES: Record<WorkerName, string> = {
   archive: 'archive.js',
@@ -48,34 +55,50 @@ interface PendingRequest {
 export class WorkerSupervisor {
   private requestId = 0
   private readonly pending = new Map<number, PendingRequest>()
-  private readonly workers = new Map<WorkerName, Supervised>()
+  private readonly workers = new Map<string, Supervised>()
   private nonce = 0
 
-  start(name: WorkerName): void {
-    let state = this.workers.get(name)
+  /**
+   * Accounts each get their own worker pair, because they each get their own database file. One
+   * worker serving several archives would mean a filter deciding which messages somebody sees, and
+   * a filter is a thing that can be got wrong once and show the wrong person's chat.
+   */
+  start(name: WorkerName, accountId: string = PRIMARY_ACCOUNT_ID): void {
+    const key = workerKey(name, accountId)
+    let state = this.workers.get(key)
     if (!state) {
       state = {
         name,
+        accountId,
+        key,
         entry: join(__dirname, WORKER_ENTRIES[name]),
         ready: false,
         restarts: 0,
         stopping: false,
       }
-      this.workers.set(name, state)
+      this.workers.set(key, state)
     }
     this.spawn(state)
+  }
+
+  /** Stops the pair belonging to one account, leaving every other account running. */
+  async stopAccount(accountId: string, reason: string): Promise<void> {
+    const mine = [...this.workers.values()].filter((state) => state.accountId === accountId)
+    await Promise.all(mine.map((state) => this.stopOne(state, reason)))
+    for (const state of mine) this.workers.delete(state.key)
   }
 
   private spawn(state: Supervised): void {
     const { port1, port2 } = new MessageChannelMain()
     const child = utilityProcess.fork(state.entry, [], {
-      serviceName: `watis-${state.name}`,
+      serviceName: `watis-${state.name}-${state.accountId}`,
       stdio: 'pipe',
       env: {
         ...process.env,
         WATIS_WORKER: state.name,
-        WATIS_ARCHIVE_DIR: appPaths().archive,
-        WATIS_BLOBS_DIR: appPaths().blobs,
+        WATIS_ACCOUNT: state.accountId,
+        WATIS_ARCHIVE_DIR: accountPaths(state.accountId).archive,
+        WATIS_BLOBS_DIR: accountPaths(state.accountId).blobs,
         WATIS_MODELS_DIR: appPaths().models,
         // The OCR language data ships with the application rather than living in the user's data
         // directory: it is read-only, identical for everyone, and downloading it would be traffic
@@ -93,14 +116,14 @@ export class WorkerSupervisor {
     port1.on('message', (event) => {
       const message = parseWorkerMessage(event.data)
       if (!message) {
-        log.warn(`${state.name}: dropped malformed message`)
+        log.warn(`${state.key}: dropped malformed message`)
         return
       }
       switch (message.type) {
         case 'ready':
           state.ready = true
           state.restarts = 0
-          log.info(`${state.name} worker ready (pid ${message.pid})`)
+          log.info(`${state.key} worker ready (pid ${message.pid})`)
           break
         case 'pong':
           if (state.pendingPing?.nonce === message.nonce) {
@@ -109,10 +132,10 @@ export class WorkerSupervisor {
           }
           break
         case 'log':
-          log[message.level](`${state.name}: ${message.message}`)
+          log[message.level](`${state.key}: ${message.message}`)
           break
         case 'fatal':
-          log.error(`${state.name} reported fatal: ${message.message}`)
+          log.error(`${state.key} reported fatal: ${message.message}`)
           break
         case 'response': {
           const pending = this.pending.get(message.id)
@@ -128,20 +151,20 @@ export class WorkerSupervisor {
     port1.start()
 
     child.stderr?.on('data', (chunk: Buffer) => {
-      log.error(`${state.name} stderr: ${chunk.toString().trimEnd()}`)
+      log.error(`${state.key} stderr: ${chunk.toString().trimEnd()}`)
     })
 
     child.on('exit', (code) => {
       state.ready = false
       this.clearTimers(state)
       if (state.stopping) {
-        log.info(`${state.name} worker stopped`)
+        log.info(`${state.key} worker stopped`)
         return
       }
       const delay = Math.min(RESTART_BASE_DELAY_MS * 2 ** state.restarts, RESTART_MAX_DELAY_MS)
       state.restarts += 1
-      this.rejectPending(`${state.name} worker exited before answering`)
-      log.warn(`${state.name} worker exited (code ${code}); restarting in ${delay}ms`)
+      this.rejectPending(`${state.key} worker exited before answering`)
+      log.warn(`${state.key} worker exited (code ${code}); restarting in ${delay}ms`)
       setTimeout(() => {
         if (!state.stopping) this.spawn(state)
       }, delay).unref()
@@ -156,12 +179,12 @@ export class WorkerSupervisor {
       if (state.pendingPing) return // previous ping still outstanding; its timeout will fire
       const nonce = ++this.nonce
       const timer = setTimeout(() => {
-        log.error(`${state.name} worker missed health ping; killing it`)
+        log.error(`${state.key} worker missed health ping; killing it`)
         state.process?.kill()
       }, PING_TIMEOUT_MS)
       timer.unref()
       state.pendingPing = { nonce, timer }
-      this.send(state.name, { type: 'ping', nonce })
+      state.port?.postMessage({ type: 'ping', nonce })
     }, PING_INTERVAL_MS)
     state.pingTimer.unref()
   }
@@ -173,25 +196,32 @@ export class WorkerSupervisor {
     delete state.pendingPing
   }
 
-  send(name: WorkerName, message: HostToWorker): void {
-    this.workers.get(name)?.port?.postMessage(message)
+  send(name: WorkerName, message: HostToWorker, accountId: string = PRIMARY_ACCOUNT_ID): void {
+    this.workers.get(workerKey(name, accountId))?.port?.postMessage(message)
   }
 
   /**
    * One data-plane round trip. Rejects rather than hanging when the worker is not there or does not
    * answer — a renderer waiting forever on a dead worker looks exactly like a frozen application.
    */
-  request(name: WorkerName, payload: unknown, timeoutMs = 30_000): Promise<unknown> {
-    const state = this.workers.get(name)
+  request(
+    name: WorkerName,
+    payload: unknown,
+    options: { timeoutMs?: number; accountId?: string } = {},
+  ): Promise<unknown> {
+    const timeoutMs = options.timeoutMs ?? 30_000
+    const accountId = options.accountId ?? PRIMARY_ACCOUNT_ID
+    const key = workerKey(name, accountId)
+    const state = this.workers.get(key)
     if (!state?.ready || !state.port) {
-      return Promise.reject(new Error(`${name} worker is not ready`))
+      return Promise.reject(new Error(`${key} worker is not ready`))
     }
 
     const id = ++this.requestId
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id)
-        reject(new Error(`${name} worker did not answer within ${String(timeoutMs)} ms`))
+        reject(new Error(`${key} worker did not answer within ${String(timeoutMs)} ms`))
       }, timeoutMs)
       timer.unref()
       this.pending.set(id, { resolve, reject, timer })
@@ -208,8 +238,8 @@ export class WorkerSupervisor {
     this.pending.clear()
   }
 
-  isReady(name: WorkerName): boolean {
-    return this.workers.get(name)?.ready ?? false
+  isReady(name: WorkerName, accountId: string = PRIMARY_ACCOUNT_ID): boolean {
+    return this.workers.get(workerKey(name, accountId))?.ready ?? false
   }
 
   /**
@@ -218,24 +248,27 @@ export class WorkerSupervisor {
    * "application cannot be closed" dialog and a failed update.
    */
   async stopAll(reason: string, timeoutMs = 4000): Promise<void> {
-    const exits = [...this.workers.values()].map(async (state) => {
-      state.stopping = true
-      this.clearTimers(state)
-      if (!state.process) return
-      const child = state.process
-      this.send(state.name, { type: 'shutdown', reason })
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(() => {
-          log.warn(`${state.name} worker did not exit in time; killing`)
-          child.kill()
-          resolve()
-        }, timeoutMs)
-        child.once('exit', () => {
-          clearTimeout(timer)
-          resolve()
-        })
+    await Promise.all(
+      [...this.workers.values()].map((state) => this.stopOne(state, reason, timeoutMs)),
+    )
+  }
+
+  private async stopOne(state: Supervised, reason: string, timeoutMs = 4000): Promise<void> {
+    state.stopping = true
+    this.clearTimers(state)
+    if (!state.process) return
+    const child = state.process
+    state.port?.postMessage({ type: 'shutdown', reason } satisfies HostToWorker)
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        log.warn(`${state.key} worker did not exit in time; killing`)
+        child.kill()
+        resolve()
+      }, timeoutMs)
+      child.once('exit', () => {
+        clearTimeout(timer)
+        resolve()
       })
     })
-    await Promise.all(exits)
   }
 }

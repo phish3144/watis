@@ -15,28 +15,36 @@ import { log } from './logging'
  */
 const PUSH_MS = 5000
 
-export function startIndexSignals(supervisor: WorkerSupervisor): () => void {
+export function startIndexSignals(
+  supervisor: WorkerSupervisor,
+  /** Every account with an index worker: the signals are the machine's, not one account's. */
+  accountIds: () => readonly string[],
+): () => void {
   let lastPaused: boolean | undefined
 
   const push = (): void => {
-    if (!supervisor.isReady('contentIndex')) return
     const config = settings()
+    const signals = {
+      op: 'signals',
+      idleSeconds: idleSeconds(),
+      onMainsPower: onMainsPower(),
+      paused: config.indexPaused,
+      policy: {
+        idleThresholdSeconds: config.indexIdleThresholdSeconds,
+        allowOnBattery: config.indexOnBattery,
+        concurrency: config.indexConcurrency,
+      },
+    }
 
-    void supervisor
-      .request('contentIndex', {
-        op: 'signals',
-        idleSeconds: idleSeconds(),
-        onMainsPower: onMainsPower(),
-        paused: config.indexPaused,
-        policy: {
-          idleThresholdSeconds: config.indexIdleThresholdSeconds,
-          allowOnBattery: config.indexOnBattery,
-          concurrency: config.indexConcurrency,
-        },
+    // Idle time and mains power are properties of the machine, so every account's index worker
+    // gets the same answer. A background account indexing while the foreground one is paused would
+    // be exactly the surprise the pause switch exists to prevent.
+    for (const accountId of accountIds()) {
+      if (!supervisor.isReady('contentIndex', accountId)) continue
+      void supervisor.request('contentIndex', signals, { accountId }).catch((error: unknown) => {
+        log.warn(`could not push index signals to ${accountId}: ${String(error)}`)
       })
-      .catch((error: unknown) => {
-        log.warn(`could not push index signals: ${String(error)}`)
-      })
+    }
 
     if (config.indexPaused !== lastPaused) {
       log.info(`content index ${config.indexPaused ? 'paused' : 'resumed'} by the user`)

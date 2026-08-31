@@ -5,6 +5,10 @@ import type { ImporterStats } from '../../main/archive/importer'
 import type { BackfillSnapshot } from '../../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
 import type { LockState } from '../../main/lock'
+import type { Account } from '@shared/accounts'
+import type { AccountList } from '../../preload/app'
+
+export type { Account, AccountList }
 
 export type { LockState }
 import type { ExportScheduleState } from '../../preload/app'
@@ -30,6 +34,8 @@ export interface WorkerHealth {
 export interface UnreadCounts {
   unread: number
   mutedUnread: number
+  /** Per account, so a tab can show its own number. Absent on older messages. */
+  byAccount?: Record<string, { unread: number; mutedUnread: number }>
 }
 
 export interface ArchiveHit {
@@ -68,6 +74,14 @@ export interface WatIsApi {
   getHealth(): Promise<HealthState>
   getImportStats(): Promise<ImporterStats | null>
   getStorage(): Promise<StorageOverview>
+  accounts: {
+    list(): Promise<AccountList>
+    add(label: string): Promise<AccountList>
+    rename(id: string, label: string): Promise<AccountList>
+    remove(id: string): Promise<{ accounts: Account[]; dataDir: string; activeId: string }>
+    activate(id: string): Promise<AccountList>
+  }
+  onAccounts(listener: (list: AccountList) => void): () => void
   lock: {
     state(): Promise<LockState>
     configure(pin: string, idleSeconds: number): Promise<LockState>

@@ -11,6 +11,7 @@ import { AudioOutputPicker } from './components/AudioOutputPicker'
 import { NumberDialog } from './components/NumberDialog'
 import { LockScreen } from './components/LockScreen'
 import { LockSettings } from './components/LockSettings'
+import { AccountSettings, AccountTabs } from './components/AccountTabs'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -110,6 +111,7 @@ export function App(): React.JSX.Element {
         </nav>
       </header>
 
+      <AccountTabs unread={unread} />
       <HealthBanner state={degraded} />
 
       {tab === 'archive' ? (
@@ -416,6 +418,10 @@ export function App(): React.JSX.Element {
               }
             />
             <p className="pt-1 text-[11px] text-slate-500">{t('media.zoom.hint')}</p>
+          </Section>
+
+          <Section title={t('section.accounts')}>
+            <AccountSettings />
           </Section>
 
           <Section title={t('section.lock')}>

@@ -6,6 +6,12 @@ import type { ImporterStats } from '../main/archive/importer'
 import type { BackfillSnapshot } from '../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
 import type { LockState } from '../main/lock'
+import type { Account } from '@shared/accounts'
+
+export interface AccountList {
+  accounts: Account[]
+  activeId: string
+}
 
 export interface ExportScheduleState {
   lastRunMs?: number
@@ -26,6 +32,19 @@ const api = {
   getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
   getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
+
+  /** Accounts. Each has its own partition, archive and blob store. */
+  accounts: {
+    list: (): Promise<AccountList> => ipcRenderer.invoke('app:accounts'),
+    add: (label: string): Promise<AccountList> => ipcRenderer.invoke('app:account-add', { label }),
+    rename: (id: string, label: string): Promise<AccountList> =>
+      ipcRenderer.invoke('app:account-rename', { id, label }),
+    /** Removes it from the list. The data stays on disk; the reply names the directory. */
+    remove: (id: string): Promise<{ accounts: Account[]; dataDir: string; activeId: string }> =>
+      ipcRenderer.invoke('app:account-remove', { id }),
+    activate: (id: string): Promise<AccountList> =>
+      ipcRenderer.invoke('app:account-activate', { id }),
+  },
 
   /** The app lock. A screen, not encryption — see main/lock/index.ts. */
   lock: {
@@ -100,6 +119,13 @@ const api = {
     ipcRenderer.on('app:settings', handler)
     return () => ipcRenderer.removeListener('app:settings', handler)
   },
+  onAccounts: (listener: (list: AccountList) => void): (() => void) => {
+    const handler = (_event: unknown, value: AccountList): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:accounts', handler)
+    return () => ipcRenderer.removeListener('app:accounts', handler)
+  },
   onLock: (listener: (state: LockState) => void): (() => void) => {
     const handler = (_event: unknown, value: LockState): void => {
       listener(value)
@@ -128,8 +154,21 @@ const api = {
     ipcRenderer.on('app:health', handler)
     return () => ipcRenderer.removeListener('app:health', handler)
   },
-  onUnread: (listener: (counts: { unread: number; mutedUnread: number }) => void): (() => void) => {
-    const handler = (_event: unknown, value: { unread: number; mutedUnread: number }): void => {
+  onUnread: (
+    listener: (counts: {
+      unread: number
+      mutedUnread: number
+      byAccount?: Record<string, { unread: number; mutedUnread: number }>
+    }) => void,
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      value: {
+        unread: number
+        mutedUnread: number
+        byAccount?: Record<string, { unread: number; mutedUnread: number }>
+      },
+    ): void => {
       listener(value)
     }
     ipcRenderer.on('app:unread', handler)

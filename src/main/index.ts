@@ -24,15 +24,22 @@ import { createMainWindow, type MainWindow } from './window/main-window'
 import { initWindowState } from './window/bounds'
 import { WorkerSupervisor } from './workers/supervisor'
 import { initSettings, onSettingsChanged, settings, updateSettings } from './config/store'
+import {
+  accounts as accountList,
+  activeAccountId,
+  addAccount,
+  initAccounts,
+  removeAccount,
+  renameAccount,
+  setActiveAccount,
+} from './config/accounts'
 import { TrayController } from './tray'
 import { NotificationManager, type IncomingNotification } from './notifications'
 import { UiLayer } from './ui-layer'
 import { installDownloadHandler } from './downloads'
 import { configureUpdater } from './updater'
 import { HealthMonitor } from './health/monitor'
-import { BridgeHost } from './bridge/host'
-import { Importer } from './archive/importer'
-import { BackfillController } from './backfill/controller'
+import { AccountPipeline } from './accounts/pipeline'
 import { startIndexSignals } from './index-signals'
 import { applySpellcheck, availableLanguages } from './session/spellcheck'
 import {
@@ -41,7 +48,6 @@ import {
   type PickerResult,
   type PickerSource,
 } from './media/display-picker'
-import { MediaFetcher } from './archive/media-fetcher'
 import { ExportSchedule } from './export/schedule'
 import { createReminderService, type ReminderService } from './reminders'
 import { AppLock } from './lock'
@@ -59,10 +65,14 @@ let tray: TrayController | undefined
 let notifications: NotificationManager | undefined
 let uiLayer: UiLayer | undefined
 let health: HealthMonitor | undefined
-let bridge: BridgeHost | undefined
-let importer: Importer | undefined
-let backfill: BackfillController | undefined
-let mediaFetcher: MediaFetcher | undefined
+/** One per account, keyed by account id. The active account's is the one the panel talks to. */
+const pipelines = new Map<string, AccountPipeline>()
+const unreadByAccount = new Map<string, { unread: number; mutedUnread: number }>()
+
+/** Which account a message from a WhatsApp view belongs to, by matching the view's webContents. */
+function accountIdOfSender(webContentsId: number): string | undefined {
+  return mainWindow?.views().find((v) => v.view.webContents.id === webContentsId)?.accountId
+}
 let exportSchedule: ExportSchedule | undefined
 let reminders: ReminderService | undefined
 const appLock = new AppLock()
@@ -105,13 +115,23 @@ async function bootstrap(): Promise<void> {
   log.info(`platform: ${platform().id}`)
 
   stopWatchdog = startEventLoopWatchdog()
-  supervisor.start('archive')
-  supervisor.start('contentIndex')
+
+  // One worker pair per account: each account has its own database file, and one worker serving
+  // several archives would mean a filter deciding which messages somebody sees (PLAN.md Phase 8).
+  const accountState = await initAccounts()
+  for (const account of accountState.accounts) {
+    supervisor.start('archive', account.id)
+    supervisor.start('contentIndex', account.id)
+  }
 
   await appLock.load()
   await initWindowState()
   const startMinimised = process.argv.includes('--minimised') || settings().startMinimised
-  mainWindow = createMainWindow({ startMinimised })
+  mainWindow = createMainWindow({
+    startMinimised,
+    accountIds: accountState.accounts.map((a) => a.id),
+    activeAccountId: accountState.activeId,
+  })
 
   notifications = new NotificationManager(
     () => mainWindow?.window,
@@ -174,7 +194,7 @@ async function bootstrap(): Promise<void> {
   })
 
   health = new HealthMonitor({
-    workerReady: (name) => supervisor.isReady(name),
+    workerReady: (name) => supervisor.isReady(name, activeAccountId()),
     // A document that failed to load, or never loaded, is indistinguishable to the user from
     // WhatsApp being offline — and it is the same advice either way.
     whatsappLoaded: () => mainWindow?.wa.webContents.getURL().startsWith('https://') === true,
@@ -190,50 +210,22 @@ async function bootstrap(): Promise<void> {
   })
   mainWindow.wa.webContents.on('did-finish-load', () => health?.refresh())
 
-  // Bridge -> importer -> archive worker. The importer is what keeps the main process out of the
-  // per-message path: events land in its ring buffer and leave in batches (§3.1).
-  importer = new Importer((request) => supervisor.request('archive', request))
-  importer.start()
-
-  bridge = new BridgeHost({
-    onEvents: (events) => {
-      for (const event of events) importer?.push(event)
-    },
-    onHealth: (report) => {
-      health?.set('bridge-unavailable', !report.ok)
-      mainWindow?.panel.webContents.send('app:bridge', report)
-    },
-    onSnapshotDone: () => {
-      log.info('bridge finished its initial snapshot')
-    },
-  })
-  bridge.attach(mainWindow.wa.webContents)
-
-  backfill = new BackfillController({
-    bridge,
-    archive: (request) => supervisor.request('archive', request),
-    onChange: (snapshot) => {
-      mainWindow?.panel.webContents.send('app:backfill', snapshot)
-    },
-  })
-
-  mediaFetcher = new MediaFetcher({
-    bridge,
-    archive: (request) => supervisor.request('archive', request),
-  })
-  mediaFetcher.start()
+  // One pipeline per account: bridge -> importer -> that account's archive worker. Every account
+  // mirrors, including the ones behind — an unread badge over an archive that stopped growing is
+  // worse than having no second account at all.
+  for (const account of accountState.accounts) buildPipeline(account.id)
 
   exportSchedule = new ExportSchedule({
-    archive: (request) => supervisor.request('archive', request),
+    archive: (request) => supervisor.request('archive', request, { accountId: activeAccountId() }),
   })
   void exportSchedule.start()
 
   reminders = createReminderService({
-    archive: (request) => supervisor.request('archive', request),
+    archive: (request) => supervisor.request('archive', request, { accountId: activeAccountId() }),
     openChat: (chatId, msgId) => {
       mainWindow?.setPanelVisible(false)
       mainWindow?.show()
-      void bridge?.send('openChat', { chatId, msgId })
+      void pipelines.get(activeAccountId())?.bridge.send('openChat', { chatId, msgId })
     },
   })
   reminders.start()
@@ -241,7 +233,7 @@ async function bootstrap(): Promise<void> {
   applyLockToWindow()
   startLockIdleWatch()
 
-  stopIndexSignals = startIndexSignals(supervisor)
+  stopIndexSignals = startIndexSignals(supervisor, () => accountList().map((a) => a.id))
 
   // whatsapp:// and wa.me links open here instead of the browser. HKCU only — never HKLM, which
   // would need admin rights the project does not ask for.
@@ -288,6 +280,35 @@ async function askForDisplaySource(sources: PickerSource[]): Promise<PickerResul
 
   const chosen = sources[result.response]
   return chosen ? { source: chosen } : { cancelled: true }
+}
+
+/** Wires one account's view to its own archive. Called at start and when an account is added. */
+function buildPipeline(accountId: string): void {
+  const view = mainWindow?.viewFor(accountId)
+  if (!view || pipelines.has(accountId)) return
+
+  pipelines.set(
+    accountId,
+    new AccountPipeline({
+      accountId,
+      view,
+      archive: (request) => supervisor.request('archive', request, { accountId }),
+      onBridge: (id, report) => {
+        // Only the account in front decides the banner: a background account's bridge being down
+        // is worth knowing, but not worth covering the chat somebody is reading.
+        if (id === activeAccountId()) health?.set('bridge-unavailable', !report.ok)
+        mainWindow?.panel.webContents.send('app:bridge', { accountId: id, ...report })
+      },
+      onBackfill: (id, snapshot) => {
+        mainWindow?.panel.webContents.send('app:backfill', { accountId: id, ...snapshot })
+      },
+    }),
+  )
+}
+
+/** The pipeline of the account currently in front, which is what the panel's channels act on. */
+function activePipeline(): AccountPipeline | undefined {
+  return pipelines.get(activeAccountId())
 }
 
 function numberTarget(raw: string): ParsedTarget | undefined {
@@ -419,8 +440,8 @@ function registerIpcHandlers(): void {
   }))
 
   ipcMain.handle('app:worker-health', () => ({
-    archive: supervisor.isReady('archive'),
-    contentIndex: supervisor.isReady('contentIndex'),
+    archive: supervisor.isReady('archive', activeAccountId()),
+    contentIndex: supervisor.isReady('contentIndex', activeAccountId()),
   }))
 
   ipcMain.handle('app:paths', () => ({ ...appPaths() }))
@@ -443,7 +464,10 @@ function registerIpcHandlers(): void {
   // directly, and the worker validates the payload itself — see archive-protocol.ts.
   ipcMain.handle('archive:request', async (_event, payload: unknown): Promise<unknown> => {
     try {
-      return await supervisor.request('archive', payload)
+      // The panel always speaks to the account in front. Nothing it can send names an account,
+      // which is deliberate: an id crossing that boundary would be one more thing that could point
+      // at the wrong person's messages.
+      return await supervisor.request('archive', payload, { accountId: activeAccountId() })
     } catch (error: unknown) {
       // The renderer gets the rejection either way; the monitor turns the ones it recognises —
       // a full disk, a locked database — into something the user can read and act on.
@@ -456,11 +480,58 @@ function registerIpcHandlers(): void {
 
   // Backpressure, so the panel can show a mirror that is falling behind instead of silently
   // dropping events (PLAN.md Phase 3).
-  ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
+  ipcMain.handle('app:import-stats', () => activePipeline()?.stats() ?? null)
 
   ipcMain.handle('app:spellcheck-languages', () => {
     const waSession = mainWindow?.wa.webContents.session
     return waSession ? availableLanguages(waSession) : []
+  })
+
+  // --- accounts -------------------------------------------------------------
+  ipcMain.handle('app:accounts', () => ({
+    accounts: accountList(),
+    activeId: activeAccountId(),
+  }))
+
+  ipcMain.handle('app:account-add', async (_event, payload: unknown) => {
+    const label = (payload as { label?: unknown })?.label
+    const account = await addAccount(typeof label === 'string' ? label : '')
+    // Workers first, then the view: the panel switches to the new account as soon as it appears,
+    // and an archive that is not open yet would greet it with an error.
+    supervisor.start('archive', account.id)
+    supervisor.start('contentIndex', account.id)
+    mainWindow?.addAccountView(account.id)
+    return { accounts: accountList(), activeId: activeAccountId() }
+  })
+
+  ipcMain.handle('app:account-rename', async (_event, payload: unknown) => {
+    const args = payload as { id?: unknown; label?: unknown }
+    if (typeof args?.id !== 'string' || typeof args.label !== 'string') {
+      throw new Error('id and label are required')
+    }
+    return { accounts: await renameAccount(args.id, args.label), activeId: activeAccountId() }
+  })
+
+  ipcMain.handle('app:account-remove', async (_event, payload: unknown) => {
+    const id = (payload as { id?: unknown })?.id
+    if (typeof id !== 'string') throw new Error('id is required')
+    mainWindow?.removeAccountView(id)
+    await supervisor.stopAccount(id, 'account removed')
+    const result = await removeAccount(id)
+    mainWindow?.showAccount(activeAccountId())
+    return { ...result, activeId: activeAccountId() }
+  })
+
+  ipcMain.handle('app:account-activate', async (_event, payload: unknown) => {
+    const id = (payload as { id?: unknown })?.id
+    if (typeof id !== 'string') throw new Error('id is required')
+    await setActiveAccount(id)
+    mainWindow?.showAccount(id)
+    mainWindow?.panel.webContents.send('app:accounts', {
+      accounts: accountList(),
+      activeId: id,
+    })
+    return { accounts: accountList(), activeId: id }
   })
 
   ipcMain.handle('app:lock-state', () => appLock.state())
@@ -502,11 +573,15 @@ function registerIpcHandlers(): void {
   ipcMain.handle('app:backup', async (_event, payload: unknown) => {
     const args = payload as { targetDir?: unknown; includeBlobs?: unknown }
     if (typeof args?.targetDir !== 'string') throw new Error('targetDir is required')
-    return supervisor.request('archive', {
-      op: 'backup',
-      targetDir: args.targetDir,
-      includeBlobs: args.includeBlobs !== false,
-    })
+    return supervisor.request(
+      'archive',
+      {
+        op: 'backup',
+        targetDir: args.targetDir,
+        includeBlobs: args.includeBlobs !== false,
+      },
+      { accountId: activeAccountId() },
+    )
   })
 
   /**
@@ -530,10 +605,11 @@ function registerIpcHandlers(): void {
   ipcMain.handle('app:blob-path', async (_event, payload: unknown) => {
     const args = payload as { mediaId?: unknown }
     if (typeof args?.mediaId !== 'string') throw new Error('mediaId is required')
-    const result = (await supervisor.request('archive', {
-      op: 'blobPath',
-      mediaId: args.mediaId,
-    })) as { path: string | null }
+    const result = (await supervisor.request(
+      'archive',
+      { op: 'blobPath', mediaId: args.mediaId },
+      { accountId: activeAccountId() },
+    )) as { path: string | null }
     return result.path
   })
 
@@ -562,11 +638,11 @@ function registerIpcHandlers(): void {
     })
     if (chosen.canceled || !chosen.filePaths[0]) return { saved: 0, cancelled: true }
 
-    return supervisor.request('archive', {
-      op: 'saveMedia',
-      mediaIds: ids,
-      targetDir: chosen.filePaths[0],
-    })
+    return supervisor.request(
+      'archive',
+      { op: 'saveMedia', mediaIds: ids, targetDir: chosen.filePaths[0] },
+      { accountId: activeAccountId() },
+    )
   })
 
   ipcMain.handle('app:reveal', (_event, payload: unknown) => {
@@ -584,29 +660,37 @@ function registerIpcHandlers(): void {
     return shell.openPath(args.path)
   })
 
-  ipcMain.handle('app:media-stats', () => mediaFetcher?.stats() ?? null)
+  ipcMain.handle('app:media-stats', () => activePipeline()?.mediaFetcher.stats() ?? null)
 
   // "Videos on click" (§10): the automatic rules leave big files alone, and this is the user
   // saying they want this one.
   ipcMain.handle('media:fetch-now', async (_event, payload: unknown) => {
     const candidate = payload as { id?: unknown }
     if (typeof candidate?.id !== 'string') throw new Error('id is required')
-    if (!mediaFetcher) throw new Error('not ready')
-    return mediaFetcher.fetchNow(candidate as { id: string })
+    const pipeline = activePipeline()
+    if (!pipeline) throw new Error('not ready')
+    return pipeline.mediaFetcher.fetchNow(candidate as { id: string })
   })
 
-  ipcMain.handle('app:index-status', () => supervisor.request('contentIndex', { op: 'status' }))
+  ipcMain.handle('app:index-status', () =>
+    supervisor.request('contentIndex', { op: 'status' }, { accountId: activeAccountId() }),
+  )
   ipcMain.handle('app:reindex', (_event, payload: unknown) => {
     const kind = (payload as { kind?: unknown })?.kind
     if (typeof kind !== 'string') throw new Error('kind is required')
-    return supervisor.request('contentIndex', { op: 'reindex', kind })
+    return supervisor.request(
+      'contentIndex',
+      { op: 'reindex', kind },
+      { accountId: activeAccountId() },
+    )
   })
 
   // The initial mirror is a user action, not something that runs on its own at startup: it walks
   // every collection WhatsApp has in memory and the user should decide when to pay for that.
   ipcMain.handle('bridge:snapshot', async () => {
-    if (!bridge?.ready) throw new Error('bridge is not available')
-    return bridge.send('snapshot')
+    const pipeline = activePipeline()
+    if (!pipeline?.bridge.ready) throw new Error('bridge is not available')
+    return pipeline.bridge.send('snapshot')
   })
 
   // "Im WhatsApp-Chat öffnen" (Phase 4). Opening a chat is a user action, so WhatsApp marking it
@@ -615,10 +699,11 @@ function registerIpcHandlers(): void {
   ipcMain.handle('bridge:open-chat', async (_event, payload: unknown) => {
     const args = payload as { chatId?: unknown; msgId?: unknown }
     if (typeof args?.chatId !== 'string') throw new Error('chatId is required')
-    if (!bridge?.ready) throw new Error('bridge is not available')
+    const pipeline = activePipeline()
+    if (!pipeline?.bridge.ready) throw new Error('bridge is not available')
     mainWindow?.setPanelVisible(false)
     mainWindow?.show()
-    return bridge.send('openChat', {
+    return pipeline.bridge.send('openChat', {
       chatId: args.chatId,
       ...(typeof args.msgId === 'string' ? { msgId: args.msgId } : {}),
     })
@@ -627,8 +712,8 @@ function registerIpcHandlers(): void {
   // The backfill only ever runs because somebody pressed start: it opens chats, and opening a chat
   // marks it read (ADR 0006).
   ipcMain.handle('backfill:state', () => ({
-    ...backfill?.snapshot(),
-    pauseReason: backfill?.pauseReason(),
+    ...activePipeline()?.backfill.snapshot(),
+    pauseReason: activePipeline()?.backfill.pauseReason(),
   }))
 
   ipcMain.handle('backfill:start', async (_event, payload: unknown) => {
@@ -636,21 +721,23 @@ function registerIpcHandlers(): void {
     const chatIds = Array.isArray(args?.chatIds)
       ? args.chatIds.filter((id): id is string => typeof id === 'string')
       : []
-    if (!backfill) throw new Error('not ready')
-    await backfill.restore(chatIds)
-    return backfill.start()
+    const pipeline = activePipeline()
+    if (!pipeline) throw new Error('not ready')
+    await pipeline.backfill.restore(chatIds)
+    return pipeline.backfill.start()
   })
 
   ipcMain.handle('backfill:stop', () => {
-    backfill?.stop()
+    activePipeline()?.backfill.stop()
     return true
   })
 
   ipcMain.handle('bridge:load-older', async (_event, payload: unknown) => {
     const args = payload as { chatId?: unknown }
     if (typeof args?.chatId !== 'string') throw new Error('chatId is required')
-    if (!bridge?.ready) throw new Error('bridge is not available')
-    return bridge.send('loadOlder', { chatId: args.chatId })
+    const pipeline = activePipeline()
+    if (!pipeline?.bridge.ready) throw new Error('bridge is not available')
+    return pipeline.bridge.send('loadOlder', { chatId: args.chatId })
   })
 
   ipcMain.on('app:toggle-panel', () => {
@@ -665,12 +752,34 @@ function registerIpcHandlers(): void {
     notifications?.handle(notification)
   })
 
-  ipcMain.on('wa:unread', (_event, payload: unknown) => {
+  /**
+   * Unread counts arrive per account, from that account's own view.
+   *
+   * The tray and the taskbar badge show the sum: they are one icon for the whole application, and
+   * a number that silently only counted the account in front would be wrong in exactly the case
+   * multiple accounts exist for. The panel gets the breakdown so each tab can show its own.
+   */
+  ipcMain.on('wa:unread', (event, payload: unknown) => {
+    const accountId = accountIdOfSender(event.sender.id)
+    if (!accountId) return
     const counts = payload as { unread?: number; mutedUnread?: number }
-    const unread = typeof counts?.unread === 'number' ? counts.unread : 0
-    const muted = typeof counts?.mutedUnread === 'number' ? counts.mutedUnread : 0
+    unreadByAccount.set(accountId, {
+      unread: typeof counts?.unread === 'number' ? counts.unread : 0,
+      mutedUnread: typeof counts?.mutedUnread === 'number' ? counts.mutedUnread : 0,
+    })
+
+    let unread = 0
+    let muted = 0
+    for (const count of unreadByAccount.values()) {
+      unread += count.unread
+      muted += count.mutedUnread
+    }
     tray?.setUnread(unread, settings().mutedChatsNotify ? muted : 0)
-    mainWindow?.panel.webContents.send('app:unread', { unread, mutedUnread: muted })
+    mainWindow?.panel.webContents.send('app:unread', {
+      unread,
+      mutedUnread: muted,
+      byAccount: Object.fromEntries(unreadByAccount),
+    })
   })
 
   ipcMain.on('wa:active-chat', (_event, title: unknown) => {
@@ -733,12 +842,9 @@ app.on('will-quit', (event) => {
   stopIndexSignals?.()
   health?.stop()
   notifications?.dispose()
-  backfill?.stop()
-  mediaFetcher?.stop()
   exportSchedule?.stop()
   reminders?.stop()
-  bridge?.dispose()
-  void importer?.stop()
+  for (const pipeline of pipelines.values()) void pipeline.dispose()
   tray?.dispose()
   void supervisor.stopAll('app quitting').finally(() => {
     app.exit(0)

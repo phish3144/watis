@@ -591,7 +591,18 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 ### Phase 8 – Erweiterungen (je S–M, frei wählbar)
 
-- [ ] **Multi-Account:** Tabs mit getrennten Partitionen, getrennte Archive, Badge pro Account
+- [x] **Multi-Account:** Tabs mit getrennten Partitionen, **getrennten Archiven und Blob-Stores** und
+      Badge pro Konto. Kein gemeinsamer Speicher mit einer Kontospalte davor: zwei Konten sind so oft
+      die Verläufe zweier Menschen wie die zwei Nummern eines Menschen, und ein Filter ist etwas, das
+      man einmal falsch machen und damit die falschen Nachrichten zeigen kann. Getrennte Dateien
+      können das nicht.
+      Das erste Konto behält das ursprüngliche Verzeichnislayout — bestehende Installationen haben
+      ihre Daten dort, und jemandes Archiv zu verschieben, um einen Verzeichnisbaum aufzuräumen, ist
+      kein Tausch, den dieses Projekt macht. Jedes Konto läuft mit, auch im Hintergrund: ein Konto,
+      dessen Bridge nicht hängt, archiviert nicht, und ein Ungelesen-Zähler über einem Archiv, das
+      nicht mehr wächst, ist schlimmer als gar kein zweites Konto.
+      **Entfernen löscht keine Daten** — es nimmt das Konto aus der Liste und nennt das Verzeichnis.
+      `test/e2e/accounts.spec.ts` prüft die Trennung, nicht das Umschalten
 - [x] **App-Sperre:** PIN beim Start und nach Inaktivität, Weichzeichnen bei Fokusverlust. Die UI sagt
       ausdrücklich, was das ist: **Sichtschutz, keine Verschlüsselung.** Das Archiv bleibt lesbar auf
       der Platte. Mehr zu behaupten wäre schlimmer als keine Sperre — jemand könnte sich darauf

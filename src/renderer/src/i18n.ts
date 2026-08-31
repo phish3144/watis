@@ -16,6 +16,7 @@ const de = {
   'section.media': 'Medien und Eingabe',
   'section.number': 'Chat mit Nummer',
   'section.lock': 'App-Sperre',
+  'section.accounts': 'Konten',
   'section.status': 'Status',
   'section.index': 'Inhaltsindex',
   'section.backup': 'Export und Sicherung',
