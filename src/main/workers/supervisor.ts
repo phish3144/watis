@@ -38,7 +38,15 @@ const WORKER_ENTRIES: Record<WorkerName, string> = {
   contentIndex: 'contentIndex.js',
 }
 
+interface PendingRequest {
+  resolve: (value: unknown) => void
+  reject: (error: Error) => void
+  timer: NodeJS.Timeout
+}
+
 export class WorkerSupervisor {
+  private requestId = 0
+  private readonly pending = new Map<number, PendingRequest>()
   private readonly workers = new Map<WorkerName, Supervised>()
   private nonce = 0
 
@@ -101,6 +109,15 @@ export class WorkerSupervisor {
         case 'fatal':
           log.error(`${state.name} reported fatal: ${message.message}`)
           break
+        case 'response': {
+          const pending = this.pending.get(message.id)
+          if (!pending) break // already timed out; its caller has been told
+          this.pending.delete(message.id)
+          clearTimeout(pending.timer)
+          if (message.ok) pending.resolve(message.result)
+          else pending.reject(new Error(message.error ?? 'worker request failed'))
+          break
+        }
       }
     })
     port1.start()
@@ -118,6 +135,7 @@ export class WorkerSupervisor {
       }
       const delay = Math.min(RESTART_BASE_DELAY_MS * 2 ** state.restarts, RESTART_MAX_DELAY_MS)
       state.restarts += 1
+      this.rejectPending(`${state.name} worker exited before answering`)
       log.warn(`${state.name} worker exited (code ${code}); restarting in ${delay}ms`)
       setTimeout(() => {
         if (!state.stopping) this.spawn(state)
@@ -152,6 +170,37 @@ export class WorkerSupervisor {
 
   send(name: WorkerName, message: HostToWorker): void {
     this.workers.get(name)?.port?.postMessage(message)
+  }
+
+  /**
+   * One data-plane round trip. Rejects rather than hanging when the worker is not there or does not
+   * answer — a renderer waiting forever on a dead worker looks exactly like a frozen application.
+   */
+  request(name: WorkerName, payload: unknown, timeoutMs = 30_000): Promise<unknown> {
+    const state = this.workers.get(name)
+    if (!state?.ready || !state.port) {
+      return Promise.reject(new Error(`${name} worker is not ready`))
+    }
+
+    const id = ++this.requestId
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id)
+        reject(new Error(`${name} worker did not answer within ${String(timeoutMs)} ms`))
+      }, timeoutMs)
+      timer.unref()
+      this.pending.set(id, { resolve, reject, timer })
+      state.port?.postMessage({ type: 'request', id, payload })
+    })
+  }
+
+  /** Fails every outstanding request, so a worker crash surfaces instead of hanging its callers. */
+  private rejectPending(reason: string): void {
+    for (const [, entry] of this.pending) {
+      clearTimeout(entry.timer)
+      entry.reject(new Error(reason))
+    }
+    this.pending.clear()
   }
 
   isReady(name: WorkerName): boolean {

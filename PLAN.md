@@ -445,12 +445,12 @@ Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
 
 - [x] `search_docs`/`search_fts` mit Triggern; Suchsyntax vollständig: Wörter, Phrasen, `from:`, `in:`,
       `before:/after:`, `has:file|image|audio|link`, `source:body|ocr|pdf|docx|transcript`. Trigram-Index bleibt offen
-- [ ] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste mit Endlos-Scroll in beide Richtungen, Datumssprung,
-      Kalender; Keyset-Pagination über `(ts, id)`, nie „alles laden"
+- [~] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste, Endlos-Scroll nach oben, Keyset-Pagination
+  über `(ts, id)` **fertig**; offen: Datumssprung und Kalender
 - [~] Kontext (±3 Nachrichten) im Repository **fertig** (`contextAround`); offen: die Trefferliste selbst
 - [ ] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht (Feature-Flag, fragil)
 - [ ] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Links), Filter und Sortierung
-- [ ] Globale Shortcut-Suche (Strg+K) über Chats, Kontakte, Nachrichten
+- [~] Strg+K springt in die Suche **fertig**; offen: Chats und Kontakte als eigene Trefferarten
 - [x] Suche < 200 ms (p95): **6,20 ms bei 1 Mio.** in der Standardreihenfolge, Benchmark unter
       `scripts/loadtest-archive.mjs` ([ADR 0007](docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md)).
       Relevanz-Sortierung verfehlt das Gate bei sehr häufigen Begriffen bauartbedingt

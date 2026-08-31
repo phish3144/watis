@@ -196,6 +196,12 @@ function registerIpcHandlers(): void {
     return next
   })
 
+  // One channel for the whole archive data plane. The renderer never speaks to the worker
+  // directly, and the worker validates the payload itself — see archive-protocol.ts.
+  ipcMain.handle('archive:request', async (_event, payload: unknown): Promise<unknown> => {
+    return supervisor.request('archive', payload)
+  })
+
   ipcMain.on('app:toggle-panel', () => {
     mainWindow?.togglePanel()
   })

@@ -12,6 +12,9 @@ const api = {
   updateSettings: (patch: SettingsPatch): Promise<Settings> =>
     ipcRenderer.invoke('app:update-settings', patch),
 
+  /** The archive data plane. Shapes live in @shared/ipc/archive-protocol. */
+  archive: (request: unknown): Promise<unknown> => ipcRenderer.invoke('archive:request', request),
+
   onSettings: (listener: (settings: Settings) => void): (() => void) => {
     const handler = (_event: unknown, value: Settings): void => {
       listener(value)

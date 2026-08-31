@@ -3,6 +3,7 @@ import type { Settings, SettingsPatch } from '@shared/settings'
 import { api, type UnreadCounts, type Versions, type WorkerHealth } from './api'
 import { t } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
+import { ArchivePanel } from './archive/ArchivePanel'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   return (
@@ -13,7 +14,10 @@ function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   )
 }
 
+type Tab = 'archive' | 'settings'
+
 export function App(): React.JSX.Element {
+  const [tab, setTab] = useState<Tab>('archive')
   const [settings, setSettings] = useState<Settings | undefined>(undefined)
   const [versions, setVersions] = useState<Versions | undefined>(undefined)
   const [health, setHealth] = useState<WorkerHealth | undefined>(undefined)
@@ -64,358 +68,387 @@ export function App(): React.JSX.Element {
     : `${settings.downloadDir}/2026-08-30_Angebot.pdf`
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-wa-panel px-5 py-4 text-sm text-slate-200">
-      <header className="mb-5">
-        <h1 className="text-base font-semibold">{t('app.title')}</h1>
-        <p className="text-xs text-slate-500">{t('app.subtitle')}</p>
+    <div className="flex h-screen flex-col overflow-hidden bg-wa-panel px-5 py-4 text-sm text-slate-200">
+      <header className="mb-4 flex items-baseline justify-between gap-4">
+        <div>
+          <h1 className="text-base font-semibold">{t('app.title')}</h1>
+          <p className="text-xs text-slate-500">{t('app.subtitle')}</p>
+        </div>
+        <nav className="flex gap-1" aria-label="Ansicht">
+          {(['archive', 'settings'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-current={tab === value ? 'page' : undefined}
+              onClick={() => {
+                setTab(value)
+              }}
+              className={`rounded-md px-3 py-1 text-xs ${
+                tab === value ? 'bg-wa-surface font-medium' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {value === 'archive' ? 'Archiv' : 'Einstellungen'}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="mb-5 flex items-center gap-3 rounded-lg bg-wa-surface px-3 py-2">
-        <span className="text-2xl font-semibold tabular-nums text-wa-accent">{unread.unread}</span>
-        <div className="text-xs leading-tight text-slate-400">
-          <div>{t('status.unread')}</div>
-          {unread.mutedUnread > 0 && (
-            <div className="text-slate-500">
-              {unread.mutedUnread} {t('status.muted')}
-            </div>
-          )}
+      {tab === 'archive' ? (
+        <div className="min-h-0 flex-1">
+          <ArchivePanel />
         </div>
-      </div>
-
-      <Section title={t('section.window')}>
-        <Row
-          label={t('window.closeToTray')}
-          hint={t('window.closeToTray.hint')}
-          control={
-            <Toggle
-              label={t('window.closeToTray')}
-              checked={settings.closeToTray}
-              onChange={(closeToTray) => {
-                patch({ closeToTray })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('window.startMinimised')}
-          control={
-            <Toggle
-              label={t('window.startMinimised')}
-              checked={settings.startMinimised}
-              onChange={(startMinimised) => {
-                patch({ startMinimised })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('window.autostart')}
-          hint={navigator.userAgent.includes('Mac') ? t('window.autostart.hintMac') : undefined}
-          control={
-            <Toggle
-              label={t('window.autostart')}
-              checked={settings.autostart}
-              onChange={(autostart) => {
-                patch({ autostart })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('window.shortcut')}
-          hint={t('window.shortcut.hint')}
-          control={
-            <TextField
-              label={t('window.shortcut')}
-              value={settings.globalShortcut}
-              onChange={(globalShortcut) => {
-                patch({ globalShortcut })
-              }}
-            />
-          }
-        />
-      </Section>
-
-      <Section title={t('section.notifications')}>
-        <Row
-          label={t('notify.enabled')}
-          control={
-            <Toggle
-              label={t('notify.enabled')}
-              checked={settings.notifications}
-              onChange={(notifications) => {
-                patch({ notifications })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('notify.suppressWhenVisible')}
-          hint={t('notify.suppressWhenVisible.hint')}
-          control={
-            <Toggle
-              label={t('notify.suppressWhenVisible')}
-              checked={settings.suppressWhenVisible}
-              onChange={(suppressWhenVisible) => {
-                patch({ suppressWhenVisible })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('notify.coalesce')}
-          hint={t('notify.coalesce.hint')}
-          control={
-            <NumberField
-              label={t('notify.coalesce')}
-              value={settings.coalesceWindowMs}
-              min={0}
-              max={15000}
-              step={500}
-              suffix=" ms"
-              onChange={(coalesceWindowMs) => {
-                patch({ coalesceWindowMs })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('notify.muted')}
-          control={
-            <Toggle
-              label={t('notify.muted')}
-              checked={settings.mutedChatsNotify}
-              onChange={(mutedChatsNotify) => {
-                patch({ mutedChatsNotify })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('notify.dnd')}
-          control={
-            <div className="flex items-center gap-2">
-              <Toggle
-                label={t('notify.dnd')}
-                checked={settings.dndEnabled}
-                onChange={(dndEnabled) => {
-                  patch({ dndEnabled })
-                }}
-              />
-            </div>
-          }
-        />
-        {settings.dndEnabled && (
-          <div className="flex items-center justify-end gap-2 pb-1 text-xs text-slate-400">
-            <span>{t('notify.dnd.from')}</span>
-            <TimeField
-              label={t('notify.dnd.from')}
-              value={settings.dndFrom}
-              onChange={(dndFrom) => {
-                patch({ dndFrom })
-              }}
-            />
-            <span>{t('notify.dnd.to')}</span>
-            <TimeField
-              label={t('notify.dnd.to')}
-              value={settings.dndTo}
-              onChange={(dndTo) => {
-                patch({ dndTo })
-              }}
-            />
-          </div>
-        )}
-      </Section>
-
-      <Section title={t('section.appearance')}>
-        <Row
-          label={t('appearance.compact')}
-          hint={t('appearance.compact.hint')}
-          control={
-            <Toggle
-              label={t('appearance.compact')}
-              checked={settings.compactMode}
-              onChange={(compactMode) => {
-                patch({ compactMode })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('appearance.fontScale')}
-          control={
-            <NumberField
-              label={t('appearance.fontScale')}
-              value={settings.fontScale}
-              min={0.8}
-              max={1.6}
-              step={0.05}
-              suffix="×"
-              onChange={(fontScale) => {
-                patch({ fontScale })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('appearance.customCss')}
-          hint={t('appearance.customCss.hint')}
-          control={
-            <Toggle
-              label={t('appearance.customCss')}
-              checked={settings.customCssEnabled}
-              onChange={(customCssEnabled) => {
-                patch({ customCssEnabled })
-              }}
-            />
-          }
-        />
-      </Section>
-
-      <Section title={t('section.declutter')}>
-        <Row
-          label={t('declutter.channels')}
-          control={
-            <Toggle
-              label={t('declutter.channels')}
-              checked={settings.hideChannels}
-              onChange={(hideChannels) => {
-                patch({ hideChannels })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('declutter.status')}
-          control={
-            <Toggle
-              label={t('declutter.status')}
-              checked={settings.hideStatus}
-              onChange={(hideStatus) => {
-                patch({ hideStatus })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('declutter.metaAi')}
-          hint={t('declutter.hint')}
-          control={
-            <Toggle
-              label={t('declutter.metaAi')}
-              checked={settings.hideMetaAi}
-              onChange={(hideMetaAi) => {
-                patch({ hideMetaAi })
-              }}
-            />
-          }
-        />
-      </Section>
-
-      <Section title={t('section.input')}>
-        <Row
-          label={t('input.enterNewline')}
-          hint={t('input.enterNewline.hint')}
-          control={
-            <Toggle
-              label={t('input.enterNewline')}
-              checked={settings.enterInsertsNewline}
-              onChange={(enterInsertsNewline) => {
-                patch({ enterInsertsNewline })
-              }}
-            />
-          }
-        />
-      </Section>
-
-      <Section title={t('section.files')}>
-        <Row
-          label={t('files.downloadDir')}
-          control={
-            <TextField
-              label={t('files.downloadDir')}
-              value={settings.downloadDir}
-              width="w-52"
-              onChange={(downloadDir) => {
-                patch({ downloadDir })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('files.sortByChat')}
-          control={
-            <Toggle
-              label={t('files.sortByChat')}
-              checked={settings.sortDownloadsByChat}
-              onChange={(sortDownloadsByChat) => {
-                patch({ sortDownloadsByChat })
-              }}
-            />
-          }
-        />
-        <Row
-          label={t('files.notify')}
-          control={
-            <Toggle
-              label={t('files.notify')}
-              checked={settings.notifyOnDownload}
-              onChange={(notifyOnDownload) => {
-                patch({ notifyOnDownload })
-              }}
-            />
-          }
-        />
-        <div className="pt-1 text-[11px] text-slate-500">
-          {t('files.scheme')}:{' '}
-          <span className="break-all font-mono text-slate-400">{downloadScheme}</span>
-        </div>
-      </Section>
-
-      <Section title={t('section.status')}>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <HealthDot ok={health?.archive ?? false} />
-            <span>{t('status.archive')}</span>
-            <span className="text-slate-500">
-              {health?.archive ? t('status.running') : t('status.down')}
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mb-5 flex items-center gap-3 rounded-lg bg-wa-surface px-3 py-2">
+            <span className="text-2xl font-semibold tabular-nums text-wa-accent">
+              {unread.unread}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <HealthDot ok={health?.contentIndex ?? false} />
-            <span>{t('status.index')}</span>
-            <span className="text-slate-500">
-              {health?.contentIndex ? t('status.running') : t('status.down')}
-            </span>
-          </div>
-        </div>
-
-        {versions && (
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
-            {Object.entries(versions).map(([key, value]) => (
-              <div key={key} className="contents">
-                <dt>{key}</dt>
-                <dd className="font-mono text-slate-400">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-
-        {paths && (
-          <div className="mt-3 space-y-0.5 text-[11px] text-slate-500">
-            {Object.entries(paths).map(([key, value]) => (
-              <div key={key}>
-                <div>{key}</div>
-                <div className="truncate font-mono text-slate-400" title={value}>
-                  {value}
+            <div className="text-xs leading-tight text-slate-400">
+              <div>{t('status.unread')}</div>
+              {unread.mutedUnread > 0 && (
+                <div className="text-slate-500">
+                  {unread.mutedUnread} {t('status.muted')}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-        )}
-      </Section>
 
-      <p className="pb-4 text-[11px] leading-relaxed text-slate-500">{t('phase.notice')}</p>
+          <Section title={t('section.window')}>
+            <Row
+              label={t('window.closeToTray')}
+              hint={t('window.closeToTray.hint')}
+              control={
+                <Toggle
+                  label={t('window.closeToTray')}
+                  checked={settings.closeToTray}
+                  onChange={(closeToTray) => {
+                    patch({ closeToTray })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('window.startMinimised')}
+              control={
+                <Toggle
+                  label={t('window.startMinimised')}
+                  checked={settings.startMinimised}
+                  onChange={(startMinimised) => {
+                    patch({ startMinimised })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('window.autostart')}
+              hint={navigator.userAgent.includes('Mac') ? t('window.autostart.hintMac') : undefined}
+              control={
+                <Toggle
+                  label={t('window.autostart')}
+                  checked={settings.autostart}
+                  onChange={(autostart) => {
+                    patch({ autostart })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('window.shortcut')}
+              hint={t('window.shortcut.hint')}
+              control={
+                <TextField
+                  label={t('window.shortcut')}
+                  value={settings.globalShortcut}
+                  onChange={(globalShortcut) => {
+                    patch({ globalShortcut })
+                  }}
+                />
+              }
+            />
+          </Section>
+
+          <Section title={t('section.notifications')}>
+            <Row
+              label={t('notify.enabled')}
+              control={
+                <Toggle
+                  label={t('notify.enabled')}
+                  checked={settings.notifications}
+                  onChange={(notifications) => {
+                    patch({ notifications })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('notify.suppressWhenVisible')}
+              hint={t('notify.suppressWhenVisible.hint')}
+              control={
+                <Toggle
+                  label={t('notify.suppressWhenVisible')}
+                  checked={settings.suppressWhenVisible}
+                  onChange={(suppressWhenVisible) => {
+                    patch({ suppressWhenVisible })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('notify.coalesce')}
+              hint={t('notify.coalesce.hint')}
+              control={
+                <NumberField
+                  label={t('notify.coalesce')}
+                  value={settings.coalesceWindowMs}
+                  min={0}
+                  max={15000}
+                  step={500}
+                  suffix=" ms"
+                  onChange={(coalesceWindowMs) => {
+                    patch({ coalesceWindowMs })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('notify.muted')}
+              control={
+                <Toggle
+                  label={t('notify.muted')}
+                  checked={settings.mutedChatsNotify}
+                  onChange={(mutedChatsNotify) => {
+                    patch({ mutedChatsNotify })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('notify.dnd')}
+              control={
+                <div className="flex items-center gap-2">
+                  <Toggle
+                    label={t('notify.dnd')}
+                    checked={settings.dndEnabled}
+                    onChange={(dndEnabled) => {
+                      patch({ dndEnabled })
+                    }}
+                  />
+                </div>
+              }
+            />
+            {settings.dndEnabled && (
+              <div className="flex items-center justify-end gap-2 pb-1 text-xs text-slate-400">
+                <span>{t('notify.dnd.from')}</span>
+                <TimeField
+                  label={t('notify.dnd.from')}
+                  value={settings.dndFrom}
+                  onChange={(dndFrom) => {
+                    patch({ dndFrom })
+                  }}
+                />
+                <span>{t('notify.dnd.to')}</span>
+                <TimeField
+                  label={t('notify.dnd.to')}
+                  value={settings.dndTo}
+                  onChange={(dndTo) => {
+                    patch({ dndTo })
+                  }}
+                />
+              </div>
+            )}
+          </Section>
+
+          <Section title={t('section.appearance')}>
+            <Row
+              label={t('appearance.compact')}
+              hint={t('appearance.compact.hint')}
+              control={
+                <Toggle
+                  label={t('appearance.compact')}
+                  checked={settings.compactMode}
+                  onChange={(compactMode) => {
+                    patch({ compactMode })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('appearance.fontScale')}
+              control={
+                <NumberField
+                  label={t('appearance.fontScale')}
+                  value={settings.fontScale}
+                  min={0.8}
+                  max={1.6}
+                  step={0.05}
+                  suffix="×"
+                  onChange={(fontScale) => {
+                    patch({ fontScale })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('appearance.customCss')}
+              hint={t('appearance.customCss.hint')}
+              control={
+                <Toggle
+                  label={t('appearance.customCss')}
+                  checked={settings.customCssEnabled}
+                  onChange={(customCssEnabled) => {
+                    patch({ customCssEnabled })
+                  }}
+                />
+              }
+            />
+          </Section>
+
+          <Section title={t('section.declutter')}>
+            <Row
+              label={t('declutter.channels')}
+              control={
+                <Toggle
+                  label={t('declutter.channels')}
+                  checked={settings.hideChannels}
+                  onChange={(hideChannels) => {
+                    patch({ hideChannels })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('declutter.status')}
+              control={
+                <Toggle
+                  label={t('declutter.status')}
+                  checked={settings.hideStatus}
+                  onChange={(hideStatus) => {
+                    patch({ hideStatus })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('declutter.metaAi')}
+              hint={t('declutter.hint')}
+              control={
+                <Toggle
+                  label={t('declutter.metaAi')}
+                  checked={settings.hideMetaAi}
+                  onChange={(hideMetaAi) => {
+                    patch({ hideMetaAi })
+                  }}
+                />
+              }
+            />
+          </Section>
+
+          <Section title={t('section.input')}>
+            <Row
+              label={t('input.enterNewline')}
+              hint={t('input.enterNewline.hint')}
+              control={
+                <Toggle
+                  label={t('input.enterNewline')}
+                  checked={settings.enterInsertsNewline}
+                  onChange={(enterInsertsNewline) => {
+                    patch({ enterInsertsNewline })
+                  }}
+                />
+              }
+            />
+          </Section>
+
+          <Section title={t('section.files')}>
+            <Row
+              label={t('files.downloadDir')}
+              control={
+                <TextField
+                  label={t('files.downloadDir')}
+                  value={settings.downloadDir}
+                  width="w-52"
+                  onChange={(downloadDir) => {
+                    patch({ downloadDir })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('files.sortByChat')}
+              control={
+                <Toggle
+                  label={t('files.sortByChat')}
+                  checked={settings.sortDownloadsByChat}
+                  onChange={(sortDownloadsByChat) => {
+                    patch({ sortDownloadsByChat })
+                  }}
+                />
+              }
+            />
+            <Row
+              label={t('files.notify')}
+              control={
+                <Toggle
+                  label={t('files.notify')}
+                  checked={settings.notifyOnDownload}
+                  onChange={(notifyOnDownload) => {
+                    patch({ notifyOnDownload })
+                  }}
+                />
+              }
+            />
+            <div className="pt-1 text-[11px] text-slate-500">
+              {t('files.scheme')}:{' '}
+              <span className="break-all font-mono text-slate-400">{downloadScheme}</span>
+            </div>
+          </Section>
+
+          <Section title={t('section.status')}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <HealthDot ok={health?.archive ?? false} />
+                <span>{t('status.archive')}</span>
+                <span className="text-slate-500">
+                  {health?.archive ? t('status.running') : t('status.down')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <HealthDot ok={health?.contentIndex ?? false} />
+                <span>{t('status.index')}</span>
+                <span className="text-slate-500">
+                  {health?.contentIndex ? t('status.running') : t('status.down')}
+                </span>
+              </div>
+            </div>
+
+            {versions && (
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                {Object.entries(versions).map(([key, value]) => (
+                  <div key={key} className="contents">
+                    <dt>{key}</dt>
+                    <dd className="font-mono text-slate-400">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            {paths && (
+              <div className="mt-3 space-y-0.5 text-[11px] text-slate-500">
+                {Object.entries(paths).map(([key, value]) => (
+                  <div key={key}>
+                    <div>{key}</div>
+                    <div className="truncate font-mono text-slate-400" title={value}>
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <p className="pb-4 text-[11px] leading-relaxed text-slate-500">{t('phase.notice')}</p>
+        </div>
+      )}
     </div>
   )
 }

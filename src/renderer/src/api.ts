@@ -17,7 +17,36 @@ export interface UnreadCounts {
   mutedUnread: number
 }
 
+export interface ArchiveHit {
+  msgId: string | null
+  mediaId: string | null
+  chatId: string | null
+  ts: number | null
+  source: string
+  score: number
+}
+
+export interface ArchiveMessage {
+  id: string
+  chatId: string
+  senderJid?: string | null
+  ts: number
+  body?: string | null
+  mediaId?: string | null
+  edited?: boolean
+  revoked?: boolean
+  fromMe?: boolean
+}
+
+export interface ArchiveChat {
+  id: string
+  name?: string | null
+  kind?: string | null
+  lastMsgTs?: number | null
+}
+
 export interface WatIsApi {
+  archive(request: unknown): Promise<unknown>
   getVersions(): Promise<Versions>
   getWorkerHealth(): Promise<WorkerHealth>
   getPaths(): Promise<Record<string, string>>
