@@ -13,10 +13,33 @@ import { existsSync, readFileSync } from 'node:fs'
 
 const MESSAGES = process.argv[2] ?? '500000'
 
+/**
+ * The E2E suite launches a real Electron window, so on Linux it needs a display. A headless server
+ * has none, and the failure it produces — every spec failing in beforeAll with "Missing X server" —
+ * looks exactly like the application being broken. So the gate finds a virtual display itself
+ * rather than letting somebody spend an afternoon on that.
+ */
+function e2eCommand() {
+  const needsDisplay = process.platform === 'linux' && !process.env.DISPLAY
+  if (!needsDisplay) return { command: 'npx', args: ['playwright', 'test'] }
+
+  const xvfb = spawnSync('which', ['xvfb-run'], { encoding: 'utf8' })
+  if (xvfb.status === 0) {
+    return { command: 'xvfb-run', args: ['-a', 'npx', 'playwright', 'test'] }
+  }
+  return {
+    command: 'node',
+    args: [
+      '-e',
+      'console.error("no DISPLAY and no xvfb-run: the E2E suite needs one of them on Linux"); process.exit(1)',
+    ],
+  }
+}
+
 const steps = [
   { name: 'verify', command: 'npm', args: ['run', 'verify'] },
   { name: 'build', command: 'npm', args: ['run', 'build'] },
-  { name: 'e2e', command: 'npx', args: ['playwright', 'test'] },
+  { name: 'e2e', ...e2eCommand() },
   {
     name: 'loadtest',
     command: 'node',

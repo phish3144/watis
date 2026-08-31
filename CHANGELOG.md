@@ -28,7 +28,15 @@ Es gibt noch kein Release. Der Stand pro Phase steht in [`PLAN.md`](PLAN.md); hi
 - **Desktop.** Tray mit Badge, Benachrichtigungen mit Bündelung und Ruhezeit, globaler Shortcut,
   Autostart, Kompaktmodus, eigene CSS-Datei, Declutter-Schalter, Enter/Shift+Enter, Zoom im
   Bildbetrachter, wählbare Audioausgabe, Rechtschreibprüfung.
-- **Speicher-Übersicht** mit dem, was gelöscht werden darf — und dem, was nicht.
+- **Mehrere Konten** mit getrennten Anmeldungen, Archiven und Medienordnern; jedes läuft mit, auch
+  im Hintergrund. Entfernen nimmt ein Konto aus der Liste und löscht keine Daten.
+- **App-Sperre** mit PIN und Weichzeichnen bei Fokusverlust — ausdrücklich Sichtschutz, keine
+  Verschlüsselung.
+- **Erinnerungen** an einzelne Nachrichten, rein lokal.
+- **Chat mit Nummer** ohne den Kontakt zu speichern; `whatsapp://`-Links optional übernommen.
+- **Gescannte PDF-Seiten** werden gerendert und erkannt — und nur die, die keine Textebene haben.
+- **Speicher-Übersicht** mit dem, was gelöscht werden darf — und dem, was nicht. Der Medienordner
+  lässt sich auf ein anderes Laufwerk verschieben; die Datenbank bleibt, wo sie ist.
 - **Auto-Update** über GitHub Releases, per-user, ohne Adminrechte.
 
 ### Sicherheit und Datenschutz
@@ -49,3 +57,7 @@ Es gibt noch kein Release. Der Stand pro Phase steht in [`PLAN.md`](PLAN.md); hi
   ein laufendes Bundle geprüft ist. Löst sie nicht auf, schaltet sich das Medienholen ab und der
   Rest läuft weiter ([`docs/bridge-smoke.md`](docs/bridge-smoke.md)).
 - Das Archiv liegt unverschlüsselt auf der Platte; der Schutz kommt von BitLocker oder FileVault.
+  Die App-Sperre ändert daran nichts.
+- Ein Chat-Screenshot mit heller Schrift auf der grünen Sprechblase wird von der Texterkennung
+  teilweise **nicht** gelesen; festgehalten in `test/integration/ocr-fixtures.test.ts`.
+- DOCX wird noch nicht ausgewertet — die dafür nötige Bibliothek ist nicht freigegeben.
