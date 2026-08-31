@@ -418,8 +418,15 @@ Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
   im Zielordner abzulegen. Offen: der Zug direkt aus WA Webs eigener Dokument-Kachel
 - [x] Dedupe per SHA-256: Größenvergleich zuerst, gehasht wird nur bei Gleichstand, Hash gemerkt
 - [x] Auto-Archiv-Regeln (UI-Ebene, ohne Bridge), mit Größengrenze und nachvollziehbarer Begründung
-- [ ] Bilder: „Original speichern" aus dem Viewer, Sammel-Download markierter Bilder
-- [ ] Drag-in/Paste-Verhalten prüfen und dokumentieren (WA Web kann das bereits)
+- [~] Sammel-Download aus der Archiv-Galerie **fertig**: mehrere markieren, Zielordner wählen,
+  Hardlink sonst Kopie. Namenskollisionen werden nummeriert statt überschrieben — zwei Fotos aus
+  verschiedenen Chats dürfen denselben Namen haben. Offen: „Original speichern" aus WhatsApps
+  eigenem Bildbetrachter (das Kontextmenü kann bereits „Bild speichern unter …")
+- [~] Drag-in/Paste dokumentiert ([`docs/dateien-hinein.md`](docs/dateien-hinein.md)): Es geht,
+  weil **nichts es abfängt** — kein `drop`- oder `paste`-Handler, kein `preventDefault` auf
+  `dragover`. Das Dokument hält vor allem fest, was nicht getan wurde, denn genau das sind die
+  Eingriffe, die Drag-and-Drop in einer Electron-App versehentlich abschalten.
+  Offen: die Checkliste gegen eine angemeldete Sitzung
 
 **DoD:** 20 Dateien aus verschiedenen Chats landen ohne Interaktion korrekt sortiert; Drag-out funktioniert auf allen Ziel-OS.
 

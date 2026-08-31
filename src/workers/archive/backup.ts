@@ -10,6 +10,7 @@ import {
   type ExportFormat,
 } from './export-writer'
 import { buildIntegrityReport } from './export'
+import { sanitiseFilename } from '../../main/downloads/filename'
 
 /**
  * Export and backup, run inside the archive worker (PLAN.md Phase 6).
@@ -183,4 +184,84 @@ export async function runBackup(
   )
 
   return result
+}
+
+export interface SaveMediaResult {
+  saved: number
+  missing: number
+  files: string[]
+}
+
+/**
+ * Copies a set of archived media into a folder the user chose (PLAN.md Phase 2).
+ *
+ * Hardlink first, copy as a fallback — the same rule the export uses: a save that fails is worse
+ * than one that takes longer. A blob that is not on disk is counted, not thrown: saving nine of
+ * ten files and saying so beats saving none.
+ */
+export async function saveMedia(
+  repo: ArchiveRepository,
+  blobs: BlobStore,
+  request: { mediaIds: readonly string[]; targetDir: string },
+): Promise<SaveMediaResult> {
+  await mkdir(request.targetDir, { recursive: true })
+  const result: SaveMediaResult = { saved: 0, missing: 0, files: [] }
+  const used = new Set<string>()
+
+  for (const id of request.mediaIds) {
+    const row = repo.mediaById(id)
+    if (!row?.sha256) {
+      result.missing++
+      continue
+    }
+
+    const source = blobs.pathFor(row.sha256, row.mime, row.filename)
+    // sanitiseFilename, not sanitiseComponent: the latter is for directory names and treats the
+    // whole string as a stem, so it eats the extension. `extensionFor` returns the bare extension
+    // without a dot — the blob store's own paths add it — so a fallback name puts it back.
+    const name = uniqueName(
+      sanitiseFilename(
+        row.filename ?? `${row.sha256.slice(0, 12)}.${extensionFor(row.mime, row.filename)}`,
+        { fallback: 'Datei' },
+      ),
+      used,
+    )
+    const target = join(request.targetDir, name)
+
+    try {
+      await link(source, target)
+    } catch {
+      try {
+        await copyFile(source, target)
+      } catch {
+        result.missing++
+        continue
+      }
+    }
+    result.saved++
+    result.files.push(target)
+  }
+
+  return result
+}
+
+/**
+ * Two photos from different chats can genuinely have the same name, so a collision is numbered
+ * rather than silently overwritten — losing one of them would be the worse outcome.
+ */
+function uniqueName(name: string, used: Set<string>): string {
+  if (!used.has(name)) {
+    used.add(name)
+    return name
+  }
+  const dot = name.lastIndexOf('.')
+  const stem = dot > 0 ? name.slice(0, dot) : name
+  const extension = dot > 0 ? name.slice(dot) : ''
+  for (let n = 2; ; n++) {
+    const candidate = `${stem} (${String(n)})${extension}`
+    if (!used.has(candidate)) {
+      used.add(candidate)
+      return candidate
+    }
+  }
 }

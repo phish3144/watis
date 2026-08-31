@@ -81,6 +81,7 @@ export interface WatIsApi {
     blobPath(mediaId: string): Promise<string | null>
     open(path: string): Promise<string>
     reveal(path: string): Promise<boolean>
+    saveMany(mediaIds: string[]): Promise<{ saved: number; missing?: number; cancelled?: boolean }>
     startDrag(path: string): void
   }
   clearCaches(): Promise<StorageOverview>

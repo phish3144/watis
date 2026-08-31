@@ -7,7 +7,7 @@ import { connectToHost } from '../shared/host-channel'
 import { openArchive } from './db'
 import { ArchiveRepository } from './repository'
 import { BlobStore } from './blob-store'
-import { runExport, runBackup } from './backup'
+import { runExport, runBackup, saveMedia } from './backup'
 
 /**
  * The archive worker: SQLite (WAL), FTS5 and export.
@@ -110,6 +110,10 @@ async function handle(payload: unknown): Promise<unknown> {
     case 'completeReminder':
       repo.completeReminder(request.id)
       return { ok: true }
+    case 'saveMedia': {
+      if (!blobs) throw new Error('the blob store is not open')
+      return saveMedia(repo, blobs, request)
+    }
     case 'quota':
       return blobs ? blobs.quota(repo.stats().databaseBytes) : null
     case 'export': {

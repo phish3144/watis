@@ -47,6 +47,11 @@ const api = {
     open: (path: string): Promise<string> => ipcRenderer.invoke('app:open-path', { path }),
     reveal: (path: string): Promise<boolean> => ipcRenderer.invoke('app:reveal', { path }),
     /** Fire-and-forget: a native drag has no result to wait for. */
+    /** Copies a set of archived media into a folder the user picks. */
+    saveMany: (
+      mediaIds: string[],
+    ): Promise<{ saved: number; missing?: number; cancelled?: boolean }> =>
+      ipcRenderer.invoke('app:save-media', { mediaIds }),
     startDrag: (path: string): void => {
       ipcRenderer.send('app:drag-out', { path })
     },

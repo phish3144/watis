@@ -6,7 +6,7 @@ import Database from 'better-sqlite3'
 import { migrate, registerFunctions } from '../../src/workers/archive/db'
 import { ArchiveRepository } from '../../src/workers/archive/repository'
 import { BlobStore } from '../../src/workers/archive/blob-store'
-import { runBackup, runExport } from '../../src/workers/archive/backup'
+import { runBackup, runExport, saveMedia } from '../../src/workers/archive/backup'
 import { parseQuery } from '@shared/search/query'
 
 let db: Database.Database
@@ -160,5 +160,58 @@ describe('runExport', () => {
       incremental: false,
     })
     expect(full.messages).toBe(2)
+  })
+})
+
+describe('saveMedia', () => {
+  it('copies the selected files out under their own names', async () => {
+    const target = join(root, 'saved')
+    const result = await saveMedia(repo, blobs, { mediaIds: ['d1'], targetDir: target })
+    expect(result.saved).toBe(1)
+    expect(existsSync(join(target, 'angebot.pdf'))).toBe(true)
+    expect(readFileSync(join(target, 'angebot.pdf'), 'utf8')).toBe('%PDF-1.4 pretend')
+  })
+
+  it('numbers a collision instead of overwriting', async () => {
+    // Two photos from different chats can genuinely share a name; losing one would be the worse
+    // outcome by far.
+    repo.upsertMessages([{ id: 'm9', chatId: 'c1', ts: 1_700_000_900, mediaId: 'd9' }])
+    repo.upsertMedia([
+      { id: 'd9', msgId: 'm9', chatId: 'c1', mime: 'application/pdf', filename: 'angebot.pdf' },
+    ])
+    const ref = await blobs.put(Buffer.from('a different document'), {
+      mime: 'application/pdf',
+      filename: 'angebot.pdf',
+    })
+    repo.attachBlob('d9', ref.sha256, ref.size)
+
+    const target = join(root, 'saved')
+    const result = await saveMedia(repo, blobs, { mediaIds: ['d1', 'd9'], targetDir: target })
+    expect(result.saved).toBe(2)
+    expect(existsSync(join(target, 'angebot.pdf'))).toBe(true)
+    expect(existsSync(join(target, 'angebot (2).pdf'))).toBe(true)
+  })
+
+  it('counts a missing blob and saves the rest', async () => {
+    // Saving nine of ten and saying so beats saving none.
+    repo.upsertMedia([{ id: 'gone', msgId: 'm1', chatId: 'c1', mime: 'image/png' }])
+    repo.attachBlob('gone', 'f'.repeat(64), 10)
+
+    const target = join(root, 'saved')
+    const result = await saveMedia(repo, blobs, { mediaIds: ['d1', 'gone'], targetDir: target })
+    expect(result.saved).toBe(1)
+    expect(result.missing).toBe(1)
+  })
+
+  it('invents a name for a file that never had one', async () => {
+    repo.upsertMessages([{ id: 'm8', chatId: 'c1', ts: 1_700_000_800, mediaId: 'd8' }])
+    repo.upsertMedia([{ id: 'd8', msgId: 'm8', chatId: 'c1', mime: 'image/png' }])
+    const ref = await blobs.put(Buffer.from('png bytes'), { mime: 'image/png' })
+    repo.attachBlob('d8', ref.sha256, ref.size)
+
+    const target = join(root, 'saved')
+    const result = await saveMedia(repo, blobs, { mediaIds: ['d8'], targetDir: target })
+    expect(result.saved).toBe(1)
+    expect(result.files[0]).toMatch(/\.png$/)
   })
 })

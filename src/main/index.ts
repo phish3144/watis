@@ -537,6 +537,38 @@ function registerIpcHandlers(): void {
     return result.path
   })
 
+  /**
+   * Saves a set of archived media into a folder the user picks (PLAN.md Phase 2, "Sammel-Download").
+   *
+   * Hardlinks where the target is on the same filesystem and copies otherwise — the same rule the
+   * export uses, and for the same reason: a save that fails is worse than one that takes longer.
+   * Name collisions are numbered rather than overwritten; two photos from different chats can
+   * genuinely share a filename.
+   */
+  ipcMain.handle('app:save-media', async (_event, payload: unknown) => {
+    const args = payload as { mediaIds?: unknown }
+    const ids = Array.isArray(args?.mediaIds)
+      ? args.mediaIds.filter((id): id is string => typeof id === 'string')
+      : []
+    if (ids.length === 0) throw new Error('nothing selected')
+
+    const window = mainWindow?.window
+    if (!window) throw new Error('no window')
+    const { dialog } = await import('electron')
+    const chosen = await dialog.showOpenDialog(window, {
+      title: `${String(ids.length)} Dateien speichern`,
+      defaultPath: settings().downloadDir,
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (chosen.canceled || !chosen.filePaths[0]) return { saved: 0, cancelled: true }
+
+    return supervisor.request('archive', {
+      op: 'saveMedia',
+      mediaIds: ids,
+      targetDir: chosen.filePaths[0],
+    })
+  })
+
   ipcMain.handle('app:reveal', (_event, payload: unknown) => {
     const args = payload as { path?: unknown }
     if (typeof args?.path !== 'string') throw new Error('path is required')

@@ -165,6 +165,11 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('dueReminders'), nowTs: z.number().int() }),
   z.object({ op: z.literal('blobPath'), mediaId: z.string().min(1) }),
   z.object({
+    op: z.literal('saveMedia'),
+    mediaIds: z.array(z.string().min(1)).min(1).max(500),
+    targetDir: z.string().min(1),
+  }),
+  z.object({
     op: z.literal('hitPreviews'),
     hits: z
       .array(

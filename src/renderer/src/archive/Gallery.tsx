@@ -113,6 +113,8 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
   const [loading, setLoading] = useState(false)
   const [exhausted, setExhausted] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [note, setNote] = useState<string | undefined>(undefined)
 
   const load = useCallback(
     (beforeTs?: number): void => {
@@ -143,12 +145,42 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
     [chatId, kind],
   )
 
-  // A new chat or a new kind starts a fresh list rather than appending to the previous one.
+  // A new chat or a new kind starts a fresh list rather than appending to the previous one, and
+  // the selection goes with it — carrying it across would let somebody save files they cannot see.
   useEffect(() => {
     setItems([])
     setExhausted(false)
+    setSelected(new Set())
+    setNote(undefined)
     load()
   }, [load])
+
+  const toggle = (mediaId: string): void => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(mediaId)) next.delete(mediaId)
+      else next.add(mediaId)
+      return next
+    })
+  }
+
+  const saveSelected = (): void => {
+    setNote(undefined)
+    void api()
+      .files.saveMany([...selected])
+      .then((result) => {
+        if (result.cancelled) return
+        setNote(
+          result.missing
+            ? `${String(result.saved)} gespeichert, ${String(result.missing)} nicht im Archiv.`
+            : `${String(result.saved)} gespeichert.`,
+        )
+        setSelected(new Set())
+      })
+      .catch((e: unknown) => {
+        setNote(String(e))
+      })
+  }
 
   return (
     <div className="flex min-h-0 flex-col gap-2">
@@ -178,6 +210,29 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
         </p>
       )}
 
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-wa-muted">{selected.size} ausgewählt</span>
+          <button
+            type="button"
+            onClick={saveSelected}
+            className="rounded-md border border-wa-hairline px-2 py-1"
+          >
+            Speichern unter …
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelected(new Set())
+            }}
+            className="text-wa-muted hover:text-slate-200"
+          >
+            Auswahl aufheben
+          </button>
+        </div>
+      )}
+      {note && <p className="text-xs text-wa-muted">{note}</p>}
+
       <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
         {items.length === 0 && !loading && (
           <li className="p-3 text-sm text-wa-muted">Nichts von dieser Art im Archiv.</li>
@@ -187,6 +242,17 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
             key={`${item.kind}:${item.mediaId ?? item.msgId ?? ''}`}
             className="flex items-baseline justify-between gap-3 border-b border-wa-hairline px-3 py-2 text-sm"
           >
+            {item.mediaId && (
+              <input
+                type="checkbox"
+                checked={selected.has(item.mediaId)}
+                onChange={() => {
+                  if (item.mediaId) toggle(item.mediaId)
+                }}
+                aria-label={`${item.filename ?? 'Datei'} auswählen`}
+                className="shrink-0"
+              />
+            )}
             <span className="min-w-0 flex-1">
               {item.kind === 'link' ? (
                 <span className="break-all">{firstUrl(item.text) ?? item.text}</span>
