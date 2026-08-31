@@ -717,6 +717,40 @@ function registerIpcHandlers(): void {
     })
   })
 
+  /**
+   * The picture behind a search hit (PLAN.md Phase 7): the image itself, or the rendered PDF page.
+   *
+   * Returned as a data URL rather than a path. The panel is loaded over file:// when packaged and
+   * over http://localhost in development, and a path that works in one does not work in the other —
+   * a viewer that only works in dev is a viewer nobody notices is broken.
+   */
+  ipcMain.handle('app:hit-image', async (_event, payload: unknown) => {
+    const args = payload as { mediaId?: unknown; page?: unknown }
+    if (typeof args?.mediaId !== 'string') throw new Error('mediaId is required')
+
+    const found = (await supervisor.request(
+      'archive',
+      { op: 'blobPath', mediaId: args.mediaId },
+      { accountId: activeAccountId() },
+    )) as { path: string | null }
+    if (!found.path) return null
+
+    if (typeof args.page === 'number' && args.page > 0) {
+      const { renderPdfPages } = await import('./pdf/render')
+      const [rendered] = await renderPdfPages({ file: found.path, pages: [args.page] })
+      return rendered ? { dataUrl: `data:image/png;base64,${rendered.data}` } : null
+    }
+
+    const { readFile } = await import('node:fs/promises')
+    const bytes = await readFile(found.path)
+    // Only pictures. Handing back arbitrary bytes as an image would be a way to get a file into
+    // the panel that nothing there is prepared to render.
+    const mime = /\.(png|jpe?g|gif|webp|bmp)$/i.exec(found.path)?.[0].slice(1).toLowerCase()
+    if (!mime) return null
+    const type = mime === 'jpg' ? 'jpeg' : mime
+    return { dataUrl: `data:image/${type};base64,${bytes.toString('base64')}` }
+  })
+
   ipcMain.handle('app:index-status', () =>
     supervisor.request('contentIndex', { op: 'status' }, { accountId: activeAccountId() }),
   )

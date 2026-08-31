@@ -586,7 +586,9 @@ im Leerlauf, ohne die Bedienung zu bremsen.
   Zeitmarke beim Audio, Box und Confidence bei der Texterkennung. Die Vorschau kommt aus dem
   Originaltext, nie aus `search_fts`: dort steht die umlautgefaltete Form (ADR 0002), und die
   zurückzuzeigen sähe aus, als hätte das Archiv die Nachricht verstümmelt.
-  Offen: der Klick, der Bild oder PDF an genau dieser Stelle öffnet
+  **„Stelle zeigen"** öffnet das Bild mit der erkannten Zeile markiert bzw. die gerenderte
+  PDF-Seite — auf Klick geladen, nicht mit der Trefferliste: sechzig Treffer wären sonst sechzig
+  Bilder für das eine, das jemand sehen wollte
 - [x] Neu-Indizierung pro Quelle, ohne die anderen Quellen derselben Datei anzufassen
 - [~] Fixtures mit Erwartungswerten (§8): Chat-Screenshot, dichte Rechnung, fotografiertes Whiteboard,
   schräg fotografiertes Dokument und gescanntes PDF — alle aus erfundenem Text gerendert

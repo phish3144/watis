@@ -141,6 +141,72 @@ function whereIn(preview: HitPreview | undefined): string | undefined {
   return parts.length > 0 ? parts.join(' · ') : undefined
 }
 
+/**
+ * The picture a hit came from, with the recognised line marked (PLAN.md Phase 7).
+ *
+ * Fetched on demand and never with the hit list: sixty hits would mean sixty images loaded for the
+ * one somebody actually wanted to see. The box comes from the OCR result in image coordinates, so
+ * it is drawn as a percentage of the natural size — the picture is scaled to fit and the marker has
+ * to scale with it.
+ */
+function HitImage({ preview }: { preview: HitPreview }): React.JSX.Element {
+  const [image, setImage] = useState<string | null | undefined>(undefined)
+  const [size, setSize] = useState<{ width: number; height: number } | undefined>(undefined)
+
+  useEffect(() => {
+    const mediaId = preview.key.split(':')[1]
+    if (!mediaId) {
+      setImage(null)
+      return
+    }
+    void api()
+      .files.hitImage(mediaId, preview.page)
+      .then((result) => {
+        setImage(result?.dataUrl ?? null)
+      })
+      .catch(() => {
+        setImage(null)
+      })
+  }, [preview.key, preview.page])
+
+  if (image === undefined) return <p className="py-1 text-xs text-wa-muted">Lade Bild …</p>
+  if (image === null) {
+    return <p className="py-1 text-xs text-wa-muted">Die Datei liegt nicht im Archiv.</p>
+  }
+
+  // Only for an OCR hit on the image itself: a rendered PDF page has different dimensions from the
+  // ones the box was measured in, so drawing it there would put the marker in the wrong place.
+  const box = preview.page === undefined ? preview.box : undefined
+
+  return (
+    <div className="relative mt-1 inline-block max-w-full">
+      <img
+        src={image}
+        alt=""
+        className="max-h-80 max-w-full rounded-md border border-wa-hairline"
+        onLoad={(e) => {
+          setSize({
+            width: e.currentTarget.naturalWidth,
+            height: e.currentTarget.naturalHeight,
+          })
+        }}
+      />
+      {box && size && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute rounded-sm border-2 border-wa-accent"
+          style={{
+            left: `${String((box[0] / size.width) * 100)}%`,
+            top: `${String((box[1] / size.height) * 100)}%`,
+            width: `${String(((box[2] - box[0]) / size.width) * 100)}%`,
+            height: `${String(((box[3] - box[1]) / size.height) * 100)}%`,
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 function HitRow({
   hit,
   preview,
@@ -153,6 +219,7 @@ function HitRow({
   const [context, setContext] = useState<ArchiveMessage[] | undefined>(undefined)
   const [open, setOpen] = useState(false)
   const [waError, setWaError] = useState<string | undefined>(undefined)
+  const [showImage, setShowImage] = useState(false)
   // Bound where the chat id is still known to be there, so the handler needs no null check of
   // its own — and a hit without a chat simply has no button.
   const chatId = hit.chatId
@@ -203,6 +270,18 @@ function HitRow({
           Im Archiv öffnen
         </button>
         {hit.msgId && <RemindButton msgId={hit.msgId} />}
+        {preview && hit.mediaId && (preview.source === 'ocr' || preview.source === 'pdf') && (
+          <button
+            type="button"
+            className="underline-offset-2 hover:underline"
+            aria-expanded={showImage}
+            onClick={() => {
+              setShowImage((was) => !was)
+            }}
+          >
+            {showImage ? 'Stelle ausblenden' : 'Stelle zeigen'}
+          </button>
+        )}
         <button
           type="button"
           className="underline-offset-2 hover:underline"
@@ -223,6 +302,7 @@ function HitRow({
       </div>
 
       {waError !== undefined && <p className="text-xs text-red-400">{waError}</p>}
+      {showImage && preview && <HitImage preview={preview} />}
 
       {open && (
         <ol className="mt-1 border-l border-wa-hairline pl-3 text-xs">

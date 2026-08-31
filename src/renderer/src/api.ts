@@ -96,6 +96,7 @@ export interface WatIsApi {
     open(path: string): Promise<string>
     reveal(path: string): Promise<boolean>
     saveMany(mediaIds: string[]): Promise<{ saved: number; missing?: number; cancelled?: boolean }>
+    hitImage(mediaId: string, page?: number): Promise<{ dataUrl: string } | null>
     startDrag(path: string): void
   }
   clearCaches(): Promise<StorageOverview>

@@ -71,6 +71,9 @@ const api = {
       mediaIds: string[],
     ): Promise<{ saved: number; missing?: number; cancelled?: boolean }> =>
       ipcRenderer.invoke('app:save-media', { mediaIds }),
+    /** The picture behind a hit: the image, or the rendered PDF page. */
+    hitImage: (mediaId: string, page?: number): Promise<{ dataUrl: string } | null> =>
+      ipcRenderer.invoke('app:hit-image', { mediaId, page }),
     startDrag: (path: string): void => {
       ipcRenderer.send('app:drag-out', { path })
     },
