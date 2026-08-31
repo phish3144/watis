@@ -112,9 +112,21 @@ async function finishDownload(savePath: string, notify: boolean): Promise<void> 
   const toast = new Notification({
     title: 'Datei gespeichert',
     body: savePath.split(/[\\/]/).pop() ?? savePath,
+    // Buttons rather than only a click target: "open" and "show in folder" are different
+    // intentions, and guessing which one somebody meant from a single click gets it wrong half
+    // the time. Windows shows these in the toast; macOS puts them behind the alert's action
+    // button; a platform with neither still has the click, which opens the file.
+    actions: [
+      { type: 'button', text: 'Öffnen' },
+      { type: 'button', text: 'Im Ordner zeigen' },
+    ],
   })
   toast.on('click', () => {
     void shell.openPath(savePath)
+  })
+  toast.on('action', (_event, index) => {
+    if (index === 1) platform().showItemInFolder(savePath)
+    else void shell.openPath(savePath)
   })
   toast.show()
 }

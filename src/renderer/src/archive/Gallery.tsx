@@ -41,6 +41,72 @@ function firstUrl(text: string | null): string | undefined {
   return /https?:\/\/\S+/.exec(text ?? '')?.[0]
 }
 
+/**
+ * One row's file actions: open it, show it in the file manager, or drag it out.
+ *
+ * The path is resolved on demand rather than with the list. Sixty rows would otherwise mean sixty
+ * lookups plus sixty `stat` calls for files nobody is going to touch — and the answer would be
+ * stale by the time anyone clicked anyway.
+ */
+function FileActions({ mediaId }: { mediaId: string }): React.JSX.Element {
+  const [path, setPath] = useState<string | null | undefined>(undefined)
+  const [problem, setProblem] = useState<string | undefined>(undefined)
+
+  const resolve = async (): Promise<string | null> => {
+    if (path !== undefined) return path
+    const found = await api().files.blobPath(mediaId)
+    setPath(found)
+    return found
+  }
+
+  return (
+    <span
+      className="flex shrink-0 items-center gap-2 text-xs"
+      draggable
+      onDragStart={(event) => {
+        // startDrag replaces the HTML drag with a native one carrying the file. Without a resolved
+        // path there is nothing to carry, so the drag is simply not started — better than dropping
+        // a broken file into somebody's folder.
+        event.preventDefault()
+        void resolve().then((found) => {
+          if (found) api().files.startDrag(found)
+        })
+      }}
+    >
+      <button
+        type="button"
+        className="underline-offset-2 hover:underline"
+        onClick={() => {
+          void resolve().then(async (found) => {
+            if (!found) {
+              setProblem('Datei ist nicht im Archiv.')
+              return
+            }
+            const failure = await api().files.open(found)
+            // shell.openPath reports failure by returning a message, not by throwing.
+            if (failure) setProblem(failure)
+          })
+        }}
+      >
+        Öffnen
+      </button>
+      <button
+        type="button"
+        className="underline-offset-2 hover:underline"
+        onClick={() => {
+          void resolve().then((found) => {
+            if (found) void api().files.reveal(found)
+            else setProblem('Datei ist nicht im Archiv.')
+          })
+        }}
+      >
+        Ordner
+      </button>
+      {problem && <span className="text-red-400">{problem}</span>}
+    </span>
+  )
+}
+
 export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.Element {
   const [kind, setKind] = useState<Kind>('image')
   const [items, setItems] = useState<GalleryItem[]>([])
@@ -133,8 +199,11 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
                 </>
               )}
             </span>
-            <span className="shrink-0 text-xs tabular-nums text-wa-muted">
-              {formatSize(item.size)} {formatWhen(item.ts)}
+            <span className="flex shrink-0 items-center gap-3">
+              {item.mediaId && <FileActions mediaId={item.mediaId} />}
+              <span className="text-xs tabular-nums text-wa-muted">
+                {formatSize(item.size)} {formatWhen(item.ts)}
+              </span>
             </span>
           </li>
         ))}

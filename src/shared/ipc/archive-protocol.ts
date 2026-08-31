@@ -154,6 +154,7 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   }),
   z.object({ op: z.literal('pendingMedia'), limit: z.number().int().min(1).max(500).default(50) }),
   z.object({ op: z.literal('quota') }),
+  z.object({ op: z.literal('blobPath'), mediaId: z.string().min(1) }),
   z.object({
     op: z.literal('hitPreviews'),
     hits: z

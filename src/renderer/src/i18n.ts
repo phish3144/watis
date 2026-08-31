@@ -13,6 +13,7 @@ const de = {
   'section.declutter': 'Entrümpeln',
   'section.input': 'Eingabe',
   'section.files': 'Dateien',
+  'section.media': 'Medien und Eingabe',
   'section.status': 'Status',
   'section.index': 'Inhaltsindex',
   'section.backup': 'Export und Sicherung',
@@ -52,6 +53,17 @@ const de = {
 
   'input.enterNewline': 'Enter fügt einen Zeilenumbruch ein',
   'input.enterNewline.hint': 'Gesendet wird dann mit Strg+Enter.',
+  'input.spellcheck': 'Rechtschreibprüfung',
+  'input.spellcheck.hint':
+    'Aus, solange keine Sprache gewählt ist. Unter Windows lädt Chromium das Wörterbuch beim ersten Einschalten von einem Google-Server — sonst geht kein Netzverkehr an Dritte.',
+  'input.spellcheck.none': 'aus',
+
+  'media.audioOut': 'Audioausgabe',
+  'media.audioOut.hint':
+    'Gilt für Sprachnachrichten und Videos. Leer heißt: das Gerät, das das System vorgibt.',
+  'media.audioOut.default': 'Systemvorgabe',
+  'media.zoom.hint':
+    'Im Bildbetrachter zoomt das Mausrad, Ziehen verschiebt, + − 0 gehen auch über die Tastatur.',
 
   'files.downloadDir': 'Zielordner',
   'files.sortByChat': 'Nach Chat in Unterordner sortieren',

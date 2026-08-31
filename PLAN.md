@@ -376,17 +376,22 @@ Ziel: Der Wrapper ist als Tagesclient besser als die Store-App, ganz ohne Intern
       machbar, Fallback: Klick öffnet Chat mit fokussiertem Eingabefeld (Senden bleibt manuell)
 - [x] DND-Zeitplan (z. B. 22–7 Uhr, auch über Mitternacht) und Pausieren-Schalter im Tray
 - [x] Natives Kontextmenü: Kopieren/Einfügen, Bild speichern, Link kopieren, Spellcheck-Vorschläge
-- [ ] Spellcheck mit mehreren Sprachen (`setSpellCheckerLanguages(['de-DE','en-US'])`), konfigurierbar
+- [x] Spellcheck mit mehreren Sprachen, konfigurierbar — standardmäßig **aus**, und die
+      Einstellungsseite sagt warum: unter Windows holt Chromium das Wörterbuch beim ersten
+      Einschalten von einem Google-Server. Einschalten ist damit eine ausdrückliche Nutzeraktion,
+      dieselbe Form von Ausnahme, die die Netzregel für Modell-Downloads schon macht
 - [x] Zoom-Stufe merken (Strg +/−/0)
 - [x] CSS-Layer: Kompaktmodus, Schriftgröße, Nutzer-CSS-Datei. **Wird bei jedem `did-finish-load` neu
       injiziert** – `insertCSS` überlebt SPA-Routenwechsel, aber kein Neuladen
 - [x] Declutter-Schalter: Channels, Status/„Aktuelles", Meta-AI-Button – jeweils einzeln
 - [x] Enter/Shift+Enter umschaltbar (keydown-Handler im Main World, vor WhatsApps eigenem)
-- [ ] Medien-Viewer-Ergänzung: Zoom/Pan per Mausrad und Tastatur im WA-Bildviewer (Injection),
-      Fallback: Bild in eigenem Viewer öffnen
+- [x] Medien-Viewer-Ergänzung: Zoom/Pan per Mausrad, Ziehen und Tastatur (+ − 0) im WA-Bildviewer.
+      Der Betrachter wird über `role="dialog"` gefunden, nicht über Klassennamen — die sind generiert
+      und ändern sich zwischen Builds
 - [~] Quellenliste für den Display-Media-Picker **fertig** (Bildschirme zuerst, lesbare Namen);
   offen: die Anbindung an `setDisplayMediaRequestHandler` und die Auswahl-UI
-- [ ] Audio-Ausgabegerät wählbar (setSinkId auf Media-Elemente)
+- [x] Audio-Ausgabegerät wählbar (`setSinkId`), auch für Elemente, die WhatsApp erst später anlegt;
+      ein Gerät, das inzwischen abgezogen wurde, fällt auf die Systemvorgabe zurück statt stumm zu bleiben
 
 **DoD:** Eine Woche Alltagsnutzung ohne Griff zur Store-App. Alle Schalter in einer Einstellungsseite.
 
@@ -403,9 +408,12 @@ Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
       Punkt, Bidi-Override-Zeichen entfernt (Erweiterungs-Spoofing), Gesamtpfad < 240 Zeichen,
       Kürzung nach **Bytes** statt Zeichen, NFC-Normalisierung. 20 Unit-Tests
 - [x] Pfadschema und Zielordner konfigurierbar; Vorschau in den Einstellungen
-- [ ] Nach Download: Toast mit „Öffnen" / „Im Ordner zeigen"; Doppelklick auf Dokument-Kachel öffnet
-      direkt mit der System-App (Injection: Klick abfangen → falls schon lokal vorhanden, öffnen)
-- [ ] Drag-out: Dokument-Kachel aus dem Fenster in den Dateimanager ziehen (`webContents.startDrag`)
+- [~] Nach Download: Toast mit „Öffnen" / „Im Ordner zeigen" **fertig** — zwei Schaltflächen statt
+  nur eines Klickziels, weil das zwei verschiedene Absichten sind und Raten die Hälfte der Zeit
+  danebengeht; offen: der Doppelklick auf die Dokument-Kachel in WA Web selbst
+- [~] Drag-out aus der Archiv-Galerie **fertig** (`webContents.startDrag`), dazu „Öffnen" und
+  „Ordner"; eine Datei, die nicht im Archiv liegt, startet gar keinen Zug, statt eine kaputte Datei
+  im Zielordner abzulegen. Offen: der Zug direkt aus WA Webs eigener Dokument-Kachel
 - [x] Dedupe per SHA-256: Größenvergleich zuerst, gehasht wird nur bei Gleichstand, Hash gemerkt
 - [x] Auto-Archiv-Regeln (UI-Ebene, ohne Bridge), mit Größengrenze und nachvollziehbarer Begründung
 - [ ] Bilder: „Original speichern" aus dem Viewer, Sammel-Download markierter Bilder

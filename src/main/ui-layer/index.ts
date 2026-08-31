@@ -38,6 +38,7 @@ export class UiLayer {
 
     await this.applyUserCss(config)
     contents.send('wa:set-enter-newline', config.enterInsertsNewline)
+    contents.send('wa:set-audio-sink', config.audioOutputDeviceId)
   }
 
   /** %LOCALAPPDATA%\watis\user.css — the user's own escape hatch. */

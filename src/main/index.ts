@@ -1,9 +1,10 @@
-import { app, globalShortcut, ipcMain } from 'electron'
+import { app, globalShortcut, ipcMain, nativeImage, shell } from 'electron'
 
 // This has to happen before app.whenReady() and before anything touches `session`, so it is the
 // very first statement in the entry point. Called late, setPath fails silently and the session
 // keeps writing into the roaming profile. See paths.ts.
 import { appPaths, assertPathsApplied, configurePaths } from './paths'
+import { resourcePath } from './resources'
 const paths = configurePaths()
 
 import { join } from 'node:path'
@@ -27,6 +28,7 @@ import { BridgeHost } from './bridge/host'
 import { Importer } from './archive/importer'
 import { BackfillController } from './backfill/controller'
 import { startIndexSignals } from './index-signals'
+import { applySpellcheck, availableLanguages } from './session/spellcheck'
 import { MediaFetcher } from './archive/media-fetcher'
 import { ExportSchedule } from './export/schedule'
 import { clearDisposableCaches, measureStorage } from './storage/overview'
@@ -136,6 +138,10 @@ async function bootstrap(): Promise<void> {
 
   onSettingsChanged((next) => {
     void uiLayer?.apply(next)
+    // The speller lives on the session, not the view, so it is re-applied here rather than in the
+    // CSS layer — and switching it off has to take effect without a restart.
+    const waSession = mainWindow?.wa.webContents.session
+    if (waSession) applySpellcheck(waSession, next.spellcheckLanguages)
     applyGlobalShortcut(next.globalShortcut)
     tray?.rebuildMenu()
     mainWindow?.panel.webContents.send('app:settings', next)
@@ -288,6 +294,11 @@ function registerIpcHandlers(): void {
   // dropping events (PLAN.md Phase 3).
   ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
 
+  ipcMain.handle('app:spellcheck-languages', () => {
+    const waSession = mainWindow?.wa.webContents.session
+    return waSession ? availableLanguages(waSession) : []
+  })
+
   ipcMain.handle('app:storage', () => measureStorage())
   ipcMain.handle('app:clear-caches', async () => {
     await clearDisposableCaches()
@@ -305,6 +316,49 @@ function registerIpcHandlers(): void {
       targetDir: args.targetDir,
       includeBlobs: args.includeBlobs !== false,
     })
+  })
+
+  /**
+   * Drag-out: the panel starts a native drag carrying a real file (PLAN.md Phase 2).
+   *
+   * `startDrag` needs a path on disk, so this only works for media whose blob is present — the
+   * archive worker resolves that, because it owns the blob store and main is not allowed to touch
+   * the disk. A file that is not there simply does not start a drag, rather than dragging a
+   * placeholder that lands in the file manager as a broken file.
+   */
+  ipcMain.on('app:drag-out', (event, payload: unknown) => {
+    const args = payload as { path?: unknown }
+    if (typeof args?.path !== 'string' || args.path === '') return
+    try {
+      event.sender.startDrag({ file: args.path, icon: dragIcon() })
+    } catch (error: unknown) {
+      log.warn(`drag-out failed: ${String(error)}`)
+    }
+  })
+
+  ipcMain.handle('app:blob-path', async (_event, payload: unknown) => {
+    const args = payload as { mediaId?: unknown }
+    if (typeof args?.mediaId !== 'string') throw new Error('mediaId is required')
+    const result = (await supervisor.request('archive', {
+      op: 'blobPath',
+      mediaId: args.mediaId,
+    })) as { path: string | null }
+    return result.path
+  })
+
+  ipcMain.handle('app:reveal', (_event, payload: unknown) => {
+    const args = payload as { path?: unknown }
+    if (typeof args?.path !== 'string') throw new Error('path is required')
+    platform().showItemInFolder(args.path)
+    return true
+  })
+
+  ipcMain.handle('app:open-path', async (_event, payload: unknown) => {
+    const args = payload as { path?: unknown }
+    if (typeof args?.path !== 'string') throw new Error('path is required')
+    // Returns a non-empty string on failure, which is how shell.openPath reports "no application
+    // is registered for this type" — worth passing on rather than claiming success.
+    return shell.openPath(args.path)
   })
 
   ipcMain.handle('app:media-stats', () => mediaFetcher?.stats() ?? null)
@@ -406,6 +460,18 @@ function registerIpcHandlers(): void {
     if (typeof name === 'string' && name.trim()) pendingDownloadName = name.trim()
   })
 }
+
+/**
+ * A drag needs an icon and Electron rejects an empty one. The app icon is the honest choice: the
+ * drag comes from this application, whatever the file happens to be.
+ */
+function dragIcon(): Electron.NativeImage {
+  const icon = nativeImage.createFromPath(resourcePath('tray', 'tray.png'))
+  return icon.isEmpty() ? nativeImage.createFromDataURL(TRANSPARENT_PIXEL) : icon
+}
+
+const TRANSPARENT_PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
 app.on('window-all-closed', () => {
   // With close-to-tray the window can be gone while the app keeps running on purpose.

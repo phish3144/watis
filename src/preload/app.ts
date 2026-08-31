@@ -25,6 +25,19 @@ const api = {
   getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
   getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
+  getSpellcheckLanguages: (): Promise<string[]> => ipcRenderer.invoke('app:spellcheck-languages'),
+
+  /** Files on disk: where a blob is, opening it, showing it, and dragging it out. */
+  files: {
+    blobPath: (mediaId: string): Promise<string | null> =>
+      ipcRenderer.invoke('app:blob-path', { mediaId }),
+    open: (path: string): Promise<string> => ipcRenderer.invoke('app:open-path', { path }),
+    reveal: (path: string): Promise<boolean> => ipcRenderer.invoke('app:reveal', { path }),
+    /** Fire-and-forget: a native drag has no result to wait for. */
+    startDrag: (path: string): void => {
+      ipcRenderer.send('app:drag-out', { path })
+    },
+  },
   clearCaches: (): Promise<StorageOverview> => ipcRenderer.invoke('app:clear-caches'),
   getIndexStatus: (): Promise<unknown> => ipcRenderer.invoke('app:index-status'),
   reindex: (kind: string): Promise<unknown> => ipcRenderer.invoke('app:reindex', { kind }),

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import { ENTER_KEY_SHIM, NOTIFICATION_SHIM } from './wa-notification-shim'
+import { AUDIO_SINK_SHIM, MEDIA_VIEWER_SHIM } from './wa-media-shim'
 
 /**
  * Preload for the WhatsApp view. Runs in the isolated world, sandboxed, CommonJS.
@@ -18,6 +19,10 @@ import { ENTER_KEY_SHIM, NOTIFICATION_SHIM } from './wa-notification-shim'
 // its bundle evaluates, so anything later is too late.
 void webFrame.executeJavaScript(NOTIFICATION_SHIM)
 void webFrame.executeJavaScript(ENTER_KEY_SHIM)
+// These two do not race WhatsApp's bundle the way the notification shim does — they observe the
+// DOM rather than replacing a global — but there is no reason to run them later either.
+void webFrame.executeJavaScript(AUDIO_SINK_SHIM)
+void webFrame.executeJavaScript(MEDIA_VIEWER_SHIM)
 
 // --- page -> main -----------------------------------------------------------
 
@@ -58,6 +63,13 @@ ipcRenderer.on('wa:bridge-command', (_event, detail: unknown) => {
 
 ipcRenderer.on('wa:notification-event', (_event, payload: unknown) => {
   document.dispatchEvent(new CustomEvent('watis:notify-event', { detail: JSON.stringify(payload) }))
+})
+
+ipcRenderer.on('wa:set-audio-sink', (_event, deviceId: unknown) => {
+  const id = typeof deviceId === 'string' ? deviceId : ''
+  void webFrame.executeJavaScript(
+    `window.__watisApplySink && window.__watisApplySink(${JSON.stringify(id)})`,
+  )
 })
 
 ipcRenderer.on('wa:set-enter-newline', (_event, enabled: unknown) => {

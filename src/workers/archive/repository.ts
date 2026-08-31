@@ -536,6 +536,26 @@ export class ArchiveRepository {
     }
   }
 
+  /** One media row by id. Indexed lookup — this is on the path of every drag and every open. */
+  mediaById(id: string): MediaRow | undefined {
+    const r = this.#db
+      .prepare(
+        `SELECT id, msg_id, chat_id, mime, size, sha256, filename, status FROM media WHERE id = ?`,
+      )
+      .get(id) as Record<string, unknown> | undefined
+    if (!r) return undefined
+    return {
+      id: r.id as string,
+      msgId: r.msg_id as string | null,
+      chatId: r.chat_id as string | null,
+      mime: r.mime as string | null,
+      size: r.size as number | null,
+      sha256: r.sha256 as string | null,
+      filename: r.filename as string | null,
+      status: r.status as MediaRow['status'],
+    }
+  }
+
   /** Every media row a backup has to account for — with its id, so the report can name what failed. */
   mediaForBackup(): MediaRow[] {
     const rows = this.#db

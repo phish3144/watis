@@ -65,6 +65,13 @@ export interface WatIsApi {
   getHealth(): Promise<HealthState>
   getImportStats(): Promise<ImporterStats | null>
   getStorage(): Promise<StorageOverview>
+  getSpellcheckLanguages(): Promise<string[]>
+  files: {
+    blobPath(mediaId: string): Promise<string | null>
+    open(path: string): Promise<string>
+    reveal(path: string): Promise<boolean>
+    startDrag(path: string): void
+  }
   clearCaches(): Promise<StorageOverview>
   getIndexStatus(): Promise<unknown>
   reindex(kind: string): Promise<unknown>

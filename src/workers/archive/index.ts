@@ -94,6 +94,13 @@ async function handle(payload: unknown): Promise<unknown> {
       return { ok: true }
     case 'pendingMedia':
       return { media: repo.pendingMedia(request.limit) }
+    case 'blobPath': {
+      if (!blobs) return { path: null }
+      const row = repo.mediaById(request.mediaId)
+      if (!row?.sha256) return { path: null }
+      const path = blobs.pathFor(row.sha256, row.mime, row.filename)
+      return { path: (await blobs.has(row.sha256, row.mime, row.filename)) ? path : null }
+    }
     case 'quota':
       return blobs ? blobs.quota(repo.stats().databaseBytes) : null
     case 'export': {

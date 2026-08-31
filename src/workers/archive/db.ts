@@ -57,3 +57,35 @@ export function migrate(db: Database.Database): number {
 
   return Number(db.pragma('user_version', { simple: true }))
 }
+
+/**
+ * Opens the archive from a process that does NOT own the schema — today, the content index.
+ *
+ * The distinction is not bureaucracy. `openArchive` runs the migrations, and two processes starting
+ * together would run them against each other: `journal_mode = WAL` and a deferred transaction that
+ * upgrades to a write lock both fail outright when another connection is mid-migration, and
+ * `busy_timeout` does not save a deferred transaction from that. The symptom was an archive that
+ * occasionally failed to open at startup with no pattern to it.
+ *
+ * So exactly one process migrates, and everybody else attaches and checks. A version that is not
+ * yet current is not an error here — it means the owner has not finished — so this throws and the
+ * caller retries.
+ */
+export function attachArchive(file: string): Database.Database {
+  const db = new Database(file)
+  // journal_mode is a property of the file and the owner has already set it; issuing it again from
+  // a second connection is what fails while the first is writing.
+  db.pragma('synchronous = NORMAL')
+  db.pragma('foreign_keys = ON')
+  db.pragma('busy_timeout = 5000')
+  registerFunctions(db)
+
+  const version = Number(db.pragma('user_version', { simple: true }))
+  if (version !== LATEST_VERSION) {
+    db.close()
+    throw new Error(
+      `archive is at schema version ${String(version)}, waiting for ${String(LATEST_VERSION)}`,
+    )
+  }
+  return db
+}

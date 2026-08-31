@@ -4,6 +4,7 @@ import { BaseWindow, Menu, WebContentsView, session, shell } from 'electron'
 import type { WebContents } from 'electron'
 import { DISPLAY_NAME, WA_PARTITION, WA_URL } from '@shared/app-identity'
 import { installPermissionHandlers } from '../session/permissions'
+import { applySpellcheck } from '../session/spellcheck'
 import { MINIMUM_SIZE, persistBounds, restoreBounds } from './bounds'
 import { settings, updateSettings } from '../config/store'
 import { log } from '../logging'
@@ -134,6 +135,7 @@ export function createMainWindow(options: { startMinimised: boolean }): MainWind
 
   const waSession = session.fromPartition(WA_PARTITION)
   installPermissionHandlers(waSession)
+  applySpellcheck(waSession, config.spellcheckLanguages)
 
   const wa = new WebContentsView({
     webPreferences: {
@@ -142,11 +144,10 @@ export function createMainWindow(options: { startMinimised: boolean }): MainWind
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      // webPreferences.spellcheck defaults to true, and on Windows Electron then downloads
-      // hunspell dictionaries from Chromium's CDN — outbound traffic to Google hosts, which
-      // breaks the "network only to WhatsApp and GitHub Releases" rule. macOS uses the OS
-      // speller and downloads nothing.
-      spellcheck: process.platform === 'darwin',
+      // The flag only makes the checker *available*; it is switched off at the session until the
+      // user picks a language, because on Windows the first language set makes Chromium fetch
+      // dictionaries from a Google host. See session/spellcheck.ts.
+      spellcheck: true,
       // Without this Chromium throttles timers in a background window and notifications arrive
       // minutes late. Measured: a hidden view keeps its timers for at least 7 minutes with it.
       backgroundThrottling: false,

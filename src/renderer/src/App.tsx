@@ -7,6 +7,7 @@ import { ArchivePanel } from './archive/ArchivePanel'
 import { HealthBanner } from './components/HealthBanner'
 import { MirrorStatus } from './components/MirrorStatus'
 import { StoragePanel } from './components/StoragePanel'
+import { AudioOutputPicker } from './components/AudioOutputPicker'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -370,6 +371,43 @@ export function App(): React.JSX.Element {
                 />
               }
             />
+          </Section>
+
+          <Section title={t('section.media')}>
+            <Row
+              label={t('input.spellcheck')}
+              hint={t('input.spellcheck.hint')}
+              control={
+                <select
+                  aria-label={t('input.spellcheck')}
+                  value={settings.spellcheckLanguages.join(',')}
+                  onChange={(e) => {
+                    patch({
+                      spellcheckLanguages: e.target.value === '' ? [] : e.target.value.split(','),
+                    })
+                  }}
+                  className="rounded-md border border-wa-hairline bg-transparent px-2 py-1 text-xs"
+                >
+                  <option value="">{t('input.spellcheck.none')}</option>
+                  <option value="de-DE">Deutsch</option>
+                  <option value="en-US">English</option>
+                  <option value="de-DE,en-US">Deutsch + English</option>
+                </select>
+              }
+            />
+            <Row
+              label={t('media.audioOut')}
+              hint={t('media.audioOut.hint')}
+              control={
+                <AudioOutputPicker
+                  value={settings.audioOutputDeviceId}
+                  onChange={(audioOutputDeviceId) => {
+                    patch({ audioOutputDeviceId })
+                  }}
+                />
+              }
+            />
+            <p className="pt-1 text-[11px] text-slate-500">{t('media.zoom.hint')}</p>
           </Section>
 
           <Section title={t('section.files')}>

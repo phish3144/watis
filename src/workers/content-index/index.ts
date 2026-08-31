@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { stat } from 'node:fs/promises'
 import type Database from 'better-sqlite3'
 import { connectToHost, type HostChannel } from '../shared/host-channel'
-import { openArchive } from '../archive/db'
+import { attachArchive } from '../archive/db'
 import { extensionFor, shardPath } from '../archive/blob-store'
 import { IndexQueue } from './queue'
 import { IndexRunner } from './runner'
@@ -130,6 +130,27 @@ async function tick(host: HostChannel): Promise<void> {
   }
 }
 
+/** Waits for the owning process to finish migrating. Bounded, so a real fault still surfaces. */
+async function attachWithRetry(
+  file: string,
+  host: HostChannel,
+): Promise<Database.Database | undefined> {
+  let delay = 100
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      return attachArchive(file)
+    } catch (error) {
+      if (attempt === 19) {
+        host.send({ type: 'fatal', message: `could not open the archive: ${String(error)}` })
+        return undefined
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay))
+      delay = Math.min(delay * 2, 2000)
+    }
+  }
+  return undefined
+}
+
 async function main(): Promise<void> {
   const archiveDir = process.env.WATIS_ARCHIVE_DIR
   const blobs = process.env.WATIS_BLOBS_DIR
@@ -156,10 +177,14 @@ async function main(): Promise<void> {
     },
   })
 
+  // The archive worker owns the schema; this one attaches once the migrations are done. Retried
+  // rather than failed: at a cold start both workers come up together and the owner may not have
+  // finished yet, which is normal and not worth a fatal.
+  const file = join(archiveDir, 'archive.sqlite')
+  db = await attachWithRetry(file, host)
+  if (!db) return
+
   try {
-    // The same file the archive worker holds. Two writers on one SQLite database are fine under
-    // WAL as long as both use it; `openArchive` does, and the two never write the same tables.
-    db = openArchive(join(archiveDir, 'archive.sqlite'))
     queue = new IndexQueue(db)
     runner = new IndexRunner({
       db,
@@ -178,7 +203,7 @@ async function main(): Promise<void> {
     })
     host.log('info', 'content index ready')
   } catch (error) {
-    host.send({ type: 'fatal', message: `could not open the archive: ${String(error)}` })
+    host.send({ type: 'fatal', message: `could not start the content index: ${String(error)}` })
     return
   }
 

@@ -39,6 +39,14 @@ export const settingsSchema = z.object({
   // --- Eingabe -----------------------------------------------------------
   /** true: Enter inserts a newline, Ctrl+Enter sends. */
   enterInsertsNewline: z.boolean(),
+  /**
+   * BCP-47 tags for the spell checker. Empty switches it off entirely, which on Windows also means
+   * no dictionary download — Chromium fetches hunspell dictionaries from a Google host, and the
+   * project allows outbound traffic only to WhatsApp and GitHub Releases.
+   */
+  spellcheckLanguages: z.array(z.string().max(16)).max(6),
+  /** `deviceId` for setSinkId. Empty means the system default. */
+  audioOutputDeviceId: z.string().max(200),
 
   // --- Dateien -----------------------------------------------------------
   downloadDir: z.string(),
@@ -94,6 +102,8 @@ export const defaultSettings: Settings = {
   hideMetaAi: false,
 
   enterInsertsNewline: false,
+  spellcheckLanguages: [],
+  audioOutputDeviceId: '',
 
   downloadDir: '',
   sortDownloadsByChat: true,
