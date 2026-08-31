@@ -30,13 +30,23 @@ export interface Extraction {
   confidence?: number | undefined
 }
 
+export interface ExtractionHint {
+  /** 1-based page numbers with no text layer, from a previous `pdf` extraction. */
+  scannedPages?: readonly number[]
+}
+
 export interface Engine {
   readonly name: string
   readonly version: string
   readonly source: ExtractionSource
   /** False when a model is missing or the platform cannot run it; the queue then skips rather than retries. */
   isAvailable(): Promise<boolean>
-  extract(file: string, mime: string): Promise<Extraction>
+  /**
+   * `hint` carries what a source needs and the others ignore. Today that is the list of pages a
+   * PDF reported as having no text layer — the alternative was for each engine to go and read the
+   * previous extraction itself, which would give every engine a reason to touch the database.
+   */
+  extract(file: string, mime: string, hint?: ExtractionHint): Promise<Extraction>
 }
 
 /** Joins lines into the text that goes into `content_text.text` and from there into the index. */

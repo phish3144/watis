@@ -60,6 +60,19 @@ interface PendingRequest {
   timer: NodeJS.Timeout
 }
 
+async function handleHostRequest(op: 'renderPdfPages', payload: unknown): Promise<unknown> {
+  if (op !== 'renderPdfPages') throw new Error(`unknown host request ${String(op)}`)
+  const request = payload as { file?: unknown; pages?: unknown }
+  if (typeof request?.file !== 'string' || !Array.isArray(request.pages)) {
+    throw new Error('renderPdfPages needs a file and a list of pages')
+  }
+  const { renderPdfPages } = await import('../pdf/render')
+  return renderPdfPages({
+    file: request.file,
+    pages: request.pages.filter((n): n is number => typeof n === 'number'),
+  })
+}
+
 export class WorkerSupervisor {
   private requestId = 0
   private readonly pending = new Map<number, PendingRequest>()
@@ -149,6 +162,24 @@ export class WorkerSupervisor {
         case 'fatal':
           log.error(`${state.key} reported fatal: ${message.message}`)
           break
+        case 'hostRequest': {
+          // The only thing a worker may ask for, and the enum in the protocol is what keeps it
+          // that way. Answered asynchronously; a failure comes back as a failure, never as silence.
+          void (async () => {
+            try {
+              const result = await handleHostRequest(message.op, message.payload)
+              state.port?.postMessage({ type: 'hostResponse', id: message.id, ok: true, result })
+            } catch (error: unknown) {
+              state.port?.postMessage({
+                type: 'hostResponse',
+                id: message.id,
+                ok: false,
+                error: String(error),
+              })
+            }
+          })()
+          break
+        }
         case 'response': {
           const pending = this.pending.get(message.id)
           if (!pending) break // already timed out; its caller has been told

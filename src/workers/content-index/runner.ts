@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { classify, type Engine, type Extraction } from './engine'
+import { classify, type Engine, type Extraction, type ExtractionHint } from './engine'
 import type { IndexQueue, Job } from './queue'
 
 /**
@@ -101,7 +101,7 @@ export class IndexRunner {
       }
 
       try {
-        const extraction = await engine.extract(file.path, file.mime)
+        const extraction = await engine.extract(file.path, file.mime, this.#hintFor(job))
         this.#store(job, extraction, now)
         this.#chainScannedPages(job, extraction, now)
         this.#deps.queue.complete(job.id, now)
@@ -114,6 +114,24 @@ export class IndexRunner {
     }
 
     return outcome
+  }
+
+  /**
+   * What a source needs to know before it starts. An OCR job on a PDF is the chained one: it has to
+   * be told which pages to render, and that was recorded when the PDF's own text was extracted.
+   */
+  #hintFor(job: Job): ExtractionHint | undefined {
+    if (job.kind !== 'ocr') return undefined
+    const row = this.#deps.db
+      .prepare(`SELECT detail_json FROM content_text WHERE media_id = ? AND source = 'pdf'`)
+      .get(job.mediaId) as { detail_json: string | null } | undefined
+    if (!row?.detail_json) return undefined
+    try {
+      const parsed = JSON.parse(row.detail_json) as { scannedPages?: number[] }
+      return parsed.scannedPages?.length ? { scannedPages: parsed.scannedPages } : undefined
+    } catch {
+      return undefined
+    }
   }
 
   /**
@@ -162,7 +180,14 @@ export class IndexRunner {
           job.mediaId,
           extraction.source,
           extraction.text,
-          JSON.stringify({ lines: extraction.lines }),
+          // scannedPages goes in beside the lines: the chained OCR job reads it back to learn
+          // which pages to render, rather than every engine going to the database for itself.
+          JSON.stringify({
+            lines: extraction.lines,
+            ...('scannedPages' in extraction
+              ? { scannedPages: (extraction as { scannedPages?: number[] }).scannedPages }
+              : {}),
+          }),
           extraction.engine,
           extraction.engineVersion,
           extraction.lang ?? null,

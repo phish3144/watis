@@ -573,9 +573,12 @@ im Leerlauf, ohne die Bedienung zu bremsen.
 - [x] OCR über **tesseract.js** statt PP-OCRv5 ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)):
       Sprachdaten DE + EN **mitgeliefert** statt nachgeladen, kein natives Modul, gegen ein Fixture belegt
 - [x] OCR-Ergebnis mit Zeilen, Boxen und Confidence nach `content_text`; Confidence-Schwelle konfigurierbar
-- [~] PDF-Text über pdfjs-dist **fertig**, Seiten ohne Textebene werden als `scannedPages` gemeldet,
-  TXT/MD/CSV direkt, Größenlimit **fertig**; offen: die gemeldeten Scan-Seiten rendern und durch die
-  OCR schicken, sowie DOCX (mammoth ist nicht freigegeben)
+- [~] PDF-Text über pdfjs-dist, TXT/MD/CSV direkt, Größenlimit; **Seiten ohne Textebene werden jetzt
+  gerendert und durch die Texterkennung geschickt** — und nur die: ein 50-seitiger Vertrag mit zwei
+  gescannten Anhängen kostet zwei Seiten Arbeit, nicht fünfzig. Rastern braucht ein Canvas, das ein
+  Node-Worker nicht hat; statt dafür ein natives Canvas-Modul aufzunehmen, fragt der Worker den
+  Main-Prozess — Electron hat eines. Jede erkannte Zeile trägt ihre Seitenzahl.
+  Offen: DOCX (mammoth ist nicht freigegeben)
 - [ ] Sprachnachrichten: **vertagt** ([ADR 0008](docs/decisions/0008-ocr-und-pdf-engines.md)). `classify()`
       leitet Audio weiterhin nach `transcript`, die Jobs entstehen und werden mangels Engine übersprungen
 - [~] Suche: `quelle:`-Filter als Chips (schreiben in dieselbe Query, die man auch tippen könnte),

@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>PDF-Renderer</title>
+<!--
+  The offscreen page the main process uses to rasterise scanned PDF pages (PLAN.md Phase 7).
+
+  It is a real file:// page rather than a data: URL because a data: URL has an opaque origin, and
+  dynamic import() of a file:// module from an opaque origin is refused — which is how this failed
+  the first time. Nothing is loaded here at all: the main process injects the script, and the only
+  input is the PDF's own bytes.
+-->
+<body style="margin: 0; background: #fff"></body>

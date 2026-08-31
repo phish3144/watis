@@ -96,3 +96,27 @@ test('re-queues one source without touching the others', async () => {
   expect(result.requeued).toBe(0)
   await expect(invoke('app:reindex', {})).rejects.toThrow()
 })
+
+test('rasterises a scanned PDF page through Electron, which is where the canvas is', async () => {
+  test.setTimeout(120_000)
+
+  // The half vitest cannot cover: a Node worker has no canvas, so the render is asked of the main
+  // process. This drives the real path — pdf.js in an offscreen window, over a real file.
+  const rendered = await invoke<{ page: number; data: string }[]>('app:render-pdf-pages', {
+    file: join(process.cwd(), 'test', 'fixtures', 'angebot-scan.pdf'),
+    pages: [1],
+  })
+
+  expect(rendered).toHaveLength(1)
+  expect(rendered[0]?.page).toBe(1)
+  // A rendered A4 page is tens of kilobytes of PNG, never a handful of bytes.
+  expect(rendered[0]?.data.length ?? 0).toBeGreaterThan(5000)
+})
+
+test('renders nothing for a page that does not exist, rather than failing', async () => {
+  const rendered = await invoke<unknown[]>('app:render-pdf-pages', {
+    file: join(process.cwd(), 'test', 'fixtures', 'angebot-scan.pdf'),
+    pages: [999],
+  })
+  expect(rendered).toEqual([])
+})

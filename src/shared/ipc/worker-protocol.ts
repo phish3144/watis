@@ -16,6 +16,16 @@ export type WorkerName = (typeof WORKER_NAMES)[number]
 
 export const hostToWorkerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping'), nonce: z.number().int().nonnegative() }),
+  // The answer to a hostRequest. The reverse direction exists for one thing: a worker that needs
+  // something only the main process can do — rendering a PDF page needs a real canvas, and Electron
+  // already has one. Pulling in a native canvas module to avoid asking would be the worse trade.
+  z.object({
+    type: z.literal('hostResponse'),
+    id: z.number().int().nonnegative(),
+    ok: z.boolean(),
+    result: z.unknown().optional(),
+    error: z.string().max(4000).optional(),
+  }),
   z.object({ type: z.literal('shutdown'), reason: z.string().max(200) }),
   // The data-plane envelope. `payload` stays unknown here on purpose: validating an import batch of
   // 500 rows against the control-plane schema on every message is exactly the overhead §3.1 forbids.
@@ -42,6 +52,14 @@ export const workerToHostSchema = z.discriminatedUnion('type', [
     ok: z.boolean(),
     result: z.unknown().optional(),
     error: z.string().max(4000).optional(),
+  }),
+  // Worker -> host. Deliberately narrow: `op` is an enum, not a free string, so this cannot quietly
+  // become a way for a worker to ask the main process to do arbitrary things.
+  z.object({
+    type: z.literal('hostRequest'),
+    id: z.number().int().nonnegative(),
+    op: z.enum(['renderPdfPages']),
+    payload: z.unknown(),
   }),
 ])
 

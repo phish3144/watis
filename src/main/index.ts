@@ -53,6 +53,7 @@ import { createReminderService, type ReminderService } from './reminders'
 import { AppLock } from './lock'
 import { clearDisposableCaches, measureStorage } from './storage/overview'
 import { moveBlobStore } from './storage/move-blobs'
+import { closePdfRenderer } from './pdf/render'
 import { PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 import { platform } from '@platform/current'
 
@@ -699,6 +700,23 @@ function registerIpcHandlers(): void {
     return pipeline.mediaFetcher.fetchNow(candidate as { id: string })
   })
 
+  /**
+   * Rasterises PDF pages. The content index asks for this over the worker channel; the same thing
+   * is reachable here so the E2E can drive the real renderer — a Node test cannot, because the
+   * whole point is that the canvas belongs to Electron.
+   */
+  ipcMain.handle('app:render-pdf-pages', async (_event, payload: unknown) => {
+    const args = payload as { file?: unknown; pages?: unknown }
+    if (typeof args?.file !== 'string' || !Array.isArray(args.pages)) {
+      throw new Error('file and pages are required')
+    }
+    const { renderPdfPages } = await import('./pdf/render')
+    return renderPdfPages({
+      file: args.file,
+      pages: args.pages.filter((n): n is number => typeof n === 'number'),
+    })
+  })
+
   ipcMain.handle('app:index-status', () =>
     supervisor.request('contentIndex', { op: 'status' }, { accountId: activeAccountId() }),
   )
@@ -867,6 +885,7 @@ app.on('will-quit', (event) => {
   shuttingDown = true
   stopWatchdog?.()
   stopIndexSignals?.()
+  closePdfRenderer()
   health?.stop()
   notifications?.dispose()
   exportSchedule?.stop()
