@@ -16,7 +16,7 @@ let dataDir: string
 
 /** Drives the channel exactly as the renderer does, through the main process. */
 async function archive<T>(request: unknown): Promise<T> {
-  return app.evaluate(async ({ ipcMain }, payload) => {
+  return app.evaluate(({ ipcMain }, payload) => {
     // ipcMain.handle registers the same function the preload invokes; calling the registered
     // handler directly keeps the test out of the renderer while still exercising main and worker.
     const handlers = (
@@ -53,6 +53,18 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   await app?.close()
   if (dataDir && existsSync(dataDir)) rmSync(dataDir, { recursive: true, force: true })
+})
+
+test('keeps the database under the app data directory, never the working directory', async () => {
+  // It did not, once: the supervisor exported WATIS_ARCHIVE_DIR while the worker read
+  // WATIS_ARCHIVE_FILE, so it silently fell back to process.cwd() and wrote the archive into
+  // whatever directory the app was started from — outside %LOCALAPPDATA%\\watis, where no
+  // uninstall and no storage overview would ever find it.
+  const stray = join(process.cwd(), 'archive', 'archive.sqlite')
+  expect(existsSync(stray)).toBe(false)
+
+  const paths = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'))
+  expect(paths.toLowerCase()).toContain(dataDir.toLowerCase())
 })
 
 test('opens an empty archive and reports it', async () => {

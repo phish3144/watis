@@ -62,7 +62,14 @@ function handle(payload: unknown): unknown {
 }
 
 async function main(): Promise<void> {
-  const file = process.env.WATIS_ARCHIVE_FILE ?? join(process.cwd(), 'archive', 'archive.sqlite')
+  // Named by the supervisor from appPaths(). Falling back to the working directory would put the
+  // archive wherever the process happened to start — outside %LOCALAPPDATA%\\watis, which the
+  // project forbids outright, and somewhere no uninstall or storage overview would ever find it.
+  // A missing variable is a wiring fault, so it fails here rather than writing to the wrong disk.
+  const directory = process.env.WATIS_ARCHIVE_DIR
+  if (!directory)
+    throw new Error('WATIS_ARCHIVE_DIR is not set; refusing to guess where the archive lives')
+  const file = join(directory, 'archive.sqlite')
   await mkdir(dirname(file), { recursive: true })
 
   const host = await connectToHost({
