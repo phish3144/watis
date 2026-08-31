@@ -622,6 +622,115 @@ export class ArchiveRepository {
     return previews
   }
 
+  /**
+   * The media gallery for one chat (PLAN.md Phase 4): images, videos, documents and links,
+   * newest first, paged.
+   *
+   * Links are not media rows — they live in message bodies — so they are found by pattern rather
+   * than by join. That is deliberate: a `links` table would need backfilling for everything already
+   * archived, and the pattern is good enough for a gallery whose job is "let me find that thing
+   * somebody sent me".
+   */
+  gallery(options: {
+    chatId?: string | undefined
+    kind: 'image' | 'video' | 'document' | 'audio' | 'link'
+    limit: number
+    beforeTs?: number | undefined
+  }): GalleryItem[] {
+    const limit = Math.min(options.limit, 500)
+
+    if (options.kind === 'link') {
+      const rows = this.#db
+        .prepare(
+          `SELECT m.id, m.chat_id, m.ts, m.body
+           FROM messages m
+           WHERE (@chatId IS NULL OR m.chat_id = @chatId)
+             AND (@beforeTs IS NULL OR m.ts < @beforeTs)
+             AND m.body LIKE '%http%'
+           ORDER BY m.ts DESC LIMIT @limit`,
+        )
+        .all({
+          chatId: options.chatId ?? null,
+          beforeTs: options.beforeTs ?? null,
+          limit,
+        }) as { id: string; chat_id: string; ts: number; body: string | null }[]
+
+      return rows.map((r) => ({
+        kind: 'link' as const,
+        msgId: r.id,
+        chatId: r.chat_id,
+        ts: r.ts,
+        mediaId: null,
+        mime: null,
+        filename: null,
+        sha256: null,
+        size: null,
+        text: r.body,
+      }))
+    }
+
+    const mimePrefix =
+      options.kind === 'image' ? 'image/' : options.kind === 'video' ? 'video/' : 'audio/'
+    // Documents are everything that is not one of the three media types — an open-ended set, so it
+    // is defined by exclusion rather than by a list that would go stale.
+    const where =
+      options.kind === 'document'
+        ? `d.mime IS NULL OR (d.mime NOT LIKE 'image/%' AND d.mime NOT LIKE 'video/%' AND d.mime NOT LIKE 'audio/%')`
+        : `d.mime LIKE @prefix || '%'`
+
+    const rows = this.#db
+      .prepare(
+        `SELECT d.id, d.msg_id, d.chat_id, d.mime, d.size, d.sha256, d.filename, m.ts, m.body
+         FROM media d
+         JOIN messages m ON m.id = d.msg_id
+         WHERE (@chatId IS NULL OR d.chat_id = @chatId)
+           AND (@beforeTs IS NULL OR m.ts < @beforeTs)
+           AND (${where})
+         ORDER BY m.ts DESC LIMIT @limit`,
+      )
+      .all({
+        chatId: options.chatId ?? null,
+        beforeTs: options.beforeTs ?? null,
+        prefix: mimePrefix,
+        limit,
+      }) as Record<string, unknown>[]
+
+    return rows.map((r) => ({
+      kind: options.kind,
+      msgId: r.msg_id as string | null,
+      chatId: r.chat_id as string | null,
+      ts: r.ts as number,
+      mediaId: r.id as string,
+      mime: r.mime as string | null,
+      filename: r.filename as string | null,
+      sha256: r.sha256 as string | null,
+      size: r.size as number | null,
+      text: r.body as string | null,
+    }))
+  }
+
+  /**
+   * The first message at or after a date, so the reader can jump to a day rather than scrolling to
+   * it (PLAN.md Phase 4). Returns the cursor the message list pages from.
+   */
+  firstMessageOnOrAfter(chatId: string, ts: number): { id: string; ts: number } | undefined {
+    return this.#db
+      .prepare(
+        `SELECT id, ts FROM messages WHERE chat_id = ? AND ts >= ? ORDER BY ts ASC, id ASC LIMIT 1`,
+      )
+      .get(chatId, ts) as { id: string; ts: number } | undefined
+  }
+
+  /** Which months a chat has anything in, so a date picker can grey out the empty ones. */
+  monthsWithMessages(chatId: string): { month: string; count: number }[] {
+    return this.#db
+      .prepare(
+        `SELECT strftime('%Y-%m', ts, 'unixepoch') AS month, count(*) AS count
+         FROM messages WHERE chat_id = ? GROUP BY month ORDER BY month DESC`,
+      )
+      .all(chatId) as { month: string; count: number }[]
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number
@@ -721,6 +830,20 @@ function hasPredicate(has: string): string {
     default:
       return '1'
   }
+}
+
+export interface GalleryItem {
+  kind: 'image' | 'video' | 'document' | 'audio' | 'link'
+  msgId: string | null
+  chatId: string | null
+  ts: number
+  mediaId: string | null
+  mime: string | null
+  filename: string | null
+  sha256: string | null
+  size: number | null
+  /** The message body: a caption for media, the text containing the URL for a link. */
+  text: string | null
 }
 
 export interface HitPreview {

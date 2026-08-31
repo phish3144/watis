@@ -3,6 +3,7 @@ import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
 import { BackfillPanel } from '../components/BackfillPanel'
 import type { HitPreview } from '../../../workers/archive/repository'
+import { Gallery } from './Gallery'
 
 /**
  * The archive view: chat list, virtualised message list, search.
@@ -183,6 +184,8 @@ export function ArchivePanel(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ArchiveHit[] | undefined>(undefined)
   const [previews, setPreviews] = useState<Record<string, HitPreview>>({})
+  const [view, setView] = useState<'messages' | 'gallery'>('messages')
+  const [jumpTo, setJumpTo] = useState('')
   const [error, setError] = useState<string | undefined>(undefined)
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(600)
@@ -249,6 +252,40 @@ export function ArchivePanel(): React.JSX.Element {
       fetching.current = false
     }
   }, [chatId, messages])
+
+  /**
+   * Jumps to a day rather than scrolling to it. The list is reloaded from the first message at or
+   * after that date, which is the same cursor the normal paging uses — so scrolling up from there
+   * keeps working without a special case.
+   */
+  const jumpToDate = useCallback(async () => {
+    if (!chatId || !jumpTo) return
+    setError(undefined)
+    try {
+      const ts = Math.floor(new Date(`${jumpTo}T00:00:00`).getTime() / 1000)
+      const found = await ask<{ cursor: { id: string; ts: number } | null }>({
+        op: 'jumpToDate',
+        chatId,
+        ts,
+      })
+      if (!found.cursor) {
+        // Landing silently on the end would look like the jump worked and the chat simply stopped.
+        setError('Nach diesem Datum ist in diesem Chat nichts archiviert.')
+        return
+      }
+      const page = await ask<{ messages: ArchiveMessage[] }>({
+        op: 'messagesPage',
+        chatId,
+        limit: PAGE_SIZE,
+        after: { ts: found.cursor.ts - 1, id: '' },
+      })
+      setMessages(page.messages)
+      setScrollTop(0)
+      listRef.current?.scrollTo({ top: 0 })
+    } catch (e) {
+      setError(String(e))
+    }
+  }, [chatId, jumpTo])
 
   const onScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -400,6 +437,59 @@ export function ArchivePanel(): React.JSX.Element {
           </button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          {(
+            [
+              ['messages', 'Verlauf'],
+              ['gallery', 'Galerie'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={view === value}
+              onClick={() => {
+                setView(value)
+              }}
+              className={`rounded-full border px-2 py-0.5 ${
+                view === value
+                  ? 'border-wa-accent text-wa-accent'
+                  : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+
+          {view === 'messages' && chatId && (
+            <label className="ml-auto flex items-center gap-1 text-wa-muted">
+              Springe zu
+              <input
+                type="date"
+                value={jumpTo}
+                onChange={(e) => {
+                  setJumpTo(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void jumpToDate()
+                }}
+                className="rounded-md border border-wa-hairline bg-transparent px-2 py-0.5"
+                aria-label="Zu einem Datum springen"
+              />
+              <button
+                type="button"
+                disabled={!jumpTo}
+                onClick={() => {
+                  void jumpToDate()
+                }}
+                className="rounded-md border border-wa-hairline px-2 py-0.5 disabled:opacity-40"
+              >
+                Los
+              </button>
+            </label>
+          )}
+        </div>
+
         {/*
           Chips rather than a dropdown: they write into the same query string the user could have
           typed, so the syntax stays visible and learnable instead of being hidden behind a widget.
@@ -467,7 +557,9 @@ export function ArchivePanel(): React.JSX.Element {
           </p>
         )}
 
-        {hits ? (
+        {view === 'gallery' && !hits ? (
+          <Gallery chatId={chatId} />
+        ) : hits ? (
           <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
             {hits.length === 0 && <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>}
             {hits.map((hit) => (

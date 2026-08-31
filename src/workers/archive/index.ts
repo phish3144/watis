@@ -58,6 +58,12 @@ async function handle(payload: unknown): Promise<unknown> {
       return { messages: repo.contextAround(request.msgId, request.radius) }
     case 'hitPreviews':
       return { previews: repo.hitPreviews(request.hits, request.terms) }
+    case 'gallery':
+      return { items: repo.gallery(request) }
+    case 'jumpToDate':
+      return { cursor: repo.firstMessageOnOrAfter(request.chatId, request.ts) ?? null }
+    case 'months':
+      return { months: repo.monthsWithMessages(request.chatId) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
     case 'saveSyncState':

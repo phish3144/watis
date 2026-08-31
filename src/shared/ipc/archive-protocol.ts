@@ -105,6 +105,20 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
     msgId: z.string().min(1),
     radius: z.number().int().min(0).max(50).default(3),
   }),
+  z.object({
+    op: z.literal('gallery'),
+    chatId: z.string().min(1).optional(),
+    kind: z.enum(['image', 'video', 'document', 'audio', 'link']),
+    limit: z.number().int().min(1).max(500).default(60),
+    beforeTs: z.number().int().optional(),
+  }),
+  z.object({
+    op: z.literal('jumpToDate'),
+    chatId: z.string().min(1),
+    /** Unix seconds; the first message at or after this point. */
+    ts: z.number().int(),
+  }),
+  z.object({ op: z.literal('months'), chatId: z.string().min(1) }),
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
   z.object({ op: z.literal('stats') }),
   z.object({

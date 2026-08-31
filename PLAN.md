@@ -458,14 +458,18 @@ Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
 
 - [x] `search_docs`/`search_fts` mit Triggern; Suchsyntax vollständig: Wörter, Phrasen, `from:`, `in:`,
       `before:/after:`, `has:file|image|audio|link`, `source:body|ocr|pdf|docx|transcript`. Trigram-Index bleibt offen
-- [~] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste, Endlos-Scroll nach oben, Keyset-Pagination
-  über `(ts, id)` **fertig**; offen: Datumssprung und Kalender
+- [x] Archiv-Panel: Chatliste, virtualisierte Nachrichtenliste, Endlos-Scroll nach oben,
+      Keyset-Pagination über `(ts, id)`, Datumssprung. Ein Datum hinter dem letzten Eintrag sagt das
+      auch, statt stillschweigend am Ende zu landen — das sähe aus, als sei der Chat dort zu Ende
 - [x] Kontext (±3 Nachrichten) im Repository (`contextAround`) und in der Trefferliste — pro Treffer
       aufklappbar, nicht mit der Liste geladen: 60 Treffer wären sonst 60 Abfragen für Kontext, den
       niemand aufmacht
 - [x] „Im WhatsApp-Chat öffnen": Bridge öffnet Chat und scrollt zur Nachricht; das Panel schließt
       vorher, damit sichtbar ist was passiert. Lesebestätigung dabei ist in Ordnung ([ADR 0006](docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md))
-- [ ] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Links), Filter und Sortierung
+- [x] Medien-Galerie pro Chat (Bilder/Videos/Dokumente/Sprachnachrichten/Links), seitenweise,
+      neueste zuerst. „Dokument" ist über Ausschluss definiert, nicht über eine Liste von MIME-Typen,
+      die beim ersten unbekannten Format veraltet wäre. Links stehen in Nachrichtentexten, nicht in
+      `media` — sie werden per Muster gefunden, ohne eine Tabelle, die alles Vorhandene nachtragen müsste
 - [~] Strg+K springt in die Suche **fertig**, deutsche Feldnamen (`von:`, `vor:`, `nach:`, `hat:`,
   `quelle:`) werden jetzt tatsächlich geparst — die Platzhalterzeile hatte sie versprochen, der
   Parser kannte nur die englischen; offen: Chats und Kontakte als eigene Trefferarten
