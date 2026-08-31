@@ -15,7 +15,9 @@ const ctx = await chromium.launchPersistentContext(profile, {
   args: [
     `--disable-extensions-except=${EXT}`,
     `--load-extension=${EXT}`,
-    '--no-sandbox', '--disable-quic', '--ssl-version-max=tls1.2',
+    '--no-sandbox',
+    '--disable-quic',
+    '--ssl-version-max=tls1.2',
   ],
 })
 
@@ -37,7 +39,8 @@ for (const url of TARGETS) {
   await page.waitForTimeout(6000)
   const attrs = await page.evaluate(() => {
     const out = {}
-    for (const a of document.documentElement.attributes) if (a.name.startsWith('data-watis-')) out[a.name] = a.value
+    for (const a of document.documentElement.attributes)
+      if (a.name.startsWith('data-watis-')) out[a.name] = a.value
     return out
   })
   console.log(`\n### ${url}  (HTTP ${status})`)

@@ -7,5 +7,7 @@
   "cross_origin_embedder_policy": { "value": "require-corp" },
   "cross_origin_opener_policy": { "value": "same-origin" },
   "web_accessible_resources": [{ "resources": ["page.html"], "matches": ["http://127.0.0.1/*"] }],
-  "content_scripts": [{ "matches": ["http://127.0.0.1/*"], "js": ["cs.js"], "run_at": "document_idle" }]
+  "content_scripts": [
+    { "matches": ["http://127.0.0.1/*"], "js": ["cs.js"], "run_at": "document_idle" }
+  ]
 }

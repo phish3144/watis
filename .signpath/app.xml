@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 1 of the signing pipeline: the unpacked application directory.
+
+  Only WatIs.exe is signed. The Electron runtime DLLs (ffmpeg.dll, libEGL.dll,
+  vk_swiftshader.dll, d3dcompiler_47.dll ...) and better-sqlite3's .node binding are
+  upstream open-source binaries, and the SignPath Foundation terms are explicit that
+  they must NOT be signed with our certificate:
+
+    "remember that upstream OSS projects' binaries must not be signed using your
+     subscription, but may be included in signed packages and installers"
+
+  So they ride along unsigned, which is allowed, and only our own binary is signed.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="WatIs.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

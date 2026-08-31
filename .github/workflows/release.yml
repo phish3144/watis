@@ -25,11 +25,35 @@ jobs:
       - run: npm run lint && npm run typecheck && npm test
       - run: npm run dist:mac
 
+  # Secrets are not readable in a job-level `if`, so the decision is made once here and passed
+  # on as an output. Until the SignPath Foundation application is approved and the secrets are
+  # set, the unsigned path below runs exactly as it always has — adding the signing pipeline
+  # must not be able to break a release.
+  signing-mode:
+    name: Determine signing mode
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+        run: |
+          if [ -n "$SIGNPATH_API_TOKEN" ] && [ -n "$SIGNPATH_ORGANIZATION_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Signing enabled: SignPath secrets are present."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Signing disabled: SignPath secrets are not set; publishing unsigned."
+          fi
+
   release-windows:
-    name: Publish Windows release
+    name: Publish Windows release (unsigned)
+    if: needs.signing-mode.outputs.enabled != 'true'
     # Serialised on purpose. Two jobs publishing to the same GitHub release in parallel race each
     # other over the release draft and its latest.yml.
-    needs: verify-mac
+    needs: [verify-mac, signing-mode]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -45,9 +69,122 @@ jobs:
         run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Unsigned by decision (ADR 0001, point 11). Auto-discovery would otherwise pick up
-          # whatever happens to be in the runner keychain and make builds non-deterministic.
+          # Auto-discovery would otherwise pick up whatever happens to be in the runner keychain
+          # and make builds non-deterministic.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Verify the published build carries no elevation helper
         run: npm run verify:no-elevate
+
+  # Two-phase build, because SignPath cannot reach into an NSIS installer's payload: NSIS is not
+  # one of its container formats. So the application is signed first, and the installers are then
+  # built around the already-signed binary and signed in turn.
+  #
+  # Each SignPath request blocks on a human clicking "Approve" — the Foundation terms require it
+  # ("Every release needs manual approval for signing"), so a release takes two approvals.
+  release-windows-signed:
+    name: Publish Windows release (signed)
+    if: needs.signing-mode.outputs.enabled == 'true'
+    needs: [verify-mac, signing-mode]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm run verify:no-elevate
+
+      # --- phase 1: the application ------------------------------------------------------
+      - name: Build unpacked application
+        run: npm run dist:win:unpacked
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # The archive holds the directory CONTENTS, so paths inside match .signpath/app.xml.
+      - name: Pack the unpacked application for signing
+        shell: bash
+        run: 7z a -tzip app-to-sign.zip ./release/win-unpacked/*
+
+      - uses: actions/upload-artifact@v7
+        id: upload-app
+        with:
+          name: app-to-sign
+          path: app-to-sign.zip
+
+      - name: Sign the application
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: watis
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+          wait-for-completion: true
+          # An approval needs a human at a keyboard; ten minutes is not enough.
+          wait-for-completion-timeout-in-seconds: '3600'
+          # Extracted straight back over the build output, so the installers below are built
+          # from the signed binary rather than the original one.
+          output-artifact-directory: release/win-unpacked
+
+      # --- phase 2: the installers -------------------------------------------------------
+      # electron-builder writes app-update.yml from its afterPack hook, which neither phase
+      # reaches: `doPack` returns early under --prepackaged, and a --dir build does not satisfy
+      # the nsis-target condition either. Without this step the app installs and never updates.
+      - name: Write app-update.yml
+        run: npm run release:app-update-yml -- release/win-unpacked "SignPath Foundation"
+
+      - name: Build installers from the signed application
+        run: npm run dist:win:prepackaged
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify the built installers carry no elevation helper
+        run: npm run verify:no-elevate
+
+      - name: Pack the installers for signing
+        shell: bash
+        run: 7z a -tzip installers-to-sign.zip ./release/WatIs-Setup-x64.exe ./release/WatIs-Portable-x64.exe
+
+      - uses: actions/upload-artifact@v7
+        id: upload-installers
+        with:
+          name: installers-to-sign
+          path: installers-to-sign.zip
+
+      - name: Sign the installers
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: watis
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.upload-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: '3600'
+          output-artifact-directory: release
+
+      # Signing changed the bytes, so every hash electron-builder recorded while packing is now
+      # wrong and electron-updater would reject the update. Rebuild the blockmap and latest.yml
+      # against the signed files.
+      - name: Refresh release metadata against the signed binaries
+        run: npm run release:refresh-metadata
+
+      - name: Upload the signed release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "${TAG#v}" --generate-notes
+          gh release upload "$TAG" \
+            release/WatIs-Setup-x64.exe \
+            release/WatIs-Setup-x64.exe.blockmap \
+            release/WatIs-Portable-x64.exe \
+            release/latest.yml \
+            --clobber

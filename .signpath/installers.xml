@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 2: the two artefacts a user actually downloads. These are the files
+  SmartScreen judges, so these are the ones that must carry a signature.
+
+  SignPath cannot sign into an NSIS installer's payload — NSIS is not among the
+  supported container formats — which is exactly why the application inside was
+  already signed in phase 1, before the installer was built around it.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="WatIs-Setup-x64.exe">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="WatIs-Portable-x64.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

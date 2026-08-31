@@ -142,6 +142,28 @@ the privacy policies of other Open Source or third party components or services 
 > Die README von Super Productivity ist als Muster **nicht** geeignet: Sie erfüllt die eigenen Auflagen
 > nicht (falsche Überschrift, keine Rollen, kein Datenschutz-Link). Nur die Terms sind maßgeblich.
 
+## Der Stand im Repo
+
+Die Pipeline ist gebaut und wartet nur auf die Zusage:
+
+- [`.signpath/app.xml`](../.signpath/app.xml) und [`.signpath/installers.xml`](../.signpath/installers.xml)
+  — die beiden Artifact Configurations
+- [`.signpath/README.md`](../.signpath/README.md) — die vier Slugs, die nach der Bewilligung gegen das
+  echte Projekt abgeglichen werden müssen, und die zwei Secrets
+- [`.github/workflows/release.yml`](../.github/workflows/release.yml) — zweistufiger Build. Der Job
+  `signing-mode` entscheidet anhand der Secrets, ob signiert wird; **fehlt eines, läuft der bisherige
+  unsignierte Pfad unverändert weiter**, damit das Hinzufügen der Pipeline keinen Release kaputt machen
+  kann
+- [`scripts/write-app-update-yml.mjs`](../scripts/write-app-update-yml.mjs) — schreibt die Datei, die
+  beide Phasen sonst überspringen
+- [`scripts/refresh-release-metadata.mjs`](../scripts/refresh-release-metadata.mjs) — baut Blockmap und
+  `latest.yml` gegen die signierten Bytes neu
+- [`docs/code-signing-policy.md`](code-signing-policy.md) — der Pflichttext für Startseite und
+  Release-Seite, vorbereitet, aber **noch nicht veröffentlicht**
+
+Alle vier Fallen aus dem vorigen Abschnitt sind gegen die installierte electron-builder-Quelle
+verifiziert, nicht aus der Dokumentation abgeleitet.
+
 ## Empfehlung
 
 **SignPath Foundation beantragen — aber mit der richtigen Erwartung.** Es ist der einfachste kostenlose

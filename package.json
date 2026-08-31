@@ -28,8 +28,12 @@
     "smoke:sqlite": "node scripts/smoke-sqlite.mjs",
     "package": "npm run build && electron-builder --dir",
     "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:win:unpacked": "npm run build && electron-builder --win --dir",
+    "dist:win:prepackaged": "electron-builder --win --prepackaged release/win-unpacked --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "verify:no-elevate": "node scripts/verify-no-elevate.mjs",
+    "release:app-update-yml": "node scripts/write-app-update-yml.mjs",
+    "release:refresh-metadata": "node scripts/refresh-release-metadata.mjs",
     "release": "npm run build && electron-builder --publish always"
   },
   "dependencies": {
