@@ -14,12 +14,18 @@ export function StoragePanel(): React.JSX.Element {
   const [storage, setStorage] = useState<StorageOverview | undefined>(undefined)
   const [schedule, setSchedule] = useState<ExportScheduleState | null>(null)
   const [busy, setBusy] = useState(false)
+  const [blobDir, setBlobDir] = useState('')
   const [note, setNote] = useState<string | undefined>(undefined)
 
   const refresh = (): void => {
     // Measured on request, never on a timer: walking the blob store means stat-ing every file.
     void api().getStorage().then(setStorage)
     void api().exportSchedule.state().then(setSchedule)
+    void api()
+      .getSettings()
+      .then((s) => {
+        setBlobDir(s.blobDir)
+      })
   }
 
   useEffect(refresh, [])
@@ -112,6 +118,55 @@ export function StoragePanel(): React.JSX.Element {
             : 'Noch nie gelaufen.'}
         </p>
         {schedule?.lastError && <p className="text-red-400">Fehler: {schedule.lastError}</p>}
+      </div>
+
+      <div className="rounded-md bg-wa-surface px-3 py-2">
+        <label className="flex flex-col gap-1">
+          <span>Mediendateien liegen hier</span>
+          <span className="flex gap-2">
+            <input
+              value={blobDir}
+              onChange={(e) => {
+                setBlobDir(e.target.value)
+              }}
+              placeholder="Standard: im Datenordner"
+              aria-label="Ordner für Mediendateien"
+              className="flex-1 rounded-md border border-wa-hairline bg-transparent px-2 py-1"
+            />
+            <button
+              type="button"
+              disabled={busy || blobDir.trim() === ''}
+              onClick={() => {
+                setBusy(true)
+                setNote(undefined)
+                void api()
+                  .moveBlobs(blobDir.trim())
+                  .then(
+                    (result) => {
+                      setNote(
+                        `${String(result.moved)} Dateien verschoben nach ${result.to}. Der Archiv-Prozess läuft wieder.`,
+                      )
+                      refresh()
+                    },
+                    (error: unknown) => {
+                      setNote(String(error))
+                    },
+                  )
+                  .finally(() => {
+                    setBusy(false)
+                  })
+              }}
+              className="rounded-md border border-wa-hairline px-2 py-1 disabled:opacity-40"
+            >
+              Verschieben
+            </button>
+          </span>
+        </label>
+        <p className="mt-1 text-[11px] leading-snug text-slate-500">
+          Verschiebt nur die Medien, nicht die Datenbank: die ist klein, und ohne sie läuft nichts —
+          sie auf ein Laufwerk zu legen, das abgezogen werden kann, wäre ein schlechter Tausch.
+          Kopiert und prüft, bevor am alten Ort etwas gelöscht wird.
+        </p>
       </div>
 
       {note && <p className="text-wa-muted">{note}</p>}

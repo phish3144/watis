@@ -21,8 +21,13 @@ let db: Database.Database | undefined
 let repo: ArchiveRepository | undefined
 let blobs: BlobStore | undefined
 
-/** Default ceiling for `blobs/`. Configurable, but never absent — an unbounded store fills a disk. */
-const BLOB_LIMIT_BYTES = 20 * 1024 * 1024 * 1024
+/**
+ * The ceiling for `blobs/`, in bytes. Configurable through `WATIS_BLOB_QUOTA_GB` and never absent:
+ * an unbounded media store fills a disk, and the moment it does is the moment the archive stops
+ * being able to write anything at all.
+ */
+const BLOB_LIMIT_BYTES =
+  Math.max(1, Number(process.env.WATIS_BLOB_QUOTA_GB) || 20) * 1024 * 1024 * 1024
 
 async function handle(payload: unknown): Promise<unknown> {
   const request = parseArchiveRequest(payload)
@@ -64,6 +69,8 @@ async function handle(payload: unknown): Promise<unknown> {
       return { cursor: repo.firstMessageOnOrAfter(request.chatId, request.ts) ?? null }
     case 'months':
       return { months: repo.monthsWithMessages(request.chatId) }
+    case 'names':
+      return { names: repo.findChatsAndContacts(request.query, request.limit) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
     case 'saveSyncState':

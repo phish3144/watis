@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../api'
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
 import { BackfillPanel } from '../components/BackfillPanel'
-import type { HitPreview } from '../../../workers/archive/repository'
+import type { HitPreview, NameHit } from '../../../workers/archive/repository'
 import { Gallery } from './Gallery'
 
 /**
@@ -250,6 +250,7 @@ export function ArchivePanel(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ArchiveHit[] | undefined>(undefined)
   const [previews, setPreviews] = useState<Record<string, HitPreview>>({})
+  const [names, setNames] = useState<NameHit[]>([])
   const [view, setView] = useState<'messages' | 'gallery'>('messages')
   const [jumpTo, setJumpTo] = useState('')
   const [error, setError] = useState<string | undefined>(undefined)
@@ -372,12 +373,18 @@ export function ArchivePanel(): React.JSX.Element {
     if (query.trim() === '') {
       setHits(undefined)
       setPreviews({})
+      setNames([])
       return
     }
     setLoading(true)
     try {
       const r = await ask<{ hits: ArchiveHit[] }>({ op: 'search', query, limit: 100 })
       setHits(r.hits)
+
+      // Names are a different kind of answer from messages and come from a different query, so a
+      // chat called "Rechnungen" does not have to out-rank every message about an invoice.
+      const found = await ask<{ names: NameHit[] }>({ op: 'names', query, limit: 8 })
+      setNames(found.names)
 
       // Previews come in one request for the whole page rather than one per row: a hundred hits
       // would otherwise be a hundred round trips for text nobody has looked at yet.
@@ -627,7 +634,41 @@ export function ArchivePanel(): React.JSX.Element {
           <Gallery chatId={chatId} />
         ) : hits ? (
           <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
-            {hits.length === 0 && <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>}
+            {names.length > 0 && (
+              <li className="border-b border-wa-hairline bg-wa-surface px-3 py-2">
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-wa-muted">
+                  Chats und Kontakte
+                </div>
+                <ul className="flex flex-wrap gap-2 text-sm">
+                  {names.map((name) => (
+                    <li key={`${name.kind}:${name.id}`}>
+                      <button
+                        type="button"
+                        className="rounded-md border border-wa-hairline px-2 py-0.5 hover:border-wa-accent"
+                        onClick={() => {
+                          if (name.kind === 'chat') {
+                            setChatId(name.id)
+                            setHits(undefined)
+                          } else {
+                            // A contact is not a chat: filtering by sender is the honest action,
+                            // because that person may appear in several chats.
+                            setQuery(`von:${name.id}`)
+                          }
+                        }}
+                      >
+                        {name.label}
+                        <span className="ml-1 text-[11px] text-wa-muted">
+                          {name.kind === 'chat' ? 'Chat' : 'Kontakt'}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            )}
+            {hits.length === 0 && names.length === 0 && (
+              <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>
+            )}
             {hits.map((hit) => (
               <HitRow
                 key={`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`}

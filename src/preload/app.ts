@@ -76,6 +76,8 @@ const api = {
     },
   },
   clearCaches: (): Promise<StorageOverview> => ipcRenderer.invoke('app:clear-caches'),
+  moveBlobs: (targetDir: string): Promise<{ moved: number; bytes: number; to: string }> =>
+    ipcRenderer.invoke('app:move-blobs', { targetDir }),
   getIndexStatus: (): Promise<unknown> => ipcRenderer.invoke('app:index-status'),
   reindex: (kind: string): Promise<unknown> => ipcRenderer.invoke('app:reindex', { kind }),
 

@@ -52,6 +52,8 @@ import { ExportSchedule } from './export/schedule'
 import { createReminderService, type ReminderService } from './reminders'
 import { AppLock } from './lock'
 import { clearDisposableCaches, measureStorage } from './storage/overview'
+import { moveBlobStore } from './storage/move-blobs'
+import { PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -562,6 +564,31 @@ function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('app:storage', () => measureStorage())
+  /**
+   * Moves the media files somewhere else and restarts the workers on the new location.
+   *
+   * The move happens with the workers stopped, so nothing is writing into the directory being
+   * walked. Files are copied and verified before the originals go — a failed move must not be the
+   * moment somebody's photos stop existing anywhere.
+   */
+  ipcMain.handle('app:move-blobs', async (_event, payload: unknown) => {
+    const target = (payload as { targetDir?: unknown })?.targetDir
+    if (typeof target !== 'string' || target.trim() === '') throw new Error('targetDir is required')
+
+    const from = settings().blobDir.trim() || appPaths().blobs
+    await supervisor.stopAccount(PRIMARY_ACCOUNT_ID, 'moving the media store')
+    try {
+      const result = await moveBlobStore(from, target)
+      updateSettings({ blobDir: target })
+      return result
+    } finally {
+      // The workers come back either way: leaving the archive shut because a move failed would
+      // turn a storage problem into an unusable application.
+      supervisor.start('archive', PRIMARY_ACCOUNT_ID)
+      supervisor.start('contentIndex', PRIMARY_ACCOUNT_ID)
+    }
+  })
+
   ipcMain.handle('app:clear-caches', async () => {
     await clearDisposableCaches()
     return measureStorage()

@@ -99,6 +99,7 @@ export interface WatIsApi {
     startDrag(path: string): void
   }
   clearCaches(): Promise<StorageOverview>
+  moveBlobs(targetDir: string): Promise<{ moved: number; bytes: number; to: string }>
   getIndexStatus(): Promise<unknown>
   reindex(kind: string): Promise<unknown>
   exportSchedule: {

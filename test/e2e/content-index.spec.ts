@@ -62,11 +62,16 @@ test.afterAll(async () => {
 })
 
 test('opens the queue against the same archive the other worker holds', async () => {
-  const status = await waitForIndex()
-  // Reading the counts at all means the worker found archive.sqlite and the index_jobs table in
-  // it — two writers on one database under WAL, which is the arrangement §5.6 relies on.
-  expect(status.counts).not.toBeNull()
-  expect(status.counts).toMatchObject({ queued: 0, running: 0 })
+  // The worker answers `status` as soon as it is up, which is BEFORE it has attached: the archive
+  // worker owns the schema and this one retries until the migrations are done. Asserting the
+  // counts immediately treated an eventually-consistent state as an immediate one, and failed
+  // roughly one full-suite run in six.
+  await expect
+    .poll(async () => (await waitForIndex()).counts, {
+      timeout: 40_000,
+      message: 'the content index should attach once the archive worker has migrated',
+    })
+    .toMatchObject({ queued: 0, running: 0 })
 })
 
 test('acts on the signals main pushes rather than deciding on its own', async () => {

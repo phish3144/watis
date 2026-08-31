@@ -1,5 +1,7 @@
 import type Database from 'better-sqlite3'
 import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
+import { indexForm } from '@shared/search/normalise'
+import { INDEX_FORM_FUNCTION } from './schema'
 import type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow } from '@shared/model/rows'
 
 // Re-exported because most of this file's callers reach for the row types through the repository,
@@ -800,6 +802,57 @@ export class ArchiveRepository {
       .run(Math.floor(Date.now() / 1000), id)
   }
 
+  /**
+   * Chats and contacts matching a query (PLAN.md Phase 4).
+   *
+   * Kept out of `search_fts` deliberately. That index holds *messages* — putting names in it would
+   * mean a chat called "Rechnungen" ranking against every message about an invoice, and the two
+   * are not the same kind of answer. A person typing a name wants the chat first, and a separate
+   * small query gives them that without distorting the message ranking at all.
+   */
+  findChatsAndContacts(query: string, limit = 8): NameHit[] {
+    const term = query.trim()
+    if (term === '') return []
+    // Matched on the folded form so `Grüße` and `Gruesse` behave here the way they do in the
+    // message index (ADR 0002) — the caller does not have to know which spelling was stored.
+    const pattern = `%${indexForm(term).toLowerCase()}%`
+
+    const chats = this.#db
+      .prepare(
+        `SELECT id, name, kind, last_msg_ts FROM chats
+         WHERE name IS NOT NULL AND ${INDEX_FORM_FUNCTION}(lower(name)) LIKE ?
+         ORDER BY IFNULL(last_msg_ts, 0) DESC LIMIT ?`,
+      )
+      .all(pattern, limit) as Record<string, unknown>[]
+
+    const contacts = this.#db
+      .prepare(
+        `SELECT jid, name, pushname, phone FROM contacts
+         WHERE (name IS NOT NULL AND ${INDEX_FORM_FUNCTION}(lower(name)) LIKE @pattern)
+            OR (pushname IS NOT NULL AND ${INDEX_FORM_FUNCTION}(lower(pushname)) LIKE @pattern)
+            OR (phone IS NOT NULL AND phone LIKE @pattern)
+         LIMIT @limit`,
+      )
+      .all({ pattern, limit }) as Record<string, unknown>[]
+
+    return [
+      ...chats.map((c): NameHit => ({
+        kind: 'chat',
+        id: c.id as string,
+        label: (c.name ?? c.id) as string,
+        detail: (c.kind ?? null) as string | null,
+        lastTs: c.last_msg_ts as number | null,
+      })),
+      ...contacts.map((c): NameHit => ({
+        kind: 'contact',
+        id: c.jid as string,
+        label: (c.name ?? c.pushname ?? c.jid) as string,
+        detail: (c.phone ?? null) as string | null,
+        lastTs: null,
+      })),
+    ]
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number
@@ -912,6 +965,15 @@ export interface ReminderRow {
   chatId: string | null
   body: string | null
   messageTs: number | null
+}
+
+/** A chat or a contact found by name — a different kind of answer from a message hit. */
+export interface NameHit {
+  kind: 'chat' | 'contact'
+  id: string
+  label: string
+  detail: string | null
+  lastTs: number | null
 }
 
 export interface GalleryItem {

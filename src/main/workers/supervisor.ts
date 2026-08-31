@@ -5,6 +5,7 @@ import { parseWorkerMessage, type HostToWorker, type WorkerName } from '@shared/
 import { accountPaths, appPaths } from '../paths'
 import { PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 import { resourcePath } from '../resources'
+import { settings } from '../config/store'
 import { log } from '../logging'
 
 /**
@@ -40,6 +41,13 @@ interface Supervised {
 }
 
 const workerKey = (name: WorkerName, accountId: string): string => `${name}@${accountId}`
+
+function blobsDirFor(accountId: string): string {
+  const configured = settings().blobDir.trim()
+  return accountId === PRIMARY_ACCOUNT_ID && configured !== ''
+    ? configured
+    : accountPaths(accountId).blobs
+}
 
 const WORKER_ENTRIES: Record<WorkerName, string> = {
   archive: 'archive.js',
@@ -98,7 +106,11 @@ export class WorkerSupervisor {
         WATIS_WORKER: state.name,
         WATIS_ACCOUNT: state.accountId,
         WATIS_ARCHIVE_DIR: accountPaths(state.accountId).archive,
-        WATIS_BLOBS_DIR: accountPaths(state.accountId).blobs,
+        // A configured location applies to the primary account only. Each further account keeps
+        // its own directory under accounts/<id>/: one setting pointing several accounts at the
+        // same folder would merge their media, which is precisely what separate stores prevent.
+        WATIS_BLOBS_DIR: blobsDirFor(state.accountId),
+        WATIS_BLOB_QUOTA_GB: String(settings().blobQuotaGb),
         WATIS_MODELS_DIR: appPaths().models,
         // The OCR language data ships with the application rather than living in the user's data
         // directory: it is read-only, identical for everyone, and downloading it would be traffic

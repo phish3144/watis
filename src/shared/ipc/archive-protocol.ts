@@ -119,6 +119,11 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
     ts: z.number().int(),
   }),
   z.object({ op: z.literal('months'), chatId: z.string().min(1) }),
+  z.object({
+    op: z.literal('names'),
+    query: z.string().max(200),
+    limit: z.number().int().min(1).max(50).default(8),
+  }),
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
   z.object({ op: z.literal('stats') }),
   z.object({

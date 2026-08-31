@@ -457,8 +457,14 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
   ein laufendes Bundle geprüft — bis dahin `OPTIONAL` und in `docs/bridge-smoke.md` als unbelegt geführt
 - [x] Regeln: Dokumente immer, Bilder immer, Videos nur auf Klick, harte Obergrenze; jede Ablehnung
       nennt ihren Grund
-- [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben
-- [~] Migrations-System **fertig** (versioniert über `user_version`, je Migration eine Transaktion), alle Indizes aus §5.4 **fertig**, Schema und FTS-Trigger **fertig**; offen: `VACUUM INTO` für Snapshots
+- [x] Quota mit Warnschwelle, Speicherort in den Einstellungen und das Verschieben:
+      kopieren, Größe prüfen, erst dann am alten Ort löschen — ein `rename` über Gerätegrenzen
+      scheitert mit EXDEV, und das ist der eine Moment, in dem ein Fehler Dateien verliert, die es
+      sonst nirgends mehr gibt. Verschoben werden nur die Medien; die Datenbank ist klein und ohne
+      sie läuft nichts, sie auf ein abziehbares Laufwerk zu legen wäre ein schlechter Tausch
+- [x] Migrations-System (versioniert über `user_version`, je Migration eine Transaktion, Liste
+      append-only), alle Indizes aus §5.4, Schema und FTS-Trigger, `VACUUM INTO` für Snapshots
+      (`runBackup` legt damit eine konsistente Einzeldatei ohne separates WAL an)
 - [x] Kein Durchreichen von Exceptions in die WA-Seite (jeder `require` gekapselt),
       Feature-Abschaltung, und das Banner in der UI, wenn die Bridge steht
 - [x] Manuelle Smoke-Test-Checkliste (`docs/bridge-smoke.md`) — prüft ausdrücklich auch die
@@ -488,9 +494,11 @@ Ziel: Suche und Scrollen laufen über das Archiv, nicht mehr über WA Web.
       neueste zuerst. „Dokument" ist über Ausschluss definiert, nicht über eine Liste von MIME-Typen,
       die beim ersten unbekannten Format veraltet wäre. Links stehen in Nachrichtentexten, nicht in
       `media` — sie werden per Muster gefunden, ohne eine Tabelle, die alles Vorhandene nachtragen müsste
-- [~] Strg+K springt in die Suche **fertig**, deutsche Feldnamen (`von:`, `vor:`, `nach:`, `hat:`,
-  `quelle:`) werden jetzt tatsächlich geparst — die Platzhalterzeile hatte sie versprochen, der
-  Parser kannte nur die englischen; offen: Chats und Kontakte als eigene Trefferarten
+- [x] Strg+K springt in die Suche, deutsche Feldnamen (`von:`, `vor:`, `nach:`, `hat:`, `quelle:`)
+      werden tatsächlich geparst, und Chats und Kontakte sind eigene Trefferarten — **nicht** in
+      `search_fts`: dort stehen Nachrichten, und ein Chat namens „Rechnungen" gegen jede Nachricht
+      über eine Rechnung ranken zu lassen macht beide Antworten schlechter. Eigene kleine Abfrage,
+      auf derselben gefalteten Form, damit `schaefer` auch hier `Schäfer` findet
 - [x] Suche < 200 ms (p95): **6,20 ms bei 1 Mio.** in der Standardreihenfolge, Benchmark unter
       `scripts/loadtest-archive.mjs` ([ADR 0007](docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md)).
       Relevanz-Sortierung verfehlt das Gate bei sehr häufigen Begriffen bauartbedingt

@@ -76,6 +76,16 @@ export const settingsSchema = z.object({
     .int()
     .min(1)
     .max(24 * 14),
+
+  // --- Speicher -----------------------------------------------------------
+  /**
+   * Where the media files live. Empty means the default under the data root. Set this to move the
+   * bulk of the storage to another drive — the database stays where it is, because it is small and
+   * the application is unusable without it.
+   */
+  blobDir: z.string(),
+  /** Warn above this many gigabytes; writing stops at the hard limit. */
+  blobQuotaGb: z.number().int().min(1).max(2000),
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -121,6 +131,9 @@ export const defaultSettings: Settings = {
   scheduledExportDir: '',
   scheduledExportFormats: ['json'],
   scheduledExportEveryHours: 24,
+
+  blobDir: '',
+  blobQuotaGb: 20,
 }
 
 /** Merges a stored object with the defaults, dropping anything that does not validate. */
