@@ -103,6 +103,7 @@ export class IndexRunner {
       try {
         const extraction = await engine.extract(file.path, file.mime)
         this.#store(job, extraction, now)
+        this.#chainScannedPages(job, extraction, now)
         this.#deps.queue.complete(job.id, now)
         outcome.done++
       } catch (error) {
@@ -113,6 +114,24 @@ export class IndexRunner {
     }
 
     return outcome
+  }
+
+  /**
+   * A PDF page with no text layer is a scan — a picture of words, not a page without any. It gets
+   * its own OCR job rather than being written off as empty (ADR 0005 C, ADR 0008).
+   */
+  #chainScannedPages(job: Job, extraction: Extraction, now: number): void {
+    if (job.kind !== 'pdf') return
+    const pages = (extraction as { scannedPages?: number[] }).scannedPages ?? []
+    if (pages.length === 0) return
+
+    // Lower priority than a fresh document: rendering and recognising pages is the expensive path,
+    // and it should not hold up documents that carry their text already.
+    this.#deps.queue.enqueue(job.mediaId, 'ocr', 15, now)
+    this.#deps.log?.(
+      'info',
+      `pdf ${job.mediaId}: ${String(pages.length)} page(s) without a text layer queued for OCR`,
+    )
   }
 
   /**

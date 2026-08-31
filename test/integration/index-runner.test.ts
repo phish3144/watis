@@ -126,6 +126,46 @@ describe('IndexRunner', () => {
     expect(detail.lines.some((l) => l.page === 2)).toBe(true)
   })
 
+  it('queues OCR for a PDF page that carries no text layer', { timeout: 60_000 }, async () => {
+    // A scan is a picture of words, not a page without any — writing it off as empty would lose it.
+    addMedia('me1', 'application/pdf', 'scan.pdf')
+    const runner = new IndexRunner({
+      db,
+      queue,
+      engines: { pdf: new PdfEngine() },
+      fileFor: () =>
+        Promise.resolve({ path: fixture('angebot-scan.pdf'), mime: 'application/pdf' }),
+    })
+    runner.enqueuePending()
+    await runner.run(1)
+
+    const ocrJob = db
+      .prepare("SELECT media_id, priority FROM index_jobs WHERE kind = 'ocr' AND status = 'queued'")
+      .get()
+    expect(ocrJob).toMatchObject({ media_id: 'me1' })
+  })
+
+  it(
+    'does not queue OCR for a PDF that already carries its text',
+    { timeout: 60_000 },
+    async () => {
+      addMedia('me1', 'application/pdf', 'angebot.pdf')
+      const runner = new IndexRunner({
+        db,
+        queue,
+        engines: { pdf: new PdfEngine() },
+        fileFor: () =>
+          Promise.resolve({ path: fixture('angebot-text.pdf'), mime: 'application/pdf' }),
+      })
+      runner.enqueuePending()
+      await runner.run(1)
+
+      expect(db.prepare("SELECT count(*) AS n FROM index_jobs WHERE kind = 'ocr'").get()).toEqual({
+        n: 0,
+      })
+    },
+  )
+
   it('replaces a previous result for the same source without touching the others', async () => {
     addMedia('me1', 'image/jpeg')
     db.prepare(

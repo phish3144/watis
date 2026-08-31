@@ -494,8 +494,10 @@ Ziel: Das Archiv ist ein echtes, offenes Backup.
 
 - [x] Export pro Chat: JSON (verlustfrei), HTML (selbständig, relative Medienlinks, kein Script),
       TXT im Stil des WA-eigenen Exports (`[dd.mm.yy, hh:mm] Name: Text`)
-- [ ] Medien beim Export aus dem Blob-Store in lesbare Chat-Ordner materialisieren (Hardlinks, sonst Kopie)
-- [ ] Inkrementeller Export (nur Neues seit letztem Lauf) und vollständiger Snapshot (`VACUUM INTO` + Blob-Store)
+- [x] Medien beim Export in lesbare Chat-Ordner materialisiert: Hardlink, sonst Kopie — ein Export,
+      der scheitert, ist schlimmer als einer, der länger dauert
+- [~] Inkrementeller Export (nur Neues seit letztem Lauf) **fertig**, `VACUUM INTO` im Repository
+  **fertig**; offen: den Blob-Store in den Snapshot einbeziehen
 - [x] Integritätsprüfung: Zähler, fehlende Blobs und Datensätze ohne Hash getrennt ausgewiesen
 - [ ] Zeitgesteuerter Export in einen Zielordner (z. B. für restic/rsync)
 - [ ] Dokumentation: „Restore" = Archivansicht; ein Zurückspielen in WhatsApp gibt es nicht
