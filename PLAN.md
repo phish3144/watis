@@ -609,7 +609,9 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
       sammelt sie, ein Banner im Panel sagt was kaputt ist und was weiter geht. Lesen wird nie
       abgeschaltet
 - [ ] Performance-Profil: RAM/CPU im Leerlauf und unter Last, Vergleich mit Store-App dokumentieren
-- [ ] README (Quick Start < 5 min), `docs/architecture.md`, `docs/bridge-map.md`, Changelog
+- [x] README mit Quick Start (Clone, `npm ci`, `npm run dev` — kein Compiler, keine Adminrechte),
+      [`docs/architecture.md`](docs/architecture.md), [`docs/bridge-map.md`](docs/bridge-map.md),
+      [`CHANGELOG.md`](CHANGELOG.md) mit den bekannten Einschränkungen ausdrücklich darin
 - [ ] Code-Signing: Windows – unsigniert zeigt SmartScreen „Windows hat den PC geschützt" (Ausführen über
       „Weitere Informationen → Trotzdem ausführen", braucht keine Adminrechte); Option Zertifikat/Azure Trusted
       Signing bewerten (Kosten vs. Komfort). macOS – Signierung + Notarisierung sind für ein Release Pflicht

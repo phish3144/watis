@@ -28,6 +28,50 @@ Alles läuft lokal. Keine Telemetrie, keine Cloud, keine Accounts, keine laufend
   read-only.
 - **Nichts, was Adminrechte braucht.** Keine Dienste, keine HKLM-Registry, keine offenen Ports.
 
+## Quick Start (unter 5 Minuten)
+
+Voraussetzung: Node 22 oder neuer und Git. Sonst nichts — kein Compiler, keine Adminrechte, kein
+Python. `better-sqlite3` kommt als vorgebautes Node-API-Binary, es wird nichts nachgebaut.
+
+```bash
+git clone https://github.com/phish3144/watis.git
+cd watis
+npm ci
+npm run dev
+```
+
+Beim ersten Start erscheint der QR-Code von WhatsApp Web. Einmal scannen — die Sitzung liegt danach
+in `%LOCALAPPDATA%\watis\session\` und überlebt Neustarts und Updates.
+
+Rechts liegt das eigene Panel (**Strg + ,** blendet es ein und aus) mit Archivansicht, Suche und
+allen Schaltern. Das Archiv füllt sich, sobald die Bridge steht; **Jetzt übernehmen** holt in einem
+Zug, was WhatsApp Web bereits im Speicher hat.
+
+### Nützliche Kommandos
+
+|                        |                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `npm run dev`          | Entwicklungsmodus mit Hot Reload                                                                  |
+| `npm run verify`       | Format, Lint, Typen, Unit- und Integrationstests — Sekunden                                       |
+| `npm run test:e2e`     | Playwright gegen die echte Electron-App                                                           |
+| `npm run gate:release` | Alles davon plus Lasttest ([`docs/lasttest.md`](docs/lasttest.md))                                |
+| `npm run dist:win`     | Per-User-Installer, ohne Adminrechte ([`docs/managed-deployment.md`](docs/managed-deployment.md)) |
+
+### Wo die Daten liegen
+
+Alles unter `%LOCALAPPDATA%\watis\` (macOS: `~/Library/Application Support/watis/`), nie im
+Roaming-Profil:
+
+```
+session/   die WhatsApp-Web-Sitzung — wird nie gelöscht, nur der Cache selektiv
+archive/   archive.sqlite mit Nachrichten und Volltextindex
+blobs/     Mediendateien, inhaltsadressiert und dedupliziert
+logs/      Protokolle
+```
+
+Sichern und Zurückspielen: [`docs/backup-und-restore.md`](docs/backup-und-restore.md).
+Wie das Ganze aufgebaut ist: [`docs/architecture.md`](docs/architecture.md).
+
 ## Ehrliche Hinweise
 
 - Dies ist **kein offizielles WhatsApp-Produkt** und steht in keiner Verbindung zu Meta. WhatsApp ist eine
