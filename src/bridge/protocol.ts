@@ -46,7 +46,8 @@ export type BridgeMessage = BridgeReady | BridgeBatch | BridgeResult
 
 export interface BridgeCommand {
   id: number
-  op: 'snapshot' | 'openChat' | 'loadOlder' | 'earliestReachableTs' | 'healthcheck'
+  op:
+    'snapshot' | 'openChat' | 'loadOlder' | 'earliestReachableTs' | 'downloadMedia' | 'healthcheck'
   args?: Record<string, unknown>
 }
 

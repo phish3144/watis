@@ -59,6 +59,24 @@ export const HISTORY_SYNC: ModuleSignature = {
   functions: ['getEarliestHistorySyncDate'],
 }
 
+/**
+ * Fetching and decrypting a message's attachment through WhatsApp's own downloader.
+ *
+ * **Not yet verified against a live session.** Every other signature in this file was checked
+ * against the running bundle; this one is written from the module's published name and shape and is
+ * therefore `OPTIONAL` — if it does not resolve, media fetching switches off and everything else
+ * carries on. The smoke checklist has to confirm it before it may be treated as working
+ * (`docs/bridge-smoke.md`).
+ *
+ * Reading only: it fetches bytes the user's own client already references and decrypts them with
+ * the key already in the message. It sends nothing.
+ */
+export const MEDIA_DOWNLOAD: ModuleSignature = {
+  module: 'WAWebDownloadManager',
+  path: ['downloadManager'],
+  functions: ['downloadAndMaybeDecrypt'],
+}
+
 export const REQUIRED: readonly ModuleSignature[] = [
   CHAT_COLLECTION,
   MSG_COLLECTION,
@@ -70,6 +88,7 @@ export const OPTIONAL: readonly ModuleSignature[] = [
   LOAD_MESSAGES,
   CMD,
   HISTORY_SYNC,
+  MEDIA_DOWNLOAD,
 ]
 
 export const ALL: readonly ModuleSignature[] = [...REQUIRED, ...OPTIONAL]
@@ -80,6 +99,7 @@ export const FEATURE_MODULES = {
   backfill: [LOAD_MESSAGES.module, HISTORY_SYNC.module],
   openInWhatsApp: [CMD.module],
   groupNames: [GROUP_METADATA.module],
+  mediaFetch: [MEDIA_DOWNLOAD.module, MSG_COLLECTION.module],
 } as const
 
 export function disabledFeatures(available: ReadonlySet<string>): string[] {

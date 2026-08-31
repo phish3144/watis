@@ -484,6 +484,47 @@ export class ArchiveRepository {
     }))
   }
 
+  /**
+   * Media rows that were mirrored but whose bytes are not here yet. The fetcher works this list, so
+   * a download interrupted by a quit is simply picked up again — the row still says `pending`.
+   */
+  pendingMedia(limit = 50): MediaRow[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT id, msg_id, chat_id, mime, size, sha256, filename, status
+         FROM media WHERE status = 'pending' ORDER BY rowid LIMIT ?`,
+      )
+      .all(limit) as Record<string, unknown>[]
+    return rows.map((r) => ({
+      id: r.id as string,
+      msgId: r.msg_id as string | null,
+      chatId: r.chat_id as string | null,
+      mime: r.mime as string | null,
+      size: r.size as number | null,
+      sha256: r.sha256 as string | null,
+      filename: r.filename as string | null,
+      status: r.status as MediaRow['status'],
+    }))
+  }
+
+  /** Records the outcome of a fetch. A refusal is recorded too, with its reason (§10). */
+  markMedia(mediaId: string, status: 'pending' | 'done' | 'failed' | 'skipped'): void {
+    this.#db.prepare('UPDATE media SET status = ? WHERE id = ?').run(status, mediaId)
+  }
+
+  /**
+   * Points a media row at a stored blob and queues the content-index job for it.
+   *
+   * Both in one statement pair rather than two calls from outside: a row marked `done` with no job
+   * behind it is a file that silently never becomes searchable, and that is exactly the kind of
+   * gap nobody notices until they go looking for a document they know they have.
+   */
+  attachBlob(mediaId: string, sha256: string, size: number): void {
+    this.#db
+      .prepare(`UPDATE media SET sha256 = ?, size = ?, status = 'done' WHERE id = ?`)
+      .run(sha256, size, mediaId)
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number

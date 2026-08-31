@@ -431,8 +431,11 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
       `newest_ts` nur vor — ein späterer Lauf darf nicht löschen, was ein früherer erreicht hat
 - [x] Live-Spiegelung über die Backbone-artigen Collections (`add`/`change`/`remove`): neue,
       editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
-- [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**;
-  offen: der Download über die interne Funktion und das Anlegen der Index-Jobs
+- [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**, im
+  Archiv-Prozess betrieben; Download über `WAWebDownloadManager` und das Anlegen der Index-Jobs
+  **gebaut**, der Fetcher arbeitet die `pending`-Zeilen statt Events ab, damit ein abgebrochener
+  Download wieder aufgenommen wird; offen: die Signatur ist als einzige im Projekt **nicht** gegen
+  ein laufendes Bundle geprüft — bis dahin `OPTIONAL` und in `docs/bridge-smoke.md` als unbelegt geführt
 - [x] Regeln: Dokumente immer, Bilder immer, Videos nur auf Klick, harte Obergrenze; jede Ablehnung
       nennt ihren Grund
 - [~] Quota mit Warnschwelle **fertig**; offen: Speicherort in der Config und das Verschieben

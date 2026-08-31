@@ -27,6 +27,7 @@ import { BridgeHost } from './bridge/host'
 import { Importer } from './archive/importer'
 import { BackfillController } from './backfill/controller'
 import { startIndexSignals } from './index-signals'
+import { MediaFetcher } from './archive/media-fetcher'
 import { platform } from '@platform/current'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
@@ -43,6 +44,7 @@ let health: HealthMonitor | undefined
 let bridge: BridgeHost | undefined
 let importer: Importer | undefined
 let backfill: BackfillController | undefined
+let mediaFetcher: MediaFetcher | undefined
 let stopWatchdog: (() => void) | undefined
 let stopIndexSignals: (() => void) | undefined
 
@@ -180,6 +182,12 @@ async function bootstrap(): Promise<void> {
     },
   })
 
+  mediaFetcher = new MediaFetcher({
+    bridge,
+    archive: (request) => supervisor.request('archive', request),
+  })
+  mediaFetcher.start()
+
   stopIndexSignals = startIndexSignals(supervisor)
 
   configureUpdater({ enabled: true })
@@ -271,6 +279,17 @@ function registerIpcHandlers(): void {
   // Backpressure, so the panel can show a mirror that is falling behind instead of silently
   // dropping events (PLAN.md Phase 3).
   ipcMain.handle('app:import-stats', () => importer?.stats() ?? null)
+
+  ipcMain.handle('app:media-stats', () => mediaFetcher?.stats() ?? null)
+
+  // "Videos on click" (§10): the automatic rules leave big files alone, and this is the user
+  // saying they want this one.
+  ipcMain.handle('media:fetch-now', async (_event, payload: unknown) => {
+    const candidate = payload as { id?: unknown }
+    if (typeof candidate?.id !== 'string') throw new Error('id is required')
+    if (!mediaFetcher) throw new Error('not ready')
+    return mediaFetcher.fetchNow(candidate as { id: string })
+  })
 
   ipcMain.handle('app:index-status', () => supervisor.request('contentIndex', { op: 'status' }))
   ipcMain.handle('app:reindex', (_event, payload: unknown) => {
@@ -383,6 +402,7 @@ app.on('will-quit', (event) => {
   health?.stop()
   notifications?.dispose()
   backfill?.stop()
+  mediaFetcher?.stop()
   bridge?.dispose()
   void importer?.stop()
   tray?.dispose()

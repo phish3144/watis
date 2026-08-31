@@ -34,6 +34,7 @@ function fullPage(chat = chatModel([{ t: 1000 }])) {
       WAWebChatLoadMessages: { loadEarlierMsgs: vi.fn() },
       WAWebCmd: { Cmd: { openChatAt: vi.fn(), openChatBottom: vi.fn() } },
       WAWebHistorySyncUtils: { getEarliestHistorySyncDate: vi.fn(() => 1_700_000_000) },
+      WAWebDownloadManager: { downloadManager: { downloadAndMaybeDecrypt: vi.fn() } },
     }),
     collection,
     chat,
@@ -176,10 +177,12 @@ describe('operations', () => {
   })
 
   it('never hands the raw Cmd object to a caller', async () => {
-    // Cmd also carries sendDeleteMsgs and Revoke; this module is the barrier.
+    // Cmd also carries sendDeleteMsgs and Revoke; this module is the barrier. The list is exact on
+    // purpose: adding an export here is meant to be a change somebody has to make deliberately,
+    // and every name on it reads.
     const exports = await import('../../src/bridge/operations')
     const names = Object.keys(exports)
-    expect(names.sort()).toEqual(['earliestReachableTs', 'loadOlder', 'openChat'])
+    expect(names.sort()).toEqual(['downloadMedia', 'earliestReachableTs', 'loadOlder', 'openChat'])
   })
 })
 

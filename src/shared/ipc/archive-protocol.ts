@@ -101,6 +101,22 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
       .max(MAX_BATCH),
   }),
   z.object({ op: z.literal('syncState'), chatId: z.string().min(1).optional() }),
+  z.object({
+    op: z.literal('storeBlob'),
+    mediaId: z.string().min(1),
+    /** Base64. A string is the only thing that survives the page and the IPC boundary intact. */
+    data: z.string(),
+    mime: z.string().nullable().optional(),
+    filename: z.string().nullable().optional(),
+  }),
+  z.object({
+    op: z.literal('markMedia'),
+    mediaId: z.string().min(1),
+    status: z.enum(['pending', 'done', 'failed', 'skipped']),
+    reason: z.string().optional(),
+  }),
+  z.object({ op: z.literal('pendingMedia'), limit: z.number().int().min(1).max(500).default(50) }),
+  z.object({ op: z.literal('quota') }),
   z.object({ op: z.literal('snapshot'), toFile: z.string().min(1) }),
 ])
 

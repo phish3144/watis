@@ -1,5 +1,5 @@
 import { isFailure, resolveModule, type PageGlobals } from './modules'
-import { CMD, HISTORY_SYNC, LOAD_MESSAGES } from './signatures'
+import { CMD, HISTORY_SYNC, LOAD_MESSAGES, MEDIA_DOWNLOAD, MSG_COLLECTION } from './signatures'
 
 /**
  * The only operations the bridge is allowed to perform.
@@ -97,6 +97,80 @@ export async function earliestReachableTs(globals: PageGlobals): Promise<number 
     return value > 32_503_680_000 ? Math.floor(value / 1000) : Math.floor(value)
   }
   return undefined
+}
+
+export interface DownloadedMedia {
+  /** The bytes, base64. A string is the only thing that crosses the world boundary safely. */
+  data: string
+  mime?: string | undefined
+  filename?: string | undefined
+  size: number
+}
+
+/**
+ * Fetches one message's attachment through WhatsApp's own downloader.
+ *
+ * This reads: it asks for bytes the user's client already references and decrypts them with the key
+ * already in the message model. It sends nothing, marks nothing, and touches no other message.
+ *
+ * `MEDIA_DOWNLOAD` is the one signature in this project that has not been checked against a live
+ * bundle, so this returns undefined rather than throwing when the module is not what we expect —
+ * media fetching switches off and the rest of the archive keeps working.
+ */
+export async function downloadMedia(
+  globals: PageGlobals,
+  msgId: string,
+): Promise<DownloadedMedia | undefined> {
+  const msgResult = resolveModule(globals, MSG_COLLECTION)
+  if (isFailure(msgResult)) return undefined
+  const collection = (msgResult.value as { get?: (id: string) => unknown } | null) ?? null
+  const message = collection?.get?.(msgId) as Record<string, unknown> | undefined
+  if (!message) return undefined
+
+  const result = resolveModule(globals, MEDIA_DOWNLOAD)
+  if (isFailure(result)) return undefined
+  const download = (result.value as Record<string, unknown>).downloadAndMaybeDecrypt
+  if (typeof download !== 'function') return undefined
+
+  const blob = await Promise.resolve(
+    (download as Fn)({
+      directPath: message.directPath,
+      encFilehash: message.encFilehash,
+      filehash: message.filehash,
+      mediaKey: message.mediaKey,
+      mediaKeyTimestamp: message.mediaKeyTimestamp,
+      type: message.type,
+      signal: undefined,
+    }),
+  )
+
+  const bytes = await toBytes(blob)
+  if (!bytes) return undefined
+
+  return {
+    data: base64(bytes),
+    mime: typeof message.mimetype === 'string' ? message.mimetype : undefined,
+    filename: typeof message.filename === 'string' ? message.filename : undefined,
+    size: bytes.length,
+  }
+}
+
+/** WhatsApp has returned a Blob, an ArrayBuffer and a Uint8Array here across versions. */
+async function toBytes(value: unknown): Promise<Uint8Array | undefined> {
+  if (value instanceof Uint8Array) return value
+  if (value instanceof ArrayBuffer) return new Uint8Array(value)
+  const blob = value as { arrayBuffer?: () => Promise<ArrayBuffer> } | null
+  if (typeof blob?.arrayBuffer === 'function') return new Uint8Array(await blob.arrayBuffer())
+  return undefined
+}
+
+function base64(bytes: Uint8Array): string {
+  let binary = ''
+  // In chunks: String.fromCharCode with a few hundred thousand arguments overflows the stack.
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
+  }
+  return btoa(binary)
 }
 
 async function findChat(globals: PageGlobals, chatId: string): Promise<unknown> {

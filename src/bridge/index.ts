@@ -1,7 +1,7 @@
 import { healthcheck, type PageGlobals } from './modules'
 import { CHAT_COLLECTION, CONTACT_COLLECTION, MSG_COLLECTION } from './signatures'
 import { observe, snapshot, type MirrorEvent, type ObserverHandle } from './observer'
-import { earliestReachableTs, loadOlder, openChat } from './operations'
+import { downloadMedia, earliestReachableTs, loadOlder, openChat } from './operations'
 import { summarise, TO_HOST, TO_PAGE, type BridgeCommand, type BridgeMessage } from './protocol'
 
 /**
@@ -125,6 +125,10 @@ export function install(): { stop: () => void } {
       }
       case 'earliestReachableTs':
         return earliestReachableTs(globals)
+      case 'downloadMedia': {
+        if (typeof args.msgId !== 'string') throw new Error('msgId is required')
+        return downloadMedia(globals, args.msgId)
+      }
       default:
         throw new Error(`unknown bridge op`)
     }

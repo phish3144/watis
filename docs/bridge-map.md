@@ -18,6 +18,19 @@ vorhanden, und `moduleRaid` entfällt.
 lädt nichts nach und liefert kein `undefined`. Jeder Aufruf ist deshalb gekapselt — ein blinder Aufruf
 würde die Exception in einem WhatsApp-Stackframe auslösen.
 
+## Noch nicht verifiziert
+
+| Modul                  | Pfad               | Verlangt                    | Wofür        | Stand                                                      |
+| ---------------------- | ------------------ | --------------------------- | ------------ | ---------------------------------------------------------- |
+| `WAWebDownloadManager` | `.downloadManager` | `downloadAndMaybeDecrypt()` | Medien holen | **aus der Doku, nicht gegen ein laufendes Bundle geprüft** |
+
+Jede andere Signatur in diesem Dokument wurde gegen das laufende Bundle geprüft. Diese nicht — sie
+steht deshalb in `OPTIONAL`: Löst sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft
+weiter. Vor dem Smoke-Test gilt sie als unbelegt.
+
+Die Operation liest: Sie holt Bytes, die der Client der Nutzerin ohnehin referenziert, und entschlüsselt
+sie mit dem Schlüssel, der bereits in der Nachricht steht. Sie sendet nichts und markiert nichts.
+
 ## Wie der Code in die Seite kommt
 
 `window.require` existiert **nur in der Seitenwelt**. Das Preload läuft in der isolierten Welt und

@@ -45,15 +45,18 @@ export function decideFetch(
   rules: FetchRules = {},
   manual = false,
 ): FetchDecision {
-  // A manual click overrides every rule except the hard ceiling: the user asked for this file.
   const merged = { ...DEFAULTS, ...rules }
   const size = candidate.size ?? 0
   const mime = (candidate.mime ?? '').toLowerCase()
 
-  if (manual) return { fetch: true, reason: 'manual' }
+  // The hard ceiling is checked before anything else, a click included. It is not there to
+  // second-guess the user's taste — it is there so a single file cannot fill the disk, and a limit
+  // that any click gets past is not a limit (§10, "harte Obergrenze").
   if (size > merged.hardMaxBytes) {
     return { fetch: false, reason: `larger than ${String(merged.hardMaxBytes)} bytes` }
   }
+  // Past the ceiling, a click overrides every other rule: the user asked for this file.
+  if (manual) return { fetch: true, reason: 'manual' }
 
   if (mime.startsWith('image/')) {
     return merged.images ? { fetch: true, reason: 'image' } : { fetch: false, reason: 'images off' }

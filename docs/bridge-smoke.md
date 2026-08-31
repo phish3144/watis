@@ -33,3 +33,18 @@ Ergebnis mit Datum und Version in [`docs/bridge-map.md`](bridge-map.md) nachtrag
 - **Nichts wird gesendet.** `logs/outgoing.log` muss nach dem gesamten Durchlauf leer sein.
 - **Kein Ausfall bricht die Seite.** Ein absichtlich falscher Modulname im Healthcheck darf nur die
   betroffene Funktion abschalten, nicht WhatsApp Web stören.
+
+## Medien holen (unbelegt)
+
+`WAWebDownloadManager.downloadManager.downloadAndMaybeDecrypt` ist die einzige Signatur im Projekt,
+die **nicht** gegen ein laufendes Bundle geprüft wurde. Bis dieser Punkt einmal grün war, gilt das
+Medienholen als unbelegt.
+
+- [ ] `require('WAWebDownloadManager')` löst auf und hat `downloadManager.downloadAndMaybeDecrypt`
+- [ ] Ein Dokument aus einem Chat landet nach spätestens zwei Durchläufen in `blobs/`, `media.status`
+      steht auf `done`, und ein `index_jobs`-Eintrag existiert dazu
+- [ ] Ein Video wird **nicht** automatisch geholt; `media.status` steht auf `skipped` und die
+      Begründung lautet „videos only on request"
+- [ ] Nach dem Holen ist `logs/outgoing.log` weiterhin leer
+- [ ] Die Datei ist danach im Verlauf von WhatsApp Web **nicht** als „von dir heruntergeladen"
+      markiert, und der Chat wurde nicht als gelesen markiert
