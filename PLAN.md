@@ -384,7 +384,8 @@ Ziel: Der Wrapper ist als Tagesclient besser als die Store-App, ganz ohne Intern
 - [x] Enter/Shift+Enter umschaltbar (keydown-Handler im Main World, vor WhatsApps eigenem)
 - [ ] Medien-Viewer-Ergänzung: Zoom/Pan per Mausrad und Tastatur im WA-Bildviewer (Injection),
       Fallback: Bild in eigenem Viewer öffnen
-- [ ] Anrufe: Display-Media-Picker (`setDisplayMediaRequestHandler` + `desktopCapturer`), Quellenwahl-UI
+- [~] Quellenliste für den Display-Media-Picker **fertig** (Bildschirme zuerst, lesbare Namen);
+  offen: die Anbindung an `setDisplayMediaRequestHandler` und die Auswahl-UI
 - [ ] Audio-Ausgabegerät wählbar (setSinkId auf Media-Elemente)
 
 **DoD:** Eine Woche Alltagsnutzung ohne Griff zur Store-App. Alle Schalter in einer Einstellungsseite.
@@ -421,7 +422,8 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
   offen: Verifikation gegen eine angemeldete Sitzung
 - [ ] Datennormalisierung (`raw_json` + normalisierte Felder), Typen in `shared/`
 - [~] Archiv-Prozess: Batch-Schreiben in Transaktionen **fertig**, WAL **fertig**; offen: Backpressure-Zähler in der UI
-- [~] Ringpuffer (bounded, mit Drop-Zähler) und Batch-Grenze 500 **fertig**; offen: die 250-ms-Taktung in der Bridge
+- [x] Ringpuffer (bounded, mit Drop-Zähler), Batch-Grenze 500, Taktung alle 250 ms, überlappende
+      Flushes werden übersprungen statt gestapelt
 - [ ] Initialer Import aller lokal vorhandenen Chats/Nachrichten/Kontakte, fortsetzbar, Fortschritt in `sync_state`
 - [ ] Live-Spiegelung: neue, editierte, zurückgezogene Nachrichten; Reaktionen als eigene Kind-Einträge
 - [~] Blob-Store (content-addressed, SHA-256-Dedupe, Sharding, atomares Schreiben) **fertig**;
