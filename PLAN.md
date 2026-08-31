@@ -454,7 +454,8 @@ Ziel: Alles, was WA Web lokal hat, liegt in SQLite und wächst live mit.
       Feature-Abschaltung, und das Banner in der UI, wenn die Bridge steht
 - [x] Manuelle Smoke-Test-Checkliste (`docs/bridge-smoke.md`) — prüft ausdrücklich auch die
       Lesebestätigung und dass `logs/outgoing.log` leer bleibt
-- [~] Lasttest (§8) **gebaut** und bis 1 Mio. Nachrichten gefahren; die 5-Mio.-Läufe stehen aus
+- [~] Lasttest (§8) **gebaut**, als Release-Gate verdrahtet und bis 1 Mio. Nachrichten gefahren;
+  die 5-Mio.-Läufe stehen aus (brauchen ~2 GB Platte)
 
 **DoD:** Archiv entspricht nach Import dem, was WA Web anzeigt (Stichproben in 10 Chats); nach WA-Web-Update
 ohne Bridge bleibt die App nutzbar und zeigt den Ausfall an; Lasttest ohne Main-Prozess-Blockaden > 16 ms,
@@ -597,7 +598,12 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
       **nicht** löschbar, der Browser-Cache schon. Geleert wird über `clearCache()` mit
       ausdrücklicher Liste, nie über `clearStorageData()`: das nähme Cookies, IndexedDB und Local
       Storage gleich mit, und damit die Anmeldung
-- [ ] Lasttest-Suite als Release-Gate (§8): Import, Suche p50/p95, Event-Loop-Lag, Speicher, Index-Durchsatz
+- [x] Lasttest-Suite als Release-Gate (§8): `npm run gate:release` — verify, Build, E2E und Lasttest
+      unter einem Exit-Code. Sechs Schwellen mit Begründung, jede aus einer Messung abgeleitet statt
+      geraten ([`docs/lasttest.md`](docs/lasttest.md)). Der Lasttest baut seine Bundles jetzt selbst;
+      vorher waren sie handgemacht und `out/` ist gitignored — das Gate lief auf einem frischen Clone
+      also gar nicht. Gemessen wird der Batch-**p95**, nicht der schlechteste Batch: der WAL-Checkpoint
+      ist reales Verhalten, keine Regression
 - [x] Fehlerpfade: WA Web offline, Handy offline, Bridge tot, Festplatte voll, Archiv gesperrt —
       `shared/health/degraded.ts` bildet Störung auf verlorene Fähigkeit ab, `main/health/monitor.ts`
       sammelt sie, ein Banner im Panel sagt was kaputt ist und was weiter geht. Lesen wird nie
