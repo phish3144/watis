@@ -405,8 +405,8 @@ Ziel: Dateien verhalten sich wie in einem guten Desktop-Programm.
 - [ ] Nach Download: Toast mit „Öffnen" / „Im Ordner zeigen"; Doppelklick auf Dokument-Kachel öffnet
       direkt mit der System-App (Injection: Klick abfangen → falls schon lokal vorhanden, öffnen)
 - [ ] Drag-out: Dokument-Kachel aus dem Fenster in den Dateimanager ziehen (`webContents.startDrag`)
-- [ ] Dedupe per SHA-256: gleiche Datei zweimal → nur ein Exemplar
-- [ ] Auto-Archiv-Regeln (UI-Ebene, ohne Bridge): „In Chat X alle Dokumente automatisch speichern"
+- [x] Dedupe per SHA-256: Größenvergleich zuerst, gehasht wird nur bei Gleichstand, Hash gemerkt
+- [x] Auto-Archiv-Regeln (UI-Ebene, ohne Bridge), mit Größengrenze und nachvollziehbarer Begründung
 - [ ] Bilder: „Original speichern" aus dem Viewer, Sammel-Download markierter Bilder
 - [ ] Drag-in/Paste-Verhalten prüfen und dokumentieren (WA Web kann das bereits)
 
@@ -532,16 +532,18 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 - [ ] **Multi-Account:** Tabs mit getrennten Partitionen, getrennte Archive, Badge pro Account
 - [ ] **App-Sperre:** PIN beim Start/Leerlauf, Fenster bei Fokusverlust weichzeichnen (Privatsphäre-Modus)
-- [ ] **Chat mit Nummer:** Dialog + Registrierung als Handler für `whatsapp://` und `wa.me`-Links
-- [ ] **Link-Sammlung:** alle geteilten Links pro Chat als Liste mit Titel-Vorschau
+- [~] **Chat mit Nummer:** Nummern-Normalisierung und `whatsapp://`/`wa.me`-Parser **fertig**;
+  offen: Dialog und die Handler-Registrierung
+- [x] **Link-Sammlung:** alle geteilten Links pro Chat, nach Host gruppiert. **Ohne** Titel-Vorschau —
+      die hieße, jeden je geteilten Link abzurufen, was die Netz-Regel verbietet
 - [ ] **Erinnerungen:** „Erinnere mich an diese Nachricht" (lokal, ohne Senden)
 - [ ] **Storage-Übersicht** vorziehen, falls der Cache früh wächst
 
 ### Phase 9 – Hardening & Release (M)
 
 - [ ] Auto-Update über GitHub Releases, Session-, Archiv- und Blob-Verzeichnis vom Update unberührt (E2E-Test)
-- [ ] Storage-Übersicht (Session-Cache, Archiv, Blob-Store, Modelle, Index-Queue) + selektive Bereinigung
-      (Chromium-Cache ja, IndexedDB/LocalStorage nie)
+- [~] Storage-Übersicht als Berechnung **fertig** — Archiv und Medien sind ausdrücklich **nicht**
+  löschbar markiert, der Browser-Cache schon; offen: die Anbindung an die echten Verzeichnisse
 - [ ] Lasttest-Suite als Release-Gate (§8): Import, Suche p50/p95, Event-Loop-Lag, Speicher, Index-Durchsatz
 - [ ] Fehlerpfade: WA Web offline, Handy offline, Bridge tot, Festplatte voll, Archiv gesperrt
 - [ ] Performance-Profil: RAM/CPU im Leerlauf und unter Last, Vergleich mit Store-App dokumentieren
