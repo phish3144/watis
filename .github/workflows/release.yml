@@ -93,6 +93,36 @@ jobs:
       - run: npm run lint && npm run typecheck && npm test
       - run: npm run verify:no-elevate
 
+      # electron-builder runs one publisher per target — nsis and portable — concurrently, and each
+      # creates the release lazily when it first needs it. If the release does not exist yet, both
+      # see "release doesn't exist" and both POST /releases: one wins, the other comes back 422
+      # "Published releases must have a valid tag" and abandons its uploads. v0.2.0 went out exactly
+      # that way — published, holding a blockmap and nothing else. No installer, no latest.yml, and
+      # a release page that looks finished from the outside.
+      #
+      # The note above about serialising jobs concerns a different race, between jobs. This one is
+      # inside a single electron-builder run and no amount of job ordering touches it. Creating the
+      # release first removes it outright: every publisher then finds one and only uploads. It is
+      # also what the signed path below already does.
+      #
+      # --target pins the tag to the commit being built, which is the other half of the 422: GitHub
+      # will not create a tag for a published release when nothing says where to anchor it, and
+      # electron-builder sends no target_commitish.
+      - name: Ensure the release exists before anything uploads into it
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag already exists; publishing into it"
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$version" --generate-notes
+            echo "created release $tag at $GITHUB_SHA"
+          fi
+
       - name: Publish to GitHub Releases
         run: npm run release
         env:
@@ -103,6 +133,42 @@ jobs:
 
       - name: Verify the published build carries no elevation helper
         run: npm run verify:no-elevate
+
+      # The v0.2.0 failure was loud in the log and silent on the release page: the job exited 1, and
+      # what it left behind still looked like a finished release. Nothing downstream reads exit
+      # codes — people and electron-updater read the release. So the last word belongs to the
+      # release itself.
+      - name: Verify the release carries what a user actually needs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="v$version"
+          have="$(gh release view "$tag" --json assets --jq '.assets[].name' | sort)"
+          echo "$have"
+          missing=""
+          for want in WatIs-Setup-x64.exe WatIs-Setup-x64.exe.blockmap WatIs-Portable-x64.exe latest.yml; do
+            grep -qx "$want" <<<"$have" || missing="$missing $want"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::$tag is published but missing:$missing"
+            exit 1
+          fi
+          if [ "$(gh release view "$tag" --json isDraft --jq '.isDraft')" != "false" ]; then
+            echo "::error::$tag is still a draft, so /releases/latest/download/ cannot see it"
+            exit 1
+          fi
+          # latest.yml is the file every installed client reads to decide whether to update. A
+          # version in there that disagrees with the tag means nobody ever updates, silently.
+          got="$(curl -fsSL "https://github.com/phish3144/watis/releases/download/$tag/latest.yml" |
+                 grep '^version:' | awk '{print $2}')"
+          if [ "$got" != "$version" ]; then
+            echo "::error::latest.yml on $tag says $got, expected $version"
+            exit 1
+          fi
+          echo "ok: $tag carries all four assets and latest.yml says $version"
 
   # Two-phase build, because SignPath cannot reach into an NSIS installer's payload: NSIS is not
   # one of its container formats. So the application is signed first, and the installers are then
@@ -209,7 +275,8 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "${TAG#v}" --generate-notes
+          gh release view "$TAG" >/dev/null 2>&1 ||
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "${TAG#v}" --generate-notes
           gh release upload "$TAG" \
             release/WatIs-Setup-x64.exe \
             release/WatIs-Setup-x64.exe.blockmap \
