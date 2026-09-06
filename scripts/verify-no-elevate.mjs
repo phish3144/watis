@@ -14,6 +14,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 let failed = false
 
@@ -75,6 +76,31 @@ if (existsSync(nsis)) {
   fail(`electron-builder.yml includes ${nsis}, but the file is missing`)
 } else {
   console.log(`note  ${nsis} is absent and nothing references it`)
+}
+
+/**
+ * Every file electron-builder.yml points at must exist AND be tracked by git.
+ *
+ * Existing is not enough: `build/` was gitignored, so the icons and the NSIS include were present
+ * on the machine that made them and absent everywhere else. The result was a Windows package that
+ * could not be built at all, and — for months before that — a shipped application wearing the
+ * default Electron icon, with nothing failing to say so.
+ */
+const referenced = [
+  ...config.matchAll(/^\s*(?:icon|include|entitlements|entitlementsInherit):\s*(\S+)/gm),
+]
+  .map((m) => m[1].replace(/['"]/g, ''))
+  .filter((value, index, all) => all.indexOf(value) === index)
+
+const tracked = new Set(
+  execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean),
+)
+
+for (const file of referenced) {
+  if (!existsSync(file)) fail(`electron-builder.yml references ${file}, which does not exist`)
+  else if (!tracked.has(file)) {
+    fail(`${file} is referenced by electron-builder.yml but is not tracked by git`)
+  } else pass(`${file} exists and is tracked`)
 }
 
 function findElevate(dir) {

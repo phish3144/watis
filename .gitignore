@@ -6,12 +6,11 @@ node_modules/
 # build output
 out/
 dist/
-# Build OUTPUT — but not electron-builder's build RESOURCES, which live in the same directory by
-# convention. build/installer.nsh is source and has to be tracked: ignoring it meant every Windows
-# package failed in CI with "cannot find specified resource" while building fine on the machine
-# that had the file. Four commits went out that way.
-build/*
-!build/installer.nsh
+# NOTE: build/ is NOT ignored. In electron-builder that directory holds build *resources* — the
+# application icons, the macOS entitlements, the NSIS include — and every one of them is source.
+# It was ignored here as if it were build output, which cost the project both its icon ("default
+# Electron icon is used" in every CI build) and, once the NSIS include arrived, the ability to
+# package for Windows at all. Build output goes to out/, dist/ and release/, which are below.
 release/
 *.tsbuildinfo
 
