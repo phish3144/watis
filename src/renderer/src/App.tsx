@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Settings, SettingsPatch } from '@shared/settings'
-import { api, type LockState, type UnreadCounts, type Versions, type WorkerHealth } from './api'
+import {
+  api,
+  type LockState,
+  type UnreadCounts,
+  type UpdateState,
+  type Versions,
+  type WorkerHealth,
+} from './api'
 import { t } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
 import { ArchivePanel } from './archive/ArchivePanel'
@@ -13,6 +20,7 @@ import { LockScreen } from './components/LockScreen'
 import { LockSettings } from './components/LockSettings'
 import { AccountSettings, AccountTabs } from './components/AccountTabs'
 import { PanelRail } from './components/PanelRail'
+import { UpdateBanner, UpdateSettings } from './components/UpdatePanel'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -36,6 +44,7 @@ export function App(): React.JSX.Element {
   const [degraded, setDegraded] = useState<HealthState | undefined>(undefined)
   const [lock, setLock] = useState<LockState | undefined>(undefined)
   const [panelOpen, setPanelOpen] = useState(true)
+  const [update, setUpdate] = useState<UpdateState | undefined>(undefined)
 
   useEffect(() => {
     void api().getSettings().then(setSettings)
@@ -43,11 +52,13 @@ export function App(): React.JSX.Element {
     void api().getPaths().then(setPaths)
     void api().getHealth().then(setDegraded)
     void api().lock.state().then(setLock)
+    void api().update.state().then(setUpdate)
 
     const offSettings = api().onSettings(setSettings)
     const offUnread = api().onUnread(setUnread)
     const offHealth = api().onHealth(setDegraded)
     const offLock = api().onLock(setLock)
+    const offUpdate = api().onUpdate(setUpdate)
     const offPanel = api().onPanel((state) => {
       setPanelOpen(state.open)
     })
@@ -64,6 +75,7 @@ export function App(): React.JSX.Element {
       offHealth()
       offLock()
       offPanel()
+      offUpdate()
     }
   }, [])
 
@@ -122,6 +134,7 @@ export function App(): React.JSX.Element {
       </header>
 
       <AccountTabs unread={unread} />
+      <UpdateBanner state={update} />
       <HealthBanner state={degraded} />
 
       {tab === 'archive' ? (
@@ -602,6 +615,16 @@ export function App(): React.JSX.Element {
               }
             />
             <p className="pt-1 text-[11px] text-slate-500">{t('backup.restore.hint')}</p>
+          </Section>
+
+          <Section title={t('section.updates')}>
+            <UpdateSettings
+              state={update}
+              autoUpdate={settings.autoUpdate}
+              onAutoUpdate={(autoUpdate) => {
+                patch({ autoUpdate })
+              }}
+            />
           </Section>
 
           <Section title={t('section.storage')}>

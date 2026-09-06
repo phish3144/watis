@@ -5,6 +5,9 @@ import type { ImporterStats } from '../../main/archive/importer'
 import type { BackfillSnapshot } from '../../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
 import type { LockState } from '../../main/lock'
+import type { UpdateState } from '../../main/updater'
+
+export type { UpdateState }
 import type { Account } from '@shared/accounts'
 import type { AccountList } from '../../preload/app'
 
@@ -74,6 +77,13 @@ export interface WatIsApi {
   getHealth(): Promise<HealthState>
   getImportStats(): Promise<ImporterStats | null>
   getStorage(): Promise<StorageOverview>
+  update: {
+    state(): Promise<UpdateState>
+    check(): Promise<UpdateState>
+    install(): Promise<boolean>
+    installOnQuit(value: boolean): Promise<boolean>
+  }
+  onUpdate(listener: (state: UpdateState) => void): () => void
   accounts: {
     list(): Promise<AccountList>
     add(label: string): Promise<AccountList>

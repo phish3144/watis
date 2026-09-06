@@ -637,8 +637,15 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
 
 ### Phase 9 – Hardening & Release (M)
 
-- [~] Auto-Update über GitHub Releases **fertig**; Session-, Archiv- und Blob-Verzeichnis vom Update
-  unberührt **per E2E belegt** (`test/e2e/update.spec.ts`): der Anwendungsordner wird gelöscht und aus
+- [~] Auto-Update über GitHub Releases **fertig und bedienbar**: prüft beim Start und alle sechs
+  Stunden (eine Tray-App läuft tagelang, ein Check nur beim Start verpasst Wochen), lädt im
+  Hintergrund, und **installiert nur auf Ansage** — Banner mit „Jetzt neu starten" oder „Beim
+  nächsten Beenden", dazu ein manueller Check und ein Schalter in den Einstellungen, der sofort
+  greift statt erst beim Neustart.
+  Vorher lud der Updater herunter und installierte **nie**: `autoInstallOnAppQuit` war fest auf
+  false, `installUpdateAndRestart` wurde nirgends aufgerufen, und die Logzeile behauptete „it will
+  install on quit". Ein Update, das stillschweigend nie ankommt, ist schlimmer als keins.
+  Session-, Archiv- und Blob-Verzeichnis vom Update unberührt **per E2E belegt** (`test/e2e/update.spec.ts`): der Anwendungsordner wird gelöscht und aus
   einer neuen Version wieder aufgebaut, danach ist der Datenbaum byteweise identisch — ausgenommen
   ausdrücklich nur die Wegwerf-Caches (HTTP, GPU, Code) und LevelDBs eigene Diagnosedateien.
   IndexedDB, Local Storage und Service-Worker-Registrierungen werden streng verglichen;

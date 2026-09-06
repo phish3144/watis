@@ -21,6 +21,7 @@ const de = {
   'section.index': 'Inhaltsindex',
   'section.backup': 'Export und Sicherung',
   'section.storage': 'Speicherplatz',
+  'section.updates': 'Updates',
 
   'window.closeToTray': 'Schließen minimiert in den Tray',
   'window.closeToTray.hint':

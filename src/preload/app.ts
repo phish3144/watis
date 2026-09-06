@@ -6,6 +6,7 @@ import type { ImporterStats } from '../main/archive/importer'
 import type { BackfillSnapshot } from '../main/backfill/state-machine'
 import type { StorageOverview } from '@shared/extras/storage-overview'
 import type { LockState } from '../main/lock'
+import type { UpdateState } from '../main/updater'
 import type { Account } from '@shared/accounts'
 
 export interface AccountList {
@@ -32,6 +33,16 @@ const api = {
   getHealth: (): Promise<HealthState> => ipcRenderer.invoke('app:health'),
   getImportStats: (): Promise<ImporterStats | null> => ipcRenderer.invoke('app:import-stats'),
   getStorage: (): Promise<StorageOverview> => ipcRenderer.invoke('app:storage'),
+
+  /** Updates over GitHub Releases. Nothing installs without the user saying so. */
+  update: {
+    state: (): Promise<UpdateState> => ipcRenderer.invoke('app:update-state'),
+    check: (): Promise<UpdateState> => ipcRenderer.invoke('app:update-check'),
+    /** Restarts into the new version. Resolves false when nothing is downloaded. */
+    install: (): Promise<boolean> => ipcRenderer.invoke('app:update-install'),
+    installOnQuit: (value: boolean): Promise<boolean> =>
+      ipcRenderer.invoke('app:update-on-quit', { value }),
+  },
 
   /** Accounts. Each has its own partition, archive and blob store. */
   accounts: {
@@ -142,6 +153,13 @@ const api = {
     }
     ipcRenderer.on('app:panel', handler)
     return () => ipcRenderer.removeListener('app:panel', handler)
+  },
+  onUpdate: (listener: (state: UpdateState) => void): (() => void) => {
+    const handler = (_event: unknown, value: UpdateState): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:update', handler)
+    return () => ipcRenderer.removeListener('app:update', handler)
   },
   onLock: (listener: (state: LockState) => void): (() => void) => {
     const handler = (_event: unknown, value: LockState): void => {

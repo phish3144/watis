@@ -91,6 +91,10 @@ export const settingsSchema = z.object({
    */
   blobDir: z.string(),
   /** Warn above this many gigabytes; writing stops at the hard limit. */
+  // --- Updates ------------------------------------------------------------
+  /** Check GitHub Releases for a new version. Off means the app never reaches out at all. */
+  autoUpdate: z.boolean(),
+
   blobQuotaGb: z.number().int().min(1).max(2000),
 })
 
@@ -140,6 +144,7 @@ export const defaultSettings: Settings = {
   scheduledExportEveryHours: 24,
 
   blobDir: '',
+  autoUpdate: true,
   blobQuotaGb: 20,
 }
 

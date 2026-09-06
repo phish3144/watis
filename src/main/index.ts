@@ -37,7 +37,16 @@ import { TrayController } from './tray'
 import { NotificationManager, type IncomingNotification } from './notifications'
 import { UiLayer } from './ui-layer'
 import { installDownloadHandler } from './downloads'
-import { configureUpdater } from './updater'
+import {
+  checkForUpdatesNow,
+  configureUpdater,
+  installUpdateAndRestart,
+  setInstallOnQuit,
+  shouldInstallOnQuit,
+  stopUpdater,
+  updateState,
+  type UpdateState,
+} from './updater'
 import { HealthMonitor } from './health/monitor'
 import { AccountPipeline } from './accounts/pipeline'
 import { startIndexSignals } from './index-signals'
@@ -81,6 +90,11 @@ let reminders: ReminderService | undefined
 const appLock = new AppLock()
 let stopWatchdog: (() => void) | undefined
 let stopIndexSignals: (() => void) | undefined
+let autoUpdateWas = false
+
+const pushUpdateState = (next: UpdateState): void => {
+  mainWindow?.panel.webContents.send('app:update', next)
+}
 
 let activeChat = ''
 let pendingDownloadName: string | undefined
@@ -187,6 +201,12 @@ async function bootstrap(): Promise<void> {
 
   onSettingsChanged((next) => {
     void uiLayer?.apply(next)
+    // The switch has to take effect now, not at the next start — a setting that quietly does
+    // nothing until a restart is a setting that lies about what the application is doing.
+    if (next.autoUpdate !== autoUpdateWas) {
+      autoUpdateWas = next.autoUpdate
+      configureUpdater({ enabled: next.autoUpdate, supervisor, onState: pushUpdateState })
+    }
     // The speller lives on the session, not the view, so it is re-applied here rather than in the
     // CSS layer — and switching it off has to take effect without a restart.
     const waSession = mainWindow?.wa.webContents.session
@@ -247,7 +267,8 @@ async function bootstrap(): Promise<void> {
     }
   }
 
-  configureUpdater({ enabled: true })
+  autoUpdateWas = settings().autoUpdate
+  configureUpdater({ enabled: autoUpdateWas, supervisor, onState: pushUpdateState })
 
   app.on('activate', () => {
     mainWindow?.show()
@@ -536,6 +557,14 @@ function registerIpcHandlers(): void {
     })
     return { accounts: accountList(), activeId: id }
   })
+
+  // --- updates --------------------------------------------------------------
+  ipcMain.handle('app:update-state', () => updateState())
+  ipcMain.handle('app:update-check', () => checkForUpdatesNow())
+  ipcMain.handle('app:update-install', () => installUpdateAndRestart(supervisor))
+  ipcMain.handle('app:update-on-quit', (_event, payload: unknown) =>
+    setInstallOnQuit((payload as { value?: unknown })?.value === true),
+  )
 
   ipcMain.handle('app:lock-state', () => appLock.state())
 
@@ -919,6 +948,7 @@ app.on('will-quit', (event) => {
   shuttingDown = true
   stopWatchdog?.()
   stopIndexSignals?.()
+  stopUpdater()
   closePdfRenderer()
   health?.stop()
   notifications?.dispose()
@@ -927,6 +957,10 @@ app.on('will-quit', (event) => {
   for (const pipeline of pipelines.values()) void pipeline.dispose()
   tray?.dispose()
   void supervisor.stopAll('app quitting').finally(() => {
+    // electron-updater installs from its own quit hook when the user asked for it; all this side
+    // has to guarantee is that the workers are down first, which they now are. A worker still
+    // holding the SQLite WAL is what produces the installer's "cannot close" dialog.
+    if (shouldInstallOnQuit()) log.info('a downloaded update will install on the way out')
     app.exit(0)
   })
 })
