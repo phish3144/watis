@@ -153,7 +153,11 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   // placed by hand stands in for it: what is being tested is that the update does not walk this
   // tree, and the updater cannot tell who wrote a file.
   mkdirSync(sessionDir, { recursive: true })
-  writeFileSync(join(sessionDir, 'Cookies'), 'pretend-session-state')
+  // Not "Cookies": that is Chromium's own file, and the network service rewrites it on shutdown.
+  // The hand-placed one survived on Linux and was gone on Windows, which is a race with the
+  // browser rather than anything the update did. Any name Chromium will never touch works, and the
+  // point of the file is only that SOMETHING a user owns lives here and comes through untouched.
+  writeFileSync(join(sessionDir, 'watis-e2e-marker'), 'pretend-session-state')
 
   await app.close()
   app = undefined
@@ -189,7 +193,7 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   })
   expect(hits.hits.map((h) => h.msgId)).toContain('m1')
 
-  expect(readFileSync(join(sessionDir, 'Cookies'), 'utf8')).toBe('pretend-session-state')
+  expect(readFileSync(join(sessionDir, 'watis-e2e-marker'), 'utf8')).toBe('pretend-session-state')
 
   const blobFiles = inventory(blobsDir)
   expect(blobFiles.size).toBe(1)
@@ -229,7 +233,7 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   const compared = [...before.keys()].filter((name) => !volatile(name))
   expect(compared.some((n) => n.includes('archive.sqlite'))).toBe(true)
   expect(compared.some((n) => n.startsWith('blobs'))).toBe(true)
-  expect(compared.some((n) => n.includes('Cookies'))).toBe(true)
+  expect(compared.some((n) => n.includes('watis-e2e-marker'))).toBe(true)
 
   for (const [name, hash] of before) {
     if (volatile(name)) continue
