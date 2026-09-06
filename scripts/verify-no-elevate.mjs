@@ -61,14 +61,20 @@ if (existsSync(nsis)) {
   let clean = true
   for (const [pattern, what] of forbidden) {
     if (pattern.test(script)) {
-      console.error(`FAIL  ${nsis} contains ${what}`)
+      fail(`${nsis} contains ${what}`)
       clean = false
-      process.exitCode = 1
     }
   }
-  if (clean) console.log(`ok    ${nsis} does not elevate`)
+  if (clean) pass(`${nsis} does not elevate`)
+} else if (config.includes('include:')) {
+  // electron-builder.yml names the script, so its absence is not "nothing to check" — it is a
+  // packaging failure waiting to happen on a machine that does not have the file. It was: the
+  // file was gitignored, so every Windows build in CI died on "cannot find specified resource"
+  // while the local build, which had it, was fine. A check that shrugs at a missing file it was
+  // written to inspect is worse than no check.
+  fail(`electron-builder.yml includes ${nsis}, but the file is missing`)
 } else {
-  console.log(`note  ${nsis} is absent; nothing to check`)
+  console.log(`note  ${nsis} is absent and nothing references it`)
 }
 
 function findElevate(dir) {

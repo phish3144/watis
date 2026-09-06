@@ -6,7 +6,12 @@ node_modules/
 # build output
 out/
 dist/
-build/
+# Build OUTPUT — but not electron-builder's build RESOURCES, which live in the same directory by
+# convention. build/installer.nsh is source and has to be tracked: ignoring it meant every Windows
+# package failed in CI with "cannot find specified resource" while building fine on the machine
+# that had the file. Four commits went out that way.
+build/*
+!build/installer.nsh
 release/
 *.tsbuildinfo
 

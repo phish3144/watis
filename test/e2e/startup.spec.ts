@@ -123,18 +123,24 @@ test('reports its own health, and never takes reading away', async () => {
       return (await panel?.executeJavaScript('window.watis.getHealth()')) as unknown
     })) as { capabilities: { key: string; available: boolean }[]; severity: string }
 
-  // The monitor is level-triggered and polls, so it trails the workers by up to a second.
+  // The monitor is level-triggered and polls, so it trails the workers by up to a second. What is
+  // waited for is the archive coming up, which is the part this test is about.
   await expect
-    .poll(async () => (await read()).severity, {
-      // Generous on purpose: this waits for two utility processes to come up and the monitor to
-      // notice. Twenty seconds was enough on an idle machine and not enough on a loaded one, which
-      // makes for a test that is occasionally red for no reason — and those get switched off.
+    .poll(async () => (await read()).capabilities.find((c) => c.key === 'search')?.available, {
+      // Generous on purpose: two utility processes have to start and the monitor has to notice.
       timeout: 60_000,
-      message: 'health should follow the workers back up',
+      message: 'search should become available once the archive worker is up',
     })
-    // WhatsApp Web is unreachable in the test environment, so a fault here is expected. What is
-    // pinned down is that the failure stays contained rather than reading as a dead application.
-    .toBe('degraded')
+    .toBe(true)
+
+  // Severity is deliberately NOT pinned to a value. It depends on whether the machine running the
+  // test can reach WhatsApp Web: a sandbox without a route reports "degraded", a CI runner with
+  // one reports "ok". Asserting either encodes the environment rather than the behaviour — this
+  // test asserted "degraded" and went red on every CI run for exactly that reason.
+  //
+  // What must hold in both environments is that a fault stays contained: never "broken".
+  const severity = (await read()).severity
+  expect(['ok', 'degraded']).toContain(severity)
 
   const state = await read()
   expect(state.capabilities.map((c) => c.key).sort()).toEqual([
