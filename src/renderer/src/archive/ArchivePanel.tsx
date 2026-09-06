@@ -414,6 +414,58 @@ export function ArchivePanel(): React.JSX.Element {
     if (chatId) void loadChat(chatId)
   }, [chatId, loadChat])
 
+  /**
+   * The open chat, kept current.
+   *
+   * loadChat runs when the selection changes and never again, so a chat opened while the mirror was
+   * running showed the messages it had at that instant and then stood still. For an archive whose
+   * whole purpose is writing along as messages arrive, a view that does not show them arriving is
+   * the feature not working.
+   *
+   * Only genuinely new rows are appended, and the scroll position is left alone unless the reader
+   * was already at the bottom — yanking somebody back down every five seconds while they read
+   * something older would be worse than not updating at all.
+   */
+  useEffect(() => {
+    if (!chatId) return
+    let cancelled = false
+
+    const tail = (): void => {
+      const element = listRef.current
+      const wasAtBottom = element
+        ? element.scrollHeight - element.scrollTop - element.clientHeight < ROW_HEIGHT * 1.5
+        : true
+
+      void ask<{ messages: ArchiveMessage[] }>({
+        op: 'messagesPage',
+        chatId,
+        limit: PAGE_SIZE,
+      })
+        .then((r) => {
+          if (cancelled) return
+          const newest = [...r.messages].reverse()
+          setMessages((current) => {
+            if (current.length === 0) return newest
+            const known = new Set(current.map((m) => m.id))
+            const added = newest.filter((m) => !known.has(m.id))
+            if (added.length === 0) return current
+            return [...current, ...added]
+          })
+          if (wasAtBottom) setScrollTop(Number.MAX_SAFE_INTEGER)
+        })
+        .catch(() => {
+          // A failing read means the archive worker is restarting. The health banner says so; the
+          // messages already on screen stay where they are.
+        })
+    }
+
+    const timer = setInterval(tail, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [chatId])
+
   const loadOlder = useCallback(async () => {
     const oldest = messages[0]
     if (!chatId || !oldest || fetching.current) return
