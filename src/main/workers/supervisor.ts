@@ -78,6 +78,25 @@ export class WorkerSupervisor {
   private readonly pending = new Map<number, PendingRequest>()
   private readonly workers = new Map<string, Supervised>()
   private nonce = 0
+  private readonly readyListeners = new Set<() => void>()
+
+  /**
+   * Called whenever a worker's readiness changes — spawned, ready, or gone.
+   *
+   * The health monitor used to learn this only by polling once a second, which meant the interval
+   * between a worker coming up and the UI saying so was a second of "broken" in the best case, and
+   * unbounded in the worst: a poll that does not run leaves a banner saying the archive is
+   * unavailable over an archive that is working. Readiness is an edge, the supervisor is the only
+   * thing that sees it, so it says so. The poll stays as the backstop it was meant to be.
+   */
+  onReadyChange(listener: () => void): () => void {
+    this.readyListeners.add(listener)
+    return () => this.readyListeners.delete(listener)
+  }
+
+  private announceReady(): void {
+    for (const listener of this.readyListeners) listener()
+  }
 
   /**
    * Accounts each get their own worker pair, because they each get their own database file. One
@@ -135,6 +154,7 @@ export class WorkerSupervisor {
     state.process = child
     state.port = port1
     state.ready = false
+    this.announceReady()
 
     child.postMessage({ type: 'port' }, [port2])
 
@@ -149,6 +169,7 @@ export class WorkerSupervisor {
           state.ready = true
           state.restarts = 0
           log.info(`${state.key} worker ready (pid ${message.pid})`)
+          this.announceReady()
           break
         case 'pong':
           if (state.pendingPing?.nonce === message.nonce) {
@@ -199,6 +220,7 @@ export class WorkerSupervisor {
 
     child.on('exit', (code) => {
       state.ready = false
+      this.announceReady()
       this.clearTimers(state)
       if (state.stopping) {
         log.info(`${state.key} worker stopped`)

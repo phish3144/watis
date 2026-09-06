@@ -114,6 +114,7 @@ test('brings both utility processes to ready', async () => {
 test('reports its own health, and never takes reading away', async () => {
   const read = async (): Promise<{
     capabilities: { key: string; available: boolean }[]
+    faults: string[]
     severity: string
   }> =>
     (await app.evaluate(async ({ webContents }) => {
@@ -121,17 +122,45 @@ test('reports its own health, and never takes reading away', async () => {
         .getAllWebContents()
         .find((contents) => contents.getURL().includes('index.html'))
       return (await panel?.executeJavaScript('window.watis.getHealth()')) as unknown
-    })) as { capabilities: { key: string; available: boolean }[]; severity: string }
+    })) as {
+      capabilities: { key: string; available: boolean }[]
+      faults: string[]
+      severity: string
+    }
 
-  // The monitor is level-triggered and polls, so it trails the workers by up to a second. What is
-  // waited for is the archive coming up, which is the part this test is about.
+  // What is waited for is the archive coming up, which is the part this test is about. The monitor
+  // is told the moment a worker's readiness changes and polls once a second as a backstop, so this
+  // should be immediate; the timeout is generous because two utility processes have to start.
+  //
+  // The poll reports the whole picture rather than just a boolean, because the two ways this can
+  // fail need completely different fixes and a bare `expected true, received false` cannot tell
+  // them apart: either the archive worker never came up (a worker problem), or it came up and the
+  // health monitor did not notice (a monitor problem). This failed once on CI and could not be
+  // diagnosed from the log, which is the whole reason it now says which one it was.
   await expect
-    .poll(async () => (await read()).capabilities.find((c) => c.key === 'search')?.available, {
-      // Generous on purpose: two utility processes have to start and the monitor has to notice.
-      timeout: 60_000,
-      message: 'search should become available once the archive worker is up',
-    })
-    .toBe(true)
+    .poll(
+      async () => {
+        const [health, workers] = await Promise.all([
+          read(),
+          app.evaluate(async ({ webContents }) => {
+            const panel = webContents
+              .getAllWebContents()
+              .find((contents) => contents.getURL().includes('index.html'))
+            return (await panel?.executeJavaScript('window.watis.getWorkerHealth()')) as unknown
+          }),
+        ])
+        return {
+          searchAvailable: health.capabilities.find((c) => c.key === 'search')?.available,
+          faults: health.faults,
+          workers,
+        }
+      },
+      {
+        timeout: 60_000,
+        message: 'search should become available once the archive worker is up',
+      },
+    )
+    .toMatchObject({ searchAvailable: true })
 
   // Severity is deliberately NOT pinned to a value. It depends on whether the machine running the
   // test can reach WhatsApp Web: a sandbox without a route reports "degraded", a CI runner with

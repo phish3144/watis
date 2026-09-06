@@ -226,6 +226,10 @@ async function bootstrap(): Promise<void> {
     mainWindow?.panel.webContents.send('app:health', state)
   })
   health.start()
+  // Worker readiness is an edge and the supervisor is the only thing that sees it. Without this the
+  // banner clears on the next poll at best, and not at all if that poll never runs — an application
+  // that says the archive is unavailable while the archive answers every query.
+  supervisor.onReadyChange(() => health?.refresh())
 
   mainWindow.wa.webContents.on('did-fail-load', (_event, code, description) => {
     log.warn(`WhatsApp view failed to load: ${description} (${code})`)
