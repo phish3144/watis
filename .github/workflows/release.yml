@@ -9,11 +9,39 @@ permissions:
   contents: write
 
 jobs:
+  # Runs first and takes seconds, because getting this wrong is silent and expensive.
+  #
+  # electron-builder derives everything from package.json, not from the tag: it builds version
+  # 0.1.0, writes `version: 0.1.0` into latest.yml and publishes into a release named v0.1.0 —
+  # even when the tag that started the run says v0.2.0. The result is a release page holding the
+  # wrong version under the right name, and every installed client reading a latest.yml that says
+  # it is already up to date. Nothing fails, nobody gets an update, and the cause is invisible
+  # from the outside. Cheaper to refuse the tag.
+  check-version:
+    name: Tag matches package.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="$(node -p 'require("./package.json").version')"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$manifest" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME says $tag, package.json says $manifest." \
+                 "Bump the version in package.json, commit it, then move the tag."
+            exit 1
+          fi
+          echo "ok: $GITHUB_REF_NAME builds $manifest"
+
   # macOS is build-only until signing and notarisation are decided. It runs FIRST and publishes
   # nothing: an unsigned .dmg on a release page invites people to install something macOS will
   # refuse to open. Its job is to prove the tag still builds for macOS.
   verify-mac:
     name: Verify macOS build
+    needs: check-version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -53,7 +81,7 @@ jobs:
     if: needs.signing-mode.outputs.enabled != 'true'
     # Serialised on purpose. Two jobs publishing to the same GitHub release in parallel race each
     # other over the release draft and its latest.yml.
-    needs: [verify-mac, signing-mode]
+    needs: [check-version, verify-mac, signing-mode]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -85,7 +113,7 @@ jobs:
   release-windows-signed:
     name: Publish Windows release (signed)
     if: needs.signing-mode.outputs.enabled == 'true'
-    needs: [verify-mac, signing-mode]
+    needs: [check-version, verify-mac, signing-mode]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
