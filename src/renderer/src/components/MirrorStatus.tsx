@@ -60,10 +60,10 @@ export function MirrorStatus(): React.JSX.Element {
             aria-hidden="true"
           />
           {bridge === undefined
-            ? 'Spiegel startet …'
+            ? 'Mitschreiben startet …'
             : bridge.ok
-              ? `Spiegel läuft${bridge.version ? ` (WA Web ${bridge.version})` : ''}`
-              : 'Spiegel steht'}
+              ? `Schreibt mit${bridge.version ? ` (WA Web ${bridge.version})` : ''}`
+              : 'Schreibt gerade nicht mit'}
         </span>
         <button
           type="button"
@@ -75,9 +75,16 @@ export function MirrorStatus(): React.JSX.Element {
         </button>
       </div>
 
-      {bridge?.ok === false && bridge.failures.length > 0 && (
+      {bridge?.ok === false && (
         <p className="text-wa-muted">
-          Nicht aufgelöst: {bridge.failures.map((f) => f.module).join(', ')}
+          WatIs? kommt an WhatsApps Innenleben gerade nicht heran — meistens nach einem Update von
+          WhatsApp Web. Lesen und Schreiben in WhatsApp geht normal weiter, und das bereits
+          Archivierte bleibt durchsuchbar; nur Neues kommt vorerst nicht dazu.
+          {bridge.failures.length > 0 && (
+            <span className="mt-0.5 block font-mono text-[10px] opacity-70">
+              {bridge.failures.map((f) => f.module).join(', ')}
+            </span>
+          )}
         </p>
       )}
 

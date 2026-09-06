@@ -10,6 +10,12 @@ import { z } from 'zod'
 export const settingsSchema = z.object({
   // --- Fenster und Tray -------------------------------------------------
   closeToTray: z.boolean(),
+  /**
+   * Whether the app's own panel is open. Defaults to OPEN: everything this application adds to
+   * WhatsApp Web lives in that panel, and a first launch that hides it looks exactly like a
+   * browser window with no features at all — which is precisely what it looked like.
+   */
+  panelOpen: z.boolean(),
   startMinimised: z.boolean(),
   autostart: z.boolean(),
   globalShortcut: z.string().max(64),
@@ -92,6 +98,7 @@ export type Settings = z.infer<typeof settingsSchema>
 
 export const defaultSettings: Settings = {
   closeToTray: true,
+  panelOpen: true,
   startMinimised: false,
   autostart: false,
   globalShortcut: 'CommandOrControl+Shift+W',

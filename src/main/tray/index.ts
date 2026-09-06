@@ -97,6 +97,17 @@ export class TrayController {
           },
         },
         {
+          // The entry that was missing. Without it the panel — and with it every feature this
+          // application has — was reachable only through an undocumented keyboard shortcut.
+          label: 'Archiv und Einstellungen',
+          accelerator: 'CommandOrControl+,',
+          click: () => {
+            this.host.showWindow()
+            this.host.togglePanel()
+          },
+        },
+        { type: 'separator' },
+        {
           label: 'Benachrichtigungen pausieren',
           type: 'checkbox',
           checked: paused,

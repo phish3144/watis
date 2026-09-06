@@ -12,6 +12,7 @@ import { NumberDialog } from './components/NumberDialog'
 import { LockScreen } from './components/LockScreen'
 import { LockSettings } from './components/LockSettings'
 import { AccountSettings, AccountTabs } from './components/AccountTabs'
+import { PanelRail } from './components/PanelRail'
 import type { HealthState } from '@shared/health/degraded'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -34,6 +35,7 @@ export function App(): React.JSX.Element {
   const [unread, setUnread] = useState<UnreadCounts>({ unread: 0, mutedUnread: 0 })
   const [degraded, setDegraded] = useState<HealthState | undefined>(undefined)
   const [lock, setLock] = useState<LockState | undefined>(undefined)
+  const [panelOpen, setPanelOpen] = useState(true)
 
   useEffect(() => {
     void api().getSettings().then(setSettings)
@@ -46,6 +48,9 @@ export function App(): React.JSX.Element {
     const offUnread = api().onUnread(setUnread)
     const offHealth = api().onHealth(setDegraded)
     const offLock = api().onLock(setLock)
+    const offPanel = api().onPanel((state) => {
+      setPanelOpen(state.open)
+    })
 
     const poll = (): void => {
       void api().getWorkerHealth().then(setHealth)
@@ -58,6 +63,7 @@ export function App(): React.JSX.Element {
       offUnread()
       offHealth()
       offLock()
+      offPanel()
     }
   }, [])
 
@@ -75,6 +81,10 @@ export function App(): React.JSX.Element {
     })
     void api().updateSettings(next).then(setSettings)
   }, [])
+
+  // Collapsed: the whole view is the rail. Rendering the panel underneath it would keep every
+  // list and every poll alive behind a 30-pixel strip nobody is looking at.
+  if (!panelOpen) return <PanelRail unread={unread} health={degraded} />
 
   if (!settings) {
     return <div className="p-5 text-sm text-slate-500">Lade Einstellungen …</div>
@@ -641,7 +651,7 @@ export function App(): React.JSX.Element {
             )}
           </Section>
 
-          <p className="pb-4 text-[11px] leading-relaxed text-slate-500">{t('phase.notice')}</p>
+          <p className="pb-4 text-[11px] leading-relaxed text-slate-500">{t('archive.reach')}</p>
         </div>
       )}
     </div>

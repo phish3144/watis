@@ -549,7 +549,9 @@ export function ArchivePanel(): React.JSX.Element {
           ))}
           {chats.length === 0 && (
             <p className="p-3 text-sm text-wa-muted">
-              Noch nichts archiviert. Das Archiv füllt sich, sobald die Bridge läuft.
+              Noch nichts archiviert. Sobald WhatsApp Web geladen und verknüpft ist, schreibt WatIs?
+              jede neue Nachricht mit. Was WhatsApp jetzt schon im Speicher hat, holt „Jetzt
+              übernehmen" unter <em>Nachladen</em> in einem Zug herein.
             </p>
           )}
         </aside>

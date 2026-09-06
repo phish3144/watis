@@ -20,6 +20,14 @@ import { log } from '../logging'
 
 const PANEL_WIDTH = 460
 const PANEL_MIN_WIDTH = 320
+/**
+ * The panel never collapses to nothing — it collapses to a rail.
+ *
+ * A hidden panel with only a keyboard shortcut to reveal it is a panel nobody finds, and that is
+ * not a hypothetical: the first person to run this saw a plain WhatsApp window and asked where the
+ * features were. The rail is always on screen, so there is always something to click.
+ */
+const PANEL_RAIL_WIDTH = 30
 
 export interface MainWindow {
   window: BaseWindow
@@ -202,7 +210,8 @@ export function createMainWindow(options: {
 
   window.contentView.addChildView(panel)
 
-  let panelVisible = false
+  // Open unless the user closed it last time. Everything this application adds lives in here.
+  let panelVisible = config.panelOpen
   let activeId = options.activeAccountId
 
   /**
@@ -214,7 +223,7 @@ export function createMainWindow(options: {
     const { width, height } = window.getContentBounds()
     const panelWidth = panelVisible
       ? Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_WIDTH, Math.floor(width / 2)))
-      : 0
+      : PANEL_RAIL_WIDTH
     const waWidth = Math.max(0, width - panelWidth)
 
     for (const [id, view] of accountViews) {
@@ -246,6 +255,9 @@ export function createMainWindow(options: {
     if (panelVisible === visible) return
     panelVisible = visible
     layout()
+    // The panel renders a rail when closed and the full interface when open, so it has to be told.
+    panel.webContents.send('app:panel', { open: visible })
+    updateSettings({ panelOpen: visible })
     if (visible) panel.webContents.focus()
     else activeView()?.webContents.focus()
   }
@@ -270,7 +282,9 @@ export function createMainWindow(options: {
   }
   if (!accountViews.has(activeId)) activeId = options.accountIds[0] ?? activeId
 
-  void loadOwnPanel(panel)
+  void loadOwnPanel(panel).then(() => {
+    panel.webContents.send('app:panel', { open: panelVisible })
+  })
 
   if (maximised) window.maximize()
   layout()

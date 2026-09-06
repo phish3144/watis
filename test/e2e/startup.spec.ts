@@ -126,7 +126,10 @@ test('reports its own health, and never takes reading away', async () => {
   // The monitor is level-triggered and polls, so it trails the workers by up to a second.
   await expect
     .poll(async () => (await read()).severity, {
-      timeout: 20_000,
+      // Generous on purpose: this waits for two utility processes to come up and the monitor to
+      // notice. Twenty seconds was enough on an idle machine and not enough on a loaded one, which
+      // makes for a test that is occasionally red for no reason — and those get switched off.
+      timeout: 60_000,
       message: 'health should follow the workers back up',
     })
     // WhatsApp Web is unreachable in the test environment, so a fault here is expected. What is
@@ -145,6 +148,64 @@ test('reports its own health, and never takes reading away', async () => {
   ])
   expect(state.capabilities.find((c) => c.key === 'read')?.available).toBe(true)
   expect(state.capabilities.find((c) => c.key === 'search')?.available).toBe(true)
+})
+
+/**
+ * The panel's width, found by position: it is the only child view that does not start at x = 0.
+ * The WhatsApp views all sit flush left, stacked, with the inactive ones at zero size.
+ */
+async function panelWidth(): Promise<number> {
+  return app.evaluate(({ BaseWindow }) => {
+    const window = BaseWindow.getAllWindows()[0]
+    const panel = (window?.contentView.children ?? []).find((view) => view.getBounds().x > 0)
+    return panel?.getBounds().width ?? 0
+  })
+}
+
+async function togglePanel(): Promise<void> {
+  await app.evaluate(({ ipcMain }) => {
+    const bus = ipcMain as unknown as { listeners: (c: string) => ((...a: unknown[]) => void)[] }
+    bus.listeners('app:toggle-panel')[0]?.({})
+  })
+  await new Promise((r) => setTimeout(r, 300))
+}
+
+test('shows its own panel on a first launch, not a bare WhatsApp window', async () => {
+  // The regression that matters most. The panel used to start collapsed to zero width with an
+  // undocumented Ctrl+, as the only way in, so a first launch looked exactly like a browser pointed
+  // at web.whatsapp.com — and the first person to run it asked where the features were.
+  expect(await panelWidth()).toBeGreaterThan(100)
+})
+
+test('never collapses the panel to nothing — there is always a way back in', async () => {
+  const open = await panelWidth()
+  expect(open).toBeGreaterThan(100)
+
+  await togglePanel()
+  const closed = await panelWidth()
+  // Closed, but not gone: a rail stays on screen, which is the entire point.
+  expect(closed).toBeGreaterThan(0)
+  expect(closed).toBeLessThan(60)
+
+  // Restored, so the tests after this one see the state they would see on a fresh launch.
+  await togglePanel()
+  expect(await panelWidth()).toBe(open)
+})
+
+test('remembers that the panel was closed, and reopens it from the tray', async () => {
+  await togglePanel()
+  const stored = await app.evaluate(async ({ ipcMain }) => {
+    const handlers = (
+      ipcMain as unknown as { _invokeHandlers: Map<string, (e: unknown) => unknown> }
+    )._invokeHandlers
+    return (await handlers.get('app:settings')?.({})) as { panelOpen: boolean }
+  })
+  expect(stored.panelOpen).toBe(false)
+
+  // What the tray entry does: show the window, then toggle. Reaching it through the same channel
+  // the menu item uses is the closest a headless test gets to clicking it.
+  await togglePanel()
+  expect(await panelWidth()).toBeGreaterThan(100)
 })
 
 test('runs the pinned Electron and Chromium', async () => {

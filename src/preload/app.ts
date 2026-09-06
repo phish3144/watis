@@ -117,6 +117,11 @@ const api = {
   /** The archive data plane. Shapes live in @shared/ipc/archive-protocol. */
   archive: (request: unknown): Promise<unknown> => ipcRenderer.invoke('archive:request', request),
 
+  /** Opens the panel from the rail. */
+  openPanel: (): void => {
+    ipcRenderer.send('app:toggle-panel')
+  },
+
   onSettings: (listener: (settings: Settings) => void): (() => void) => {
     const handler = (_event: unknown, value: Settings): void => {
       listener(value)
@@ -130,6 +135,13 @@ const api = {
     }
     ipcRenderer.on('app:accounts', handler)
     return () => ipcRenderer.removeListener('app:accounts', handler)
+  },
+  onPanel: (listener: (state: { open: boolean }) => void): (() => void) => {
+    const handler = (_event: unknown, value: { open: boolean }): void => {
+      listener(value)
+    }
+    ipcRenderer.on('app:panel', handler)
+    return () => ipcRenderer.removeListener('app:panel', handler)
   },
   onLock: (listener: (state: LockState) => void): (() => void) => {
     const handler = (_event: unknown, value: LockState): void => {

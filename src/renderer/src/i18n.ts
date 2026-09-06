@@ -121,8 +121,11 @@ const de = {
     'Der Inhaltsindex läuft nicht. Bilder und PDFs werden gerade nicht durchsucht.',
   'health.stillReadable': 'Nachrichten lesen und schreiben geht weiter wie immer.',
 
-  'phase.notice':
-    'Archiv und Suche folgen in den nächsten Phasen. Der Verlauf reicht dann ab dem Installationstag zurück — WhatsApp Web liefert rückwirkend höchstens 90 Tage.',
+  // Was 'phase.notice' and said archive and search were still to come. They arrived several
+  // phases ago; the line stayed, telling every user the application could not do the thing it had
+  // just done for them.
+  'archive.reach':
+    'Der Verlauf reicht ab dem Tag zurück, an dem du WatIs? eingerichtet hast, plus dem, was WhatsApp Web beim Verknüpfen einmalig herausgibt — das sind höchstens rund 90 Tage. Ab da geht nichts mehr verloren.',
 } as const
 
 export type MessageKey = keyof typeof de
