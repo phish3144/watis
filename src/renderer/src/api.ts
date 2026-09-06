@@ -134,6 +134,9 @@ export interface WatIsApi {
   updateSettings(patch: SettingsPatch): Promise<Settings>
   onSettings(listener: (settings: Settings) => void): () => void
   onHealth(listener: (state: HealthState) => void): () => void
+  getBridge(): Promise<BridgeReady | null>
+  getUnread(): Promise<UnreadCounts>
+  getPanel(): Promise<{ open: boolean }>
   onBridge(listener: (report: BridgeReady) => void): () => void
   onBackfill(listener: (snapshot: BackfillSnapshot) => void): () => void
   onUnread(listener: (counts: UnreadCounts) => void): () => void

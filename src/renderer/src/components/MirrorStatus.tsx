@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { BridgeReady } from '../../../bridge/protocol'
 import type { ImporterStats } from '../../../main/archive/importer'
+import type { ArchiveStats } from '@shared/ipc/archive-protocol'
 
 /**
  * What the mirror is doing: whether the bridge resolved, how far behind the writer is, and how
@@ -14,13 +15,27 @@ import type { ImporterStats } from '../../../main/archive/importer'
 export function MirrorStatus(): React.JSX.Element {
   const [bridge, setBridge] = useState<BridgeReady | undefined>(undefined)
   const [stats, setStats] = useState<ImporterStats | null>(null)
+  const [archive, setArchive] = useState<ArchiveStats | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | undefined>(undefined)
 
   useEffect(() => {
+    // Ask first, then subscribe. The subscription only reports changes, and by the time this panel
+    // mounts the bridge has usually already resolved — so without this the status sits on
+    // "startet …" with a red dot forever, over a bridge that is working.
+    void api()
+      .getBridge()
+      .then((current) => {
+        if (current) setBridge(current)
+      })
     const off = api().onBridge(setBridge)
     const poll = (): void => {
       void api().getImportStats().then(setStats)
+      // A failing stats call means the archive worker is restarting; the health banner already
+      // says so, and blanking the numbers on a blip would be worse than leaving the last ones up.
+      void (api().archive({ op: 'stats' }) as Promise<ArchiveStats>).then(setArchive, () => {
+        /* keep the previous numbers */
+      })
     }
     poll()
     const timer = setInterval(poll, 2000)
@@ -55,8 +70,19 @@ export function MirrorStatus(): React.JSX.Element {
     <div className="flex flex-col gap-2 rounded-lg bg-wa-surface px-3 py-2 text-xs">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2">
+          {/*
+            Three states in the text, so three in the dot. It used to be `bridge?.ok ? green : red`,
+            which painted "still starting" in the same red as "broken" — an alarm for something
+            that has not gone wrong yet, and the first thing a new user sees.
+          */}
           <span
-            className={`inline-block h-2 w-2 rounded-full ${bridge?.ok ? 'bg-wa-accent' : 'bg-red-500'}`}
+            className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+              bridge === undefined
+                ? 'animate-pulse bg-slate-500'
+                : bridge.ok
+                  ? 'bg-wa-accent'
+                  : 'bg-red-500'
+            }`}
             aria-hidden="true"
           />
           {bridge === undefined
@@ -88,11 +114,21 @@ export function MirrorStatus(): React.JSX.Element {
         </p>
       )}
 
-      {stats && (
+      {/*
+        These used to read "Geschrieben", from the importer's own counter — which is the sum of
+        upserted chats, contacts, messages AND media rows. It showed 1.438 directly above a box
+        saying the archive was empty, and both were telling the truth about different things. What
+        somebody wants to know here is what is actually IN the archive, so that is what it says now.
+      */}
+      {archive && (
         <dl className="grid grid-cols-3 gap-2 tabular-nums text-wa-muted">
           <div>
-            <dt>Geschrieben</dt>
-            <dd className="text-slate-200">{stats.written.toLocaleString('de-DE')}</dd>
+            <dt>Nachrichten</dt>
+            <dd className="text-slate-200">{archive.messages.toLocaleString('de-DE')}</dd>
+          </div>
+          <div>
+            <dt>Chats</dt>
+            <dd className="text-slate-200">{archive.chats.toLocaleString('de-DE')}</dd>
           </div>
           <div>
             <dt>Wartend</dt>
@@ -100,13 +136,15 @@ export function MirrorStatus(): React.JSX.Element {
               {behind.toLocaleString('de-DE')}
             </dd>
           </div>
-          <div>
-            <dt>Verworfen</dt>
-            <dd className={stats.dropped > 0 ? 'text-red-400' : 'text-slate-200'}>
-              {stats.dropped.toLocaleString('de-DE')}
-            </dd>
-          </div>
         </dl>
+      )}
+
+      {/* An exception, not a statistic: shown only when it has actually happened. */}
+      {stats !== null && stats.dropped > 0 && (
+        <p className="text-red-400">
+          {stats.dropped.toLocaleString('de-DE')} Ereignisse verworfen — der Schreiber kam nicht
+          hinterher.
+        </p>
       )}
 
       {stats?.lastError && <p className="text-red-400">Letzter Fehler: {stats.lastError}</p>}

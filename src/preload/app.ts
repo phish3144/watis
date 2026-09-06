@@ -175,6 +175,20 @@ const api = {
     ipcRenderer.on('app:backfill', handler)
     return () => ipcRenderer.removeListener('app:backfill', handler)
   },
+  /**
+   * The bridge report as it stands right now, or null if none has arrived yet.
+   *
+   * onBridge below only tells you about CHANGES. A panel that mounts after the bridge has already
+   * resolved would otherwise wait forever for an event that already happened.
+   */
+  getBridge: (): Promise<BridgeReady | null> => ipcRenderer.invoke('app:bridge-state'),
+  getUnread: (): Promise<{
+    unread: number
+    mutedUnread: number
+    byAccount: Record<string, { unread: number; mutedUnread: number }>
+  }> => ipcRenderer.invoke('app:unread-state'),
+  getPanel: (): Promise<{ open: boolean }> => ipcRenderer.invoke('app:panel-state'),
+
   onBridge: (listener: (report: BridgeReady) => void): (() => void) => {
     const handler = (_event: unknown, value: BridgeReady): void => {
       listener(value)

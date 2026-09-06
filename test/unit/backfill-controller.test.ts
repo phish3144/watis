@@ -20,6 +20,7 @@ describe('BackfillController', () => {
   let written: Request[]
   let stored: { chatId: string; backfillDone?: boolean }[]
   let bridgeReady: boolean
+  let reachableFails: boolean
   let pages: Map<string, number>
 
   const bridge = {
@@ -28,7 +29,11 @@ describe('BackfillController', () => {
     },
     send: (op: string, args?: Record<string, unknown>): Promise<unknown> => {
       sent.push(args ? { op, args } : { op })
-      if (op === 'earliestReachableTs') return Promise.resolve(1_690_000_000)
+      if (op === 'earliestReachableTs') {
+        return reachableFails
+          ? Promise.reject(new Error('bridge command failed'))
+          : Promise.resolve(1_690_000_000)
+      }
       if (op === 'loadOlder') {
         const chatId = String(args?.chatId)
         const left = pages.get(chatId) ?? 0
@@ -56,6 +61,7 @@ describe('BackfillController', () => {
     written = []
     stored = []
     bridgeReady = true
+    reachableFails = false
     idleSeconds = 600
     pages = new Map()
   })
@@ -63,6 +69,53 @@ describe('BackfillController', () => {
   it('refuses to start without a bridge', async () => {
     bridgeReady = false
     await expect(build().start()).rejects.toThrow('bridge is not available')
+  })
+
+  /**
+   * The reported bug: "Nachladen funktioniert nicht und lässt sich nicht anhalten."
+   *
+   * `earliestReachableTs` used to be awaited ABOVE the try/finally that clears the running flag.
+   * One refused bridge command threw straight past the finally, so the machine stayed marked as
+   * running with nothing left able to clear it. From then on the panel showed "Anhalten" forever,
+   * pressing it set a flag no loop was reading, and every later start() hit the "already running"
+   * guard and returned immediately. Permanently wedged, from a single failed command.
+   */
+  describe('when WhatsApp refuses to say how far back it goes', () => {
+    it('does not stay wedged in a running state', async () => {
+      reachableFails = true
+      const controller = build()
+      controller.enqueue(['c1'])
+      await controller.start()
+      expect(controller.snapshot().running).toBe(false)
+    })
+
+    it('can still be started again afterwards', async () => {
+      reachableFails = true
+      const controller = build()
+      controller.enqueue(['c1'])
+      await controller.start()
+
+      // The second run is the one that used to return instantly on the guard without doing
+      // anything, which is what "funktioniert nicht" looked like from the outside.
+      reachableFails = false
+      pages.set('c1', 1)
+      const second = await controller.start()
+      expect(second.chats[0]?.state).toBe('done')
+      expect(sent.filter((s) => s.op === 'loadOlder').length).toBeGreaterThan(0)
+    })
+
+    it('still backfills, losing only the depth label', async () => {
+      // Not knowing how far back WhatsApp will go is no reason to refuse to go back at all.
+      reachableFails = true
+      pages.set('c1', 2)
+      const controller = build()
+      controller.enqueue(['c1'])
+      const result = await controller.start()
+
+      expect(result.reachableTs).toBeUndefined()
+      expect(result.chats[0]?.state).toBe('done')
+      expect(result.chats[0]?.messages).toBeGreaterThan(0)
+    })
   })
 
   it('walks a chat to its floor and records the depth limit WhatsApp reported', async () => {

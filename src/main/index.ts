@@ -48,6 +48,7 @@ import {
   type UpdateState,
 } from './updater'
 import { HealthMonitor } from './health/monitor'
+import type { BridgeReady } from '../bridge/protocol'
 import { AccountPipeline } from './accounts/pipeline'
 import { startIndexSignals } from './index-signals'
 import { applySpellcheck, availableLanguages } from './session/spellcheck'
@@ -79,6 +80,20 @@ let uiLayer: UiLayer | undefined
 let health: HealthMonitor | undefined
 /** One per account, keyed by account id. The active account's is the one the panel talks to. */
 const pipelines = new Map<string, AccountPipeline>()
+/**
+ * The last bridge report per account, so the panel can ASK instead of only being told.
+ *
+ * The report was push-only: main sent 'app:bridge' the moment the bridge resolved and never again.
+ * A panel that had not finished mounting its listener by then — or that mounted after a reload —
+ * never learned the bridge was up and sat on `undefined` forever. That is not cosmetic: the status
+ * dot stays red, the text stays "Mitschreiben startet …", and "Jetzt übernehmen" is disabled on
+ * `bridge?.ok !== true`, so the one control that fills an empty archive becomes unreachable while
+ * the bridge underneath is working fine.
+ *
+ * Every other channel in this file — health, backfill, updates, the lock, import stats — already
+ * has a getter. This was the only one without.
+ */
+const bridgeReports = new Map<string, BridgeReady & { accountId: string }>()
 const unreadByAccount = new Map<string, { unread: number; mutedUnread: number }>()
 
 /** Which account a message from a WhatsApp view belongs to, by matching the view's webContents. */
@@ -325,6 +340,8 @@ function buildPipeline(accountId: string): void {
         // Only the account in front decides the banner: a background account's bridge being down
         // is worth knowing, but not worth covering the chat somebody is reading.
         if (id === activeAccountId()) health?.set('bridge-unavailable', !report.ok)
+        // Remembered before it is sent, so a panel that missed the send can still ask for it.
+        bridgeReports.set(id, { accountId: id, ...report })
         mainWindow?.panel.webContents.send('app:bridge', { accountId: id, ...report })
       },
       onBackfill: (id, snapshot) => {
@@ -509,6 +526,21 @@ function registerIpcHandlers(): void {
   // Backpressure, so the panel can show a mirror that is falling behind instead of silently
   // dropping events (PLAN.md Phase 3).
   ipcMain.handle('app:import-stats', () => activePipeline()?.stats() ?? null)
+  // Null means "no report yet", which is genuinely different from a report saying the bridge is
+  // down — the panel shows a third, waiting state for it rather than a red dot.
+  ipcMain.handle('app:bridge-state', () => bridgeReports.get(activeAccountId()) ?? null)
+  // Same reason as the bridge: the badge counts are only pushed when they change, so a panel that
+  // mounted after the last change would show zero unread over a full inbox until the next one.
+  ipcMain.handle('app:unread-state', () => {
+    let unread = 0
+    let muted = 0
+    for (const count of unreadByAccount.values()) {
+      unread += count.unread
+      muted += count.mutedUnread
+    }
+    return { unread, mutedUnread: muted, byAccount: Object.fromEntries(unreadByAccount) }
+  })
+  ipcMain.handle('app:panel-state', () => ({ open: mainWindow?.isPanelVisible() ?? true }))
 
   ipcMain.handle('app:spellcheck-languages', () => {
     const waSession = mainWindow?.wa.webContents.session

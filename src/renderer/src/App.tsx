@@ -52,6 +52,14 @@ export function App(): React.JSX.Element {
     void api().getPaths().then(setPaths)
     void api().getHealth().then(setDegraded)
     void api().lock.state().then(setLock)
+    // Asked for, not waited for. onUnread and onPanel below report changes only, so a panel that
+    // mounts after the last change would sit on its initial guess — a zero badge over a full inbox.
+    void api().getUnread().then(setUnread)
+    void api()
+      .getPanel()
+      .then((state) => {
+        setPanelOpen(state.open)
+      })
     void api().update.state().then(setUpdate)
 
     const offSettings = api().onSettings(setSettings)

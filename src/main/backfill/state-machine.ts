@@ -128,9 +128,24 @@ export class BackfillMachine {
     if (this.#running) return this.snapshot()
     this.#running = true
     this.#stopRequested = false
-    this.#reachableTs = await this.#effects.earliestReachableTs()
 
     try {
+      // Inside the try, and deliberately not fatal.
+      //
+      // This await used to sit ABOVE the try. One refused bridge command — a module that did not
+      // resolve, a timeout — threw past the finally and left #running stuck at true with nothing
+      // able to clear it. From then on the UI showed "Anhalten" permanently, stop() set a flag
+      // nobody was left to read, and every later run() returned immediately on the guard above.
+      // "Nachladen funktioniert nicht und lässt sich nicht anhalten", exactly.
+      //
+      // The depth hint is one label in the UI. Not knowing how far back WhatsApp will go is no
+      // reason to refuse to go back at all, so a failure here costs the label and nothing else.
+      try {
+        this.#reachableTs = await this.#effects.earliestReachableTs()
+      } catch {
+        this.#reachableTs = undefined
+      }
+
       for (const [chatId, progress] of this.#chats) {
         if (this.#stopRequested) break
         if (progress.state === 'done' || progress.state === 'failed') continue

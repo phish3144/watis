@@ -27,6 +27,11 @@ export function FirstRun(): React.JSX.Element | null {
     }
     read()
     const timer = setInterval(read, 4000)
+    void api()
+      .getBridge()
+      .then((current) => {
+        if (current) setBridge(current)
+      })
     const off = api().onBridge(setBridge)
     return () => {
       clearInterval(timer)
