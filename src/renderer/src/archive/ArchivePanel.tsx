@@ -4,6 +4,7 @@ import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-li
 import { BackfillPanel } from '../components/BackfillPanel'
 import type { HitPreview, NameHit } from '../../../workers/archive/repository'
 import { Gallery } from './Gallery'
+import { FirstRun } from './FirstRun'
 
 /**
  * The archive view: chat list, virtualised message list, search.
@@ -530,258 +531,264 @@ export function ArchivePanel(): React.JSX.Element {
   )
 
   return (
-    <div className="flex h-full min-h-0 gap-3">
-      <div className="flex w-56 shrink-0 flex-col gap-2">
-        <aside className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
-          {chats.map((chat) => (
-            <button
-              key={chat.id}
-              type="button"
-              onClick={() => {
-                setChatId(chat.id)
-              }}
-              className={`truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
-                chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
-              }`}
-            >
-              {chat.name ?? chat.id}
-            </button>
-          ))}
-          {chats.length === 0 && (
-            <p className="p-3 text-sm text-wa-muted">
-              Noch nichts archiviert. Sobald WhatsApp Web geladen und verknüpft ist, schreibt WatIs?
-              jede neue Nachricht mit. Was WhatsApp jetzt schon im Speicher hat, holt „Jetzt
-              übernehmen" unter <em>Nachladen</em> in einem Zug herein.
-            </p>
-          )}
-        </aside>
+    // A column holding the first-run note above the two-pane layout — the panel itself is a row,
+    // so the note has to sit outside it or it becomes a third column beside the chat list.
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <FirstRun />
 
-        <details className="shrink-0 rounded-lg border border-wa-hairline">
-          <summary className="cursor-pointer px-3 py-2 text-xs">Nachladen</summary>
-          <BackfillPanel chats={chats} />
-        </details>
-      </div>
-
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        <div className="flex gap-2">
-          <input
-            ref={searchRef}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void runSearch()
-              if (e.key === 'Escape') {
-                setQuery('')
-                setHits(undefined)
-              }
-            }}
-            placeholder="Suchen — von:, in:, vor:, nach:, hat:, quelle:   (Strg+K)"
-            className="flex-1 rounded-md border border-wa-hairline bg-transparent px-3 py-1.5 text-sm"
-            aria-label="Archiv durchsuchen"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              void runSearch()
-            }}
-            className="rounded-md border border-wa-hairline px-3 py-1.5 text-sm"
-          >
-            Suchen
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          {(
-            [
-              ['messages', 'Verlauf'],
-              ['gallery', 'Galerie'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={view === value}
-              onClick={() => {
-                setView(value)
-              }}
-              className={`rounded-full border px-2 py-0.5 ${
-                view === value
-                  ? 'border-wa-accent text-wa-accent'
-                  : 'border-wa-hairline text-wa-muted hover:text-slate-200'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-
-          {view === 'messages' && chatId && (
-            <label className="ml-auto flex items-center gap-1 text-wa-muted">
-              Springe zu
-              <input
-                type="date"
-                value={jumpTo}
-                onChange={(e) => {
-                  setJumpTo(e.target.value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void jumpToDate()
-                }}
-                className="rounded-md border border-wa-hairline bg-transparent px-2 py-0.5"
-                aria-label="Zu einem Datum springen"
-              />
+      <div className="flex min-h-0 flex-1 gap-3">
+        <div className="flex w-56 shrink-0 flex-col gap-2">
+          <aside className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
+            {chats.map((chat) => (
               <button
+                key={chat.id}
                 type="button"
-                disabled={!jumpTo}
                 onClick={() => {
-                  void jumpToDate()
+                  setChatId(chat.id)
                 }}
-                className="rounded-md border border-wa-hairline px-2 py-0.5 disabled:opacity-40"
+                className={`truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
+                  chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
+                }`}
               >
-                Los
+                {chat.name ?? chat.id}
               </button>
-            </label>
-          )}
+            ))}
+            {chats.length === 0 && (
+              <p className="p-3 text-sm text-wa-muted">
+                Noch nichts archiviert. Sobald WhatsApp Web geladen und verknüpft ist, schreibt
+                WatIs? jede neue Nachricht mit. Was WhatsApp jetzt schon im Speicher hat, holt
+                „Jetzt übernehmen" unter <em>Nachladen</em> in einem Zug herein.
+              </p>
+            )}
+          </aside>
+
+          <details className="shrink-0 rounded-lg border border-wa-hairline">
+            <summary className="cursor-pointer px-3 py-2 text-xs">Nachladen</summary>
+            <BackfillPanel chats={chats} />
+          </details>
         </div>
 
-        {/*
-          Chips rather than a dropdown: they write into the same query string the user could have
-          typed, so the syntax stays visible and learnable instead of being hidden behind a widget.
-        */}
-        <div className="flex flex-wrap gap-1 text-[11px]">
-          {(
-            [
-              ['body', 'Nachrichten'],
-              ['ocr', 'Text in Bildern'],
-              ['pdf', 'PDFs'],
-              ['transcript', 'Sprachnachrichten'],
-            ] as const
-          ).map(([value, label]) => {
-            const token = `quelle:${value}`
-            const active = query.includes(token)
-            return (
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+          <div className="flex gap-2">
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void runSearch()
+                if (e.key === 'Escape') {
+                  setQuery('')
+                  setHits(undefined)
+                }
+              }}
+              placeholder="Suchen — von:, in:, vor:, nach:, hat:, quelle:   (Strg+K)"
+              className="flex-1 rounded-md border border-wa-hairline bg-transparent px-3 py-1.5 text-sm"
+              aria-label="Archiv durchsuchen"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void runSearch()
+              }}
+              className="rounded-md border border-wa-hairline px-3 py-1.5 text-sm"
+            >
+              Suchen
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            {(
+              [
+                ['messages', 'Verlauf'],
+                ['gallery', 'Galerie'],
+              ] as const
+            ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
-                aria-pressed={active}
+                aria-pressed={view === value}
                 onClick={() => {
-                  const next = active
-                    ? query
-                        .replace(token, '')
-                        .replace(/\s{2,}/g, ' ')
-                        .trim()
-                    : `${query.trim()} ${token}`.trim()
-                  setQuery(next)
+                  setView(value)
                 }}
                 className={`rounded-full border px-2 py-0.5 ${
-                  active
+                  view === value
                     ? 'border-wa-accent text-wa-accent'
                     : 'border-wa-hairline text-wa-muted hover:text-slate-200'
                 }`}
               >
                 {label}
               </button>
-            )
-          })}
-          {(query.includes('hat:') || query.includes('quelle:')) && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery(
-                  query
-                    .split(/\s+/)
-                    .filter((word) => !word.startsWith('quelle:') && !word.startsWith('hat:'))
-                    .join(' ')
-                    .trim(),
-                )
-              }}
-              className="rounded-full border border-wa-hairline px-2 py-0.5 text-wa-muted hover:text-slate-200"
-            >
-              Filter zurücksetzen
-            </button>
-          )}
-        </div>
-
-        {error !== undefined && (
-          <p
-            role="alert"
-            className="rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500"
-          >
-            {error}
-          </p>
-        )}
-
-        {view === 'gallery' && !hits ? (
-          <Gallery chatId={chatId} />
-        ) : hits ? (
-          <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
-            {names.length > 0 && (
-              <li className="border-b border-wa-hairline bg-wa-surface px-3 py-2">
-                <div className="mb-1 text-[11px] uppercase tracking-wide text-wa-muted">
-                  Chats und Kontakte
-                </div>
-                <ul className="flex flex-wrap gap-2 text-sm">
-                  {names.map((name) => (
-                    <li key={`${name.kind}:${name.id}`}>
-                      <button
-                        type="button"
-                        className="rounded-md border border-wa-hairline px-2 py-0.5 hover:border-wa-accent"
-                        onClick={() => {
-                          if (name.kind === 'chat') {
-                            setChatId(name.id)
-                            setHits(undefined)
-                          } else {
-                            // A contact is not a chat: filtering by sender is the honest action,
-                            // because that person may appear in several chats.
-                            setQuery(`von:${name.id}`)
-                          }
-                        }}
-                      >
-                        {name.label}
-                        <span className="ml-1 text-[11px] text-wa-muted">
-                          {name.kind === 'chat' ? 'Chat' : 'Kontakt'}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            )}
-            {hits.length === 0 && names.length === 0 && (
-              <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>
-            )}
-            {hits.map((hit) => (
-              <HitRow
-                key={`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`}
-                hit={hit}
-                preview={previews[`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`]}
-                onOpenInArchive={() => {
-                  if (hit.chatId) setChatId(hit.chatId)
-                  setHits(undefined)
-                }}
-              />
             ))}
-          </ul>
-        ) : (
-          <div
-            ref={listRef}
-            onScroll={onScroll}
-            className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline"
-          >
-            <div style={{ height: window_.paddingTop }} />
-            <ul>
-              {messages.slice(window_.startIndex, window_.endIndex).map((m) => (
-                <MessageRow key={m.id} message={m} />
-              ))}
-            </ul>
-            <div style={{ height: window_.paddingBottom }} />
-            {messages.length === 0 && !loading && (
-              <p className="p-3 text-sm text-wa-muted">Keine Nachrichten in diesem Chat.</p>
+
+            {view === 'messages' && chatId && (
+              <label className="ml-auto flex items-center gap-1 text-wa-muted">
+                Springe zu
+                <input
+                  type="date"
+                  value={jumpTo}
+                  onChange={(e) => {
+                    setJumpTo(e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void jumpToDate()
+                  }}
+                  className="rounded-md border border-wa-hairline bg-transparent px-2 py-0.5"
+                  aria-label="Zu einem Datum springen"
+                />
+                <button
+                  type="button"
+                  disabled={!jumpTo}
+                  onClick={() => {
+                    void jumpToDate()
+                  }}
+                  className="rounded-md border border-wa-hairline px-2 py-0.5 disabled:opacity-40"
+                >
+                  Los
+                </button>
+              </label>
             )}
           </div>
-        )}
-      </section>
+
+          {/*
+          Chips rather than a dropdown: they write into the same query string the user could have
+          typed, so the syntax stays visible and learnable instead of being hidden behind a widget.
+        */}
+          <div className="flex flex-wrap gap-1 text-[11px]">
+            {(
+              [
+                ['body', 'Nachrichten'],
+                ['ocr', 'Text in Bildern'],
+                ['pdf', 'PDFs'],
+                ['transcript', 'Sprachnachrichten'],
+              ] as const
+            ).map(([value, label]) => {
+              const token = `quelle:${value}`
+              const active = query.includes(token)
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    const next = active
+                      ? query
+                          .replace(token, '')
+                          .replace(/\s{2,}/g, ' ')
+                          .trim()
+                      : `${query.trim()} ${token}`.trim()
+                    setQuery(next)
+                  }}
+                  className={`rounded-full border px-2 py-0.5 ${
+                    active
+                      ? 'border-wa-accent text-wa-accent'
+                      : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+            {(query.includes('hat:') || query.includes('quelle:')) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery(
+                    query
+                      .split(/\s+/)
+                      .filter((word) => !word.startsWith('quelle:') && !word.startsWith('hat:'))
+                      .join(' ')
+                      .trim(),
+                  )
+                }}
+                className="rounded-full border border-wa-hairline px-2 py-0.5 text-wa-muted hover:text-slate-200"
+              >
+                Filter zurücksetzen
+              </button>
+            )}
+          </div>
+
+          {error !== undefined && (
+            <p
+              role="alert"
+              className="rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500"
+            >
+              {error}
+            </p>
+          )}
+
+          {view === 'gallery' && !hits ? (
+            <Gallery chatId={chatId} />
+          ) : hits ? (
+            <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline">
+              {names.length > 0 && (
+                <li className="border-b border-wa-hairline bg-wa-surface px-3 py-2">
+                  <div className="mb-1 text-[11px] uppercase tracking-wide text-wa-muted">
+                    Chats und Kontakte
+                  </div>
+                  <ul className="flex flex-wrap gap-2 text-sm">
+                    {names.map((name) => (
+                      <li key={`${name.kind}:${name.id}`}>
+                        <button
+                          type="button"
+                          className="rounded-md border border-wa-hairline px-2 py-0.5 hover:border-wa-accent"
+                          onClick={() => {
+                            if (name.kind === 'chat') {
+                              setChatId(name.id)
+                              setHits(undefined)
+                            } else {
+                              // A contact is not a chat: filtering by sender is the honest action,
+                              // because that person may appear in several chats.
+                              setQuery(`von:${name.id}`)
+                            }
+                          }}
+                        >
+                          {name.label}
+                          <span className="ml-1 text-[11px] text-wa-muted">
+                            {name.kind === 'chat' ? 'Chat' : 'Kontakt'}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )}
+              {hits.length === 0 && names.length === 0 && (
+                <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>
+              )}
+              {hits.map((hit) => (
+                <HitRow
+                  key={`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`}
+                  hit={hit}
+                  preview={previews[`${hit.source}:${hit.msgId ?? hit.mediaId ?? ''}`]}
+                  onOpenInArchive={() => {
+                    if (hit.chatId) setChatId(hit.chatId)
+                    setHits(undefined)
+                  }}
+                />
+              ))}
+            </ul>
+          ) : (
+            <div
+              ref={listRef}
+              onScroll={onScroll}
+              className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-wa-hairline"
+            >
+              <div style={{ height: window_.paddingTop }} />
+              <ul>
+                {messages.slice(window_.startIndex, window_.endIndex).map((m) => (
+                  <MessageRow key={m.id} message={m} />
+                ))}
+              </ul>
+              <div style={{ height: window_.paddingBottom }} />
+              {messages.length === 0 && !loading && (
+                <p className="p-3 text-sm text-wa-muted">Keine Nachrichten in diesem Chat.</p>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }
