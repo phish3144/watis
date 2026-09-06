@@ -4,7 +4,7 @@ import type { ArchiveStats } from '@shared/ipc/archive-protocol'
 import type { BridgeReady } from '../../../bridge/protocol'
 
 /**
- * What the application is doing for you, shown while the archive is still empty.
+ * One line on why the archive is still empty, shown only while it is.
  *
  * It exists because of a real report: someone ran this for a while and saw "no added value and no
  * extended functionality". Part of that was a hidden panel. The other part is this — an empty chat
@@ -14,6 +14,11 @@ import type { BridgeReady } from '../../../bridge/protocol'
  * So this says which of the two it is, from real state, and disappears the moment the archive has
  * anything in it. It is not a tour and not a splash screen: once there are messages, the messages
  * are the better answer.
+ *
+ * It used to carry a heading and a paragraph listing every feature the archive would eventually
+ * have. In a 460px panel that box was taller than everything below it, and it repeated what the
+ * status line directly above it already said. What is left is the one sentence the status line
+ * cannot give: what this means for the user.
  */
 export function FirstRun(): React.JSX.Element | null {
   const [stats, setStats] = useState<ArchiveStats | undefined>(undefined)
@@ -46,39 +51,24 @@ export function FirstRun(): React.JSX.Element | null {
   const failed = bridge?.ok === false
 
   return (
-    <section className="shrink-0 rounded-lg border border-wa-hairline bg-wa-surface px-4 py-3 text-xs leading-relaxed">
-      <h2 className="mb-1 text-sm font-semibold">Das Archiv ist noch leer</h2>
-
+    <section className="shrink-0 rounded-lg border border-wa-hairline bg-wa-surface px-3 py-2 text-xs leading-relaxed">
       {working && (
         <p>
           <strong className="text-wa-accent">Das Mitschreiben läuft.</strong> Jede Nachricht, die ab
-          jetzt ankommt, landet hier — dauerhaft, auch wenn WhatsApp sie irgendwann nicht mehr
-          zeigt. Was WhatsApp gerade schon geladen hat, holt <em>Nachladen → Jetzt übernehmen</em>{' '}
-          sofort herein.
+          jetzt ankommt, bleibt hier — auch wenn WhatsApp sie irgendwann nicht mehr zeigt. Was schon
+          geladen ist, holt <em>Jetzt übernehmen</em> sofort herein.
         </p>
       )}
 
       {failed && (
         <p>
           <strong className="text-red-400">Es wird gerade nichts mitgeschrieben.</strong> WatIs?
-          kommt an WhatsApps Innenleben nicht heran — das passiert typischerweise nach einem Update
-          von WhatsApp Web. WhatsApp selbst funktioniert normal weiter; nur das Archiv wächst nicht.
+          kommt an WhatsApps Innenleben nicht heran — typischerweise nach einem Update von WhatsApp
+          Web. WhatsApp selbst läuft normal weiter; nur das Archiv wächst nicht.
         </p>
       )}
 
-      {bridge === undefined && (
-        <p>
-          Warte darauf, dass WhatsApp Web geladen und verknüpft ist. Solange links noch der QR-Code
-          steht, gibt es nichts mitzuschreiben.
-        </p>
-      )}
-
-      <p className="mt-2 text-wa-muted">
-        Sobald etwas drin ist, kannst du hier volltextsuchen — auch nach Text in Bildern und PDFs —,
-        nach Datum springen, dir die Mediengalerie eines Chats ansehen und alles nach JSON, HTML
-        oder TXT exportieren. Rückwirkend gibt WhatsApp Web höchstens rund 90 Tage her; ab heute
-        geht nichts mehr verloren.
-      </p>
+      {bridge === undefined && <p>Warte darauf, dass WhatsApp Web geladen und verknüpft ist.</p>}
     </section>
   )
 }

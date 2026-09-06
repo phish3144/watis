@@ -34,7 +34,13 @@ export function visibleRange(w: Windowing): VisibleRange {
     return { startIndex: 0, endIndex: 0, paddingTop: 0, paddingBottom: 0 }
   }
 
-  const first = Math.floor(w.scrollTop / w.rowHeight)
+  // Clamped to the last row that exists. endIndex was already clamped to count; startIndex was not,
+  // and the two are not symmetrical in consequence. The list uses Number.MAX_SAFE_INTEGER as its
+  // "jump to the bottom" sentinel for scrollTop, which made `first` about 1.2e14: startIndex ran far
+  // past the end, slice() returned nothing, and paddingTop became astronomical. The result was an
+  // empty pane with a scrollbar for every chat — and it could not recover, because the scrollTop
+  // read back from that enormous padding was just as far out of range as the sentinel.
+  const first = Math.min(Math.max(0, w.count - 1), Math.floor(w.scrollTop / w.rowHeight))
   const visible = Math.ceil(w.viewportHeight / w.rowHeight)
   const startIndex = Math.max(0, first - overscan)
   // endIndex is exclusive, and clamped so a short list never renders past its own end.

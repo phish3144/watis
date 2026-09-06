@@ -95,3 +95,52 @@ describe('jumping to a message', () => {
     expect(scrollTopFor(0, { rowHeight: 60, viewportHeight: 600 })).toBe(0)
   })
 })
+
+describe('a scrollTop past the end of the list', () => {
+  /**
+   * The list uses Number.MAX_SAFE_INTEGER as its "jump to the bottom" sentinel: loadChat sets it,
+   * and an effect then assigns element.scrollTop = element.scrollHeight. endIndex was clamped to
+   * count and startIndex was not, so the sentinel put startIndex about 1.2e14 rows in. slice()
+   * returned nothing and paddingTop became astronomical — an empty message pane with a scrollbar,
+   * for every chat, permanently: the scrollTop read back off that padding was still out of range,
+   * so it fed itself.
+   */
+  it('still renders the end of a short list rather than nothing', () => {
+    const w = visibleRange({
+      count: 2,
+      rowHeight: 76,
+      viewportHeight: 300,
+      scrollTop: Number.MAX_SAFE_INTEGER,
+    })
+    expect(w.endIndex).toBeGreaterThan(w.startIndex)
+    expect(w.startIndex).toBeLessThan(2)
+  })
+
+  it('keeps the spacers within the size of the list', () => {
+    const w = visibleRange({
+      count: 2,
+      rowHeight: 76,
+      viewportHeight: 300,
+      scrollTop: Number.MAX_SAFE_INTEGER,
+    })
+    expect(w.paddingTop + w.paddingBottom).toBeLessThanOrEqual(2 * 76)
+  })
+
+  it('does the same for a long list', () => {
+    const w = visibleRange({
+      count: 5000,
+      rowHeight: 76,
+      viewportHeight: 300,
+      scrollTop: Number.MAX_SAFE_INTEGER,
+    })
+    expect(w.endIndex).toBe(5000)
+    expect(w.startIndex).toBeLessThan(5000)
+    expect(w.paddingTop).toBeLessThanOrEqual(5000 * 76)
+  })
+
+  it('is unchanged for a scrollTop that is actually in range', () => {
+    const w = visibleRange({ count: 5000, rowHeight: 76, viewportHeight: 300, scrollTop: 7600 })
+    expect(w.startIndex).toBe(94)
+    expect(w.paddingTop).toBe(94 * 76)
+  })
+})

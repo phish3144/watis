@@ -344,15 +344,52 @@ export function ArchivePanel(): React.JSX.Element {
   // Guards against firing a second page request while the first is still in flight.
   const fetching = useRef(false)
 
+  /**
+   * The chat list, kept current.
+   *
+   * This used to run once on mount and never again. On a fresh install the archive is empty at that
+   * moment, so the panel showed "Noch nichts archiviert" and went on showing it while chats piled up
+   * underneath — until the user happened to switch tabs, which remounts this component, or restarted
+   * the application. An archive view that does not notice the archive filling up is the same bug as
+   * a status dot that never turns green: the work happens, nothing says so.
+   *
+   * Five seconds. The query is a LIMIT 200 read against a local SQLite file on a worker thread.
+   */
   useEffect(() => {
-    void ask<{ chats: ArchiveChat[] }>({ op: 'chats', limit: 200 })
-      .then((r) => {
-        setChats(r.chats)
-        setChatId((current) => current ?? r.chats[0]?.id)
-      })
-      .catch((e: unknown) => {
-        setError(String(e))
-      })
+    let cancelled = false
+    let first = true
+
+    const load = (): void => {
+      void ask<{ chats: ArchiveChat[] }>({ op: 'chats', limit: 200 })
+        .then((r) => {
+          if (cancelled) return
+          // Replaced only when it actually changed, so a poll every five seconds does not re-render
+          // a two-hundred-row list for nothing.
+          setChats((current) =>
+            current.length === r.chats.length &&
+            current.every((c, i) => c.id === r.chats[i]?.id && c.name === r.chats[i]?.name)
+              ? current
+              : r.chats,
+          )
+          // Picks the first chat as soon as there IS one — not only if one existed at mount, which
+          // was the case that left a populated list beside a blank, unexplained message pane.
+          setChatId((chosen) => chosen ?? r.chats[0]?.id)
+          first = false
+        })
+        .catch((e: unknown) => {
+          // Only the first attempt is worth a message. A later failure means the archive worker is
+          // restarting, which the health banner already reports; overwriting the view with an error
+          // string every five seconds would be worse than showing the last good list.
+          if (!cancelled && first) setError(String(e))
+        })
+    }
+
+    load()
+    const timer = setInterval(load, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
   }, [])
 
   const loadChat = useCallback(async (id: string) => {
@@ -531,14 +568,23 @@ export function ArchivePanel(): React.JSX.Element {
   )
 
   return (
-    // A column holding the first-run note above the two-pane layout — the panel itself is a row,
-    // so the note has to sit outside it or it becomes a third column beside the chat list.
+    // One column, not two.
+    //
+    // This was a master/detail row with a fixed 224px chat list beside everything else. The panel
+    // is capped at 460px wide by construction — Math.min(PANEL_WIDTH, width/2) in main-window.ts —
+    // so the right-hand side never got more than about 200px no matter the monitor. The search
+    // field, the date jump and the filter chips were permanently crushed into a strip. There was no
+    // window size at which that layout came right, which makes it the wrong layout rather than an
+    // untuned one.
+    //
+    // Stacked, every control gets the full width, and the two scrolling regions are bounded: the
+    // chat list takes a fixed slice at the top and the results take everything below it.
     <div className="flex h-full min-h-0 flex-col gap-3">
       <FirstRun />
 
-      <div className="flex min-h-0 flex-1 gap-3">
-        <div className="flex w-56 shrink-0 flex-col gap-2">
-          <aside className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 flex-col gap-2">
+          <aside className="flex max-h-44 min-h-0 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
             {chats.map((chat) => (
               <button
                 key={chat.id}
@@ -546,7 +592,9 @@ export function ArchivePanel(): React.JSX.Element {
                 onClick={() => {
                   setChatId(chat.id)
                 }}
-                className={`truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
+                // shrink-0 matters: this is a flex column with a bounded height, so without it
+                // the rows compress into unreadable slivers rather than letting the list scroll.
+                className={`shrink-0 truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
                   chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
                 }`}
               >
@@ -561,11 +609,6 @@ export function ArchivePanel(): React.JSX.Element {
               </p>
             )}
           </aside>
-
-          <details className="shrink-0 rounded-lg border border-wa-hairline">
-            <summary className="cursor-pointer px-3 py-2 text-xs">Nachladen</summary>
-            <BackfillPanel chats={chats} />
-          </details>
         </div>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
@@ -788,6 +831,18 @@ export function ArchivePanel(): React.JSX.Element {
             </div>
           )}
         </section>
+
+        {/*
+          Last, and collapsed. Backfilling is a maintenance action somebody runs once and then
+          forgets; it used to sit between the chat list and the search box, where it was in the way
+          of both without being any easier to find.
+        */}
+        <details className="shrink-0 rounded-lg border border-wa-hairline">
+          <summary className="cursor-pointer px-3 py-2 text-xs">
+            Ältere Nachrichten nachladen
+          </summary>
+          <BackfillPanel chats={chats} />
+        </details>
       </div>
     </div>
   )
