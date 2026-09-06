@@ -32,19 +32,74 @@ let dataDir: string
 let appDir: string
 let app: ElectronApplication | undefined
 
-/** Every file under the data root, with its content hash. The comparison unit is bytes, not mtime. */
+/**
+ * What the comparison deliberately ignores. Declared up here rather than beside the assertions
+ * because `inventory()` needs it too: on Windows the second inventory runs while the app is live,
+ * and Chromium holds its LevelDB `LOCK` open with no sharing at all. Hashing a file only to throw
+ * the hash away later is pointless on every platform and an EBUSY on that one.
+ *
+ * The exemptions are named rather than pattern-matched loosely, because the list IS the rule:
+ * Chromium's HTTP cache, GPU cache and code cache are disposable and the project says so;
+ * IndexedDB, Local Storage and the service-worker registrations are the session and must never
+ * appear here.
+ */
+// Matched on a path segment, not a prefix: the persistent `persist:wa` partition has its own copy
+// of every one of these under session/Partitions/wa/, and an update has to leave that alone too.
+const DISPOSABLE_DIRS = new Set([
+  'Cache',
+  'Code Cache',
+  'GPUCache',
+  'DawnGraphiteCache',
+  'DawnWebGPUCache',
+  'Shared Dictionary',
+  'Network',
+])
+// LevelDB rewrites its own diagnostics on every open. The data files beside them — .ldb,
+// MANIFEST, CURRENT — are the session and stay strict, which is the line that matters.
+// Everything under IndexedDB, Local Storage and Service Worker is checked byte for byte.
+const DIAGNOSTIC_FILES = new Set(['LOG', 'LOG.old', 'LOCK', 'DevToolsActivePort'])
+
+function volatile(name: string): boolean {
+  const parts = name.split('\\').join('/').split('/')
+  if (parts[0] === 'logs') return true
+  if (name.includes('-wal') || name.includes('-shm')) return true
+  if (DIAGNOSTIC_FILES.has(parts[parts.length - 1] ?? '')) return true
+  return parts.some((part) => DISPOSABLE_DIRS.has(part))
+}
+
+/**
+ * Reads a file, retrying a locked one briefly. Windows locks can be transient; after five tries the
+ * error is allowed through, because a file this test is supposed to verify and cannot read is a
+ * failure rather than something to shrug at. `walk` is recursive and synchronous, hence the
+ * synchronous pause.
+ */
+function readWithRetry(file: string): Buffer {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return readFileSync(file)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if ((code !== 'EBUSY' && code !== 'EPERM') || attempt === 4) throw error
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
+    }
+  }
+}
+
+/**
+ * Every file under the data root that the comparison actually looks at, with its content hash.
+ * The comparison unit is bytes, not mtime. A file that is exempt is never opened.
+ */
 function inventory(root: string): Map<string, string> {
   const found = new Map<string, string>()
   const walk = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const full = join(directory, entry.name)
+      const name = relative(root, full)
+      if (volatile(name)) continue
       if (entry.isDirectory()) {
         walk(full)
       } else if (entry.isFile()) {
-        found.set(
-          relative(root, full),
-          createHash('sha256').update(readFileSync(full)).digest('hex'),
-        )
+        found.set(name, createHash('sha256').update(readWithRetry(full)).digest('hex'))
       }
     }
   }
@@ -198,45 +253,18 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   const blobFiles = inventory(blobsDir)
   expect(blobFiles.size).toBe(1)
 
-  // Byte-for-byte, minus what the running app legitimately rewrites. The exemptions are named
-  // rather than pattern-matched loosely, because the list IS the rule: Chromium's HTTP cache,
-  // GPU cache and code cache are disposable and the project says so; IndexedDB, Local Storage and
-  // the service-worker registrations are the session and must never appear here.
+  // Byte-for-byte, minus what the running app legitimately rewrites — see `volatile` above, which
+  // both inventories already applied, so nothing exempt is in either map to begin with.
   const after = inventory(root)
-  // Matched on a path segment, not a prefix: the persistent `persist:wa` partition has its own
-  // copy of every one of these under session/Partitions/wa/, and an update has to leave that alone
-  // just the same.
-  const DISPOSABLE_DIRS = new Set([
-    'Cache',
-    'Code Cache',
-    'GPUCache',
-    'DawnGraphiteCache',
-    'DawnWebGPUCache',
-    'Shared Dictionary',
-    'Network',
-  ])
-  // LevelDB rewrites its own diagnostics on every open. The data files beside them — .ldb,
-  // MANIFEST, CURRENT — are the session and stay strict, which is the line that matters.
-  // Everything under IndexedDB, Local Storage and Service Worker is checked byte for byte.
-  const DIAGNOSTIC_FILES = new Set(['LOG', 'LOG.old', 'LOCK', 'DevToolsActivePort'])
-
-  const volatile = (name: string): boolean => {
-    const parts = name.split('\\').join('/').split('/')
-    if (parts[0] === 'logs') return true
-    if (name.includes('-wal') || name.includes('-shm')) return true
-    if (DIAGNOSTIC_FILES.has(parts[parts.length - 1] ?? '')) return true
-    return parts.some((part) => DISPOSABLE_DIRS.has(part))
-  }
 
   // Without this the test would still pass if the exemption list quietly grew to cover everything.
   // These three are the point of the whole exercise, named so they cannot be exempted by accident.
-  const compared = [...before.keys()].filter((name) => !volatile(name))
+  const compared = [...before.keys()]
   expect(compared.some((n) => n.includes('archive.sqlite'))).toBe(true)
   expect(compared.some((n) => n.startsWith('blobs'))).toBe(true)
   expect(compared.some((n) => n.includes('watis-e2e-marker'))).toBe(true)
 
   for (const [name, hash] of before) {
-    if (volatile(name)) continue
     expect(after.get(name), `${name} disappeared or changed during the update`).toBe(hash)
   }
 })
