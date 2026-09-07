@@ -57,7 +57,20 @@ const DISPOSABLE_DIRS = new Set([
 // LevelDB rewrites its own diagnostics on every open. The data files beside them — .ldb,
 // MANIFEST, CURRENT — are the session and stay strict, which is the line that matters.
 // Everything under IndexedDB, Local Storage and Service Worker is checked byte for byte.
-const DIAGNOSTIC_FILES = new Set(['LOG', 'LOG.old', 'LOCK', 'DevToolsActivePort'])
+const DIAGNOSTIC_FILES = new Set([
+  'LOG',
+  'LOG.old',
+  'LOCK',
+  'DevToolsActivePort',
+  // Chromium's own bookkeeping under the partition, rewritten between runs — observed changing on
+  // Windows across a restart that touched nothing else. It is not one of the stores this test
+  // exists to protect: cookies, IndexedDB, Local Storage and the service-worker registrations stay
+  // strict, and the guard below makes it impossible to add one of those here by accident.
+  'declarative_performance_observer.db',
+])
+
+/** The stores that ARE the session. Exempting any of these would empty the test of its meaning. */
+const SESSION_STORES = ['IndexedDB', 'Local Storage', 'Service Worker', 'Cookies']
 
 function volatile(name: string): boolean {
   const parts = name.split('\\').join('/').split('/')
@@ -89,6 +102,20 @@ function readWithRetry(file: string): Buffer {
  * Every file under the data root that the comparison actually looks at, with its content hash.
  * The comparison unit is bytes, not mtime. A file that is exempt is never opened.
  */
+/** Every path under the root, exempt ones included — the guard needs to see what was skipped. */
+function inventoryRaw(root: string): string[] {
+  const found: string[] = []
+  const walk = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const full = join(directory, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (entry.isFile()) found.push(relative(root, full))
+    }
+  }
+  if (existsSync(root)) walk(root)
+  return found
+}
+
 function inventory(root: string): Map<string, string> {
   const found = new Map<string, string>()
   const walk = (directory: string): void => {
@@ -263,6 +290,24 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   expect(compared.some((n) => n.includes('archive.sqlite'))).toBe(true)
   expect(compared.some((n) => n.startsWith('blobs'))).toBe(true)
   expect(compared.some((n) => n.includes('watis-e2e-marker'))).toBe(true)
+
+  // The exemption list is allowed to grow — Chromium adds files between versions and rewrites its
+  // own. What it may never do is start covering the session's DATA. LevelDB's own diagnostics next
+  // to that data are fine and always were; the .ldb, MANIFEST and CURRENT files beside them are the
+  // login. Without this guard, one plausible-looking entry at a time turns a test that proves an
+  // update keeps you signed in into a test that proves nothing.
+  const exempted = inventoryRaw(root).filter((name) => volatile(name))
+  for (const store of SESSION_STORES) {
+    const dataExempted = exempted.filter((name) => {
+      const parts = name.split('\\').join('/').split('/')
+      return parts.includes(store) && !DIAGNOSTIC_FILES.has(parts[parts.length - 1] ?? '')
+    })
+    expect(
+      dataExempted,
+      `${store} holds the session: only LevelDB's own diagnostics may be exempted from it, ` +
+        `never its data`,
+    ).toEqual([])
+  }
 
   for (const [name, hash] of before) {
     expect(after.get(name), `${name} disappeared or changed during the update`).toBe(hash)
