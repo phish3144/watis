@@ -114,17 +114,17 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
         <dl className="grid grid-cols-3 gap-2 tabular-nums text-wa-muted">
           <div>
             <dt>Chats fertig</dt>
-            <dd className="text-slate-200">
+            <dd className="text-wa-text">
               {done} / {state.chats.length}
             </dd>
           </div>
           <div>
             <dt>Nachgeladen</dt>
-            <dd className="text-slate-200">{messages.toLocaleString('de-DE')}</dd>
+            <dd className="text-wa-text">{messages.toLocaleString('de-DE')}</dd>
           </div>
           <div>
             <dt>Zurück bis</dt>
-            <dd className="text-slate-200">{formatDate(oldest)}</dd>
+            <dd className="text-wa-text">{formatDate(oldest)}</dd>
           </div>
         </dl>
       )}
@@ -139,7 +139,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
 
       {failed.length > 0 && (
         <details>
-          <summary className="cursor-pointer text-red-400">
+          <summary className="cursor-pointer text-wa-danger">
             {failed.length} Chats fehlgeschlagen
           </summary>
           <ul className="mt-1 text-wa-muted">
@@ -162,7 +162,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
         </details>
       )}
 
-      {error !== undefined && <p className="text-red-400">{error}</p>}
+      {error !== undefined && <p className="text-wa-danger">{error}</p>}
     </section>
   )
 }

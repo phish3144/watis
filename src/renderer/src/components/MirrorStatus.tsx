@@ -137,10 +137,10 @@ export function MirrorStatus(): React.JSX.Element {
           <span
             className={`inline-block h-2 w-2 shrink-0 rounded-full ${
               bridge === undefined
-                ? 'animate-pulse bg-slate-500'
+                ? 'animate-pulse bg-wa-muted'
                 : bridge.ok
                   ? 'bg-wa-accent'
-                  : 'bg-red-500'
+                  : 'bg-wa-danger'
             }`}
             aria-hidden="true"
           />
@@ -183,15 +183,15 @@ export function MirrorStatus(): React.JSX.Element {
         <dl className="grid grid-cols-3 gap-2 tabular-nums text-wa-muted">
           <div>
             <dt>Nachrichten</dt>
-            <dd className="text-slate-200">{archive.messages.toLocaleString('de-DE')}</dd>
+            <dd className="text-wa-text">{archive.messages.toLocaleString('de-DE')}</dd>
           </div>
           <div>
             <dt>Chats</dt>
-            <dd className="text-slate-200">{archive.chats.toLocaleString('de-DE')}</dd>
+            <dd className="text-wa-text">{archive.chats.toLocaleString('de-DE')}</dd>
           </div>
           <div>
             <dt>Wartend</dt>
-            <dd className={behind > 1000 ? 'text-amber-400' : 'text-slate-200'}>
+            <dd className={behind > 1000 ? 'text-wa-warning' : 'text-wa-text'}>
               {behind.toLocaleString('de-DE')}
             </dd>
           </div>
@@ -200,13 +200,13 @@ export function MirrorStatus(): React.JSX.Element {
 
       {/* An exception, not a statistic: shown only when it has actually happened. */}
       {stats !== null && stats.dropped > 0 && (
-        <p className="text-red-400">
+        <p className="text-wa-danger">
           {stats.dropped.toLocaleString('de-DE')} Ereignisse verworfen — der Schreiber kam nicht
           hinterher.
         </p>
       )}
 
-      {stats?.lastError && <p className="text-red-400">Letzter Fehler: {stats.lastError}</p>}
+      {stats?.lastError && <p className="text-wa-danger">Letzter Fehler: {stats.lastError}</p>}
       {note && (
         <p className="whitespace-pre-wrap break-words font-mono text-[10px] leading-snug text-wa-muted select-text">
           {note}

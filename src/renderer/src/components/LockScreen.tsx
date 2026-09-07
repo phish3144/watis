@@ -64,11 +64,11 @@ export function LockScreen({ state }: { state: LockState | undefined }): React.J
         {busy ? 'Prüfe …' : 'Entsperren'}
       </button>
       {wrong && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="text-xs text-wa-danger">
           Falsche PIN.
         </p>
       )}
-      <p className="max-w-xs text-center text-[11px] leading-snug text-slate-500">
+      <p className="max-w-xs text-center text-[11px] leading-snug text-wa-muted">
         Diese Sperre ist ein Sichtschutz, keine Verschlüsselung. Das Archiv liegt weiterhin lesbar
         auf der Platte. Wirklichen Schutz gibt die Laufwerksverschlüsselung des Betriebssystems.
       </p>

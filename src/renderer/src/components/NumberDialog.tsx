@@ -51,8 +51,8 @@ export function NumberDialog(): React.JSX.Element {
           {t('number.open')}
         </button>
       </div>
-      <p className="text-[11px] text-slate-500">{t('number.hint')}</p>
-      {problem !== undefined && <p className="text-[11px] text-red-400">{problem}</p>}
+      <p className="text-[11px] text-wa-muted">{t('number.hint')}</p>
+      {problem !== undefined && <p className="text-[11px] text-wa-danger">{problem}</p>}
     </div>
   )
 }

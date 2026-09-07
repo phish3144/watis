@@ -99,7 +99,7 @@ export interface WatIsApi {
     now(): Promise<LockState>
   }
   onPanel(listener: (state: { open: boolean }) => void): () => void
-  openPanel(): void
+  togglePanel(): void
   onLock(listener: (state: LockState) => void): () => void
   getSpellcheckLanguages(): Promise<string[]>
   openNumber(input: string): Promise<{ ok: boolean; number?: string; reason?: string }>

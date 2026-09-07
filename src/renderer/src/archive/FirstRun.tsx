@@ -62,7 +62,7 @@ export function FirstRun(): React.JSX.Element | null {
 
       {failed && (
         <p>
-          <strong className="text-red-400">Es wird gerade nichts mitgeschrieben.</strong> WatIs?
+          <strong className="text-wa-danger">Es wird gerade nichts mitgeschrieben.</strong> WatIs?
           kommt an WhatsApps Innenleben nicht heran — typischerweise nach einem Update von WhatsApp
           Web. WhatsApp selbst läuft normal weiter; nur das Archiv wächst nicht.
         </p>

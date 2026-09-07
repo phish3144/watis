@@ -91,7 +91,7 @@ export function LockSettings({
         Minuten (0 = nur beim Start)
       </label>
 
-      <p className="text-[11px] leading-snug text-slate-500">
+      <p className="text-[11px] leading-snug text-wa-muted">
         Sichtschutz, keine Verschlüsselung: Das Archiv bleibt lesbar auf der Platte, und wer Zugriff
         auf das Benutzerkonto hat, kommt daran. Die Sperre hält den Blick über die Schulter ab —
         wirklichen Schutz gibt BitLocker oder FileVault. Bei Fokusverlust wird das Fenster

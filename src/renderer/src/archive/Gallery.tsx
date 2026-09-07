@@ -102,7 +102,7 @@ function FileActions({ mediaId }: { mediaId: string }): React.JSX.Element {
       >
         Ordner
       </button>
-      {problem && <span className="text-red-400">{problem}</span>}
+      {problem && <span className="text-wa-danger">{problem}</span>}
     </span>
   )
 }
@@ -196,7 +196,7 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
             className={`rounded-full border px-2 py-0.5 ${
               kind === value
                 ? 'border-wa-accent text-wa-accent'
-                : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+                : 'border-wa-hairline text-wa-muted hover:text-wa-text'
             }`}
           >
             {label}
@@ -205,7 +205,7 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
       </div>
 
       {error !== undefined && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="text-xs text-wa-danger">
           {error}
         </p>
       )}
@@ -225,7 +225,7 @@ export function Gallery({ chatId }: { chatId: string | undefined }): React.JSX.E
             onClick={() => {
               setSelected(new Set())
             }}
-            className="text-wa-muted hover:text-slate-200"
+            className="text-wa-muted hover:text-wa-text"
           >
             Auswahl aufheben
           </button>

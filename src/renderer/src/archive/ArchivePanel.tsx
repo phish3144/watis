@@ -102,7 +102,7 @@ function RemindButton({ msgId }: { msgId: string }): React.JSX.Element {
           <button
             key={label}
             type="button"
-            className="rounded-full border border-wa-hairline px-2 py-0.5 text-[11px] text-wa-muted hover:text-slate-200"
+            className="rounded-full border border-wa-hairline px-2 py-0.5 text-[11px] text-wa-muted hover:text-wa-text"
             onClick={() => {
               set(hours, label)
             }}
@@ -302,7 +302,7 @@ function HitRow({
         )}
       </div>
 
-      {waError !== undefined && <p className="text-xs text-red-400">{waError}</p>}
+      {waError !== undefined && <p className="text-xs text-wa-danger">{waError}</p>}
       {showImage && preview && <HitImage preview={preview} />}
 
       {open && (
@@ -312,7 +312,7 @@ function HitRow({
           {context?.map((m) => (
             <li
               key={m.id}
-              className={m.id === hit.msgId ? 'py-0.5 text-slate-200' : 'py-0.5 text-wa-muted'}
+              className={m.id === hit.msgId ? 'py-0.5 text-wa-text' : 'py-0.5 text-wa-muted'}
             >
               <span className="tabular-nums">{formatWhen(m.ts)}</span>{' '}
               {m.revoked ? <em>gelöscht</em> : (m.body ?? '(Anhang)')}
@@ -665,31 +665,74 @@ export function ArchivePanel(): React.JSX.Element {
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 flex-col gap-2">
-          <aside className="flex max-h-44 min-h-0 flex-col overflow-y-auto rounded-lg border border-wa-hairline">
-            {chats.map((chat) => (
-              <button
-                key={chat.id}
-                type="button"
-                onClick={() => {
-                  setChatId(chat.id)
-                }}
-                // shrink-0 matters: this is a flex column with a bounded height, so without it
-                // the rows compress into unreadable slivers rather than letting the list scroll.
-                className={`shrink-0 truncate px-3 py-2 text-left text-sm hover:bg-wa-hairline/40 ${
-                  chat.id === chatId ? 'bg-wa-hairline/60 font-medium' : ''
-                }`}
-              >
-                {chat.name ?? chat.id}
-              </button>
-            ))}
-            {chats.length === 0 && (
-              <p className="p-3 text-sm text-wa-muted">
-                Noch nichts archiviert. Sobald WhatsApp Web geladen und verknüpft ist, schreibt
-                WatIs? jede neue Nachricht mit. Was WhatsApp jetzt schon im Speicher hat, holt
-                „Jetzt übernehmen" unter <em>Nachladen</em> in einem Zug herein.
-              </p>
-            )}
-          </aside>
+          {/*
+            A navigator, and labelled as one.
+
+            It was an unlabelled column of names with no stated purpose, and the first person to use
+            it asked what it did. Two things were unclear at once: that clicking a row shows that
+            chat's history in the pane below, and that it has nothing to do with the search, which
+            always covers the whole archive. Both are written down now, where the question arises.
+          */}
+          <section className="flex max-h-52 min-h-0 flex-col overflow-hidden rounded-lg border border-wa-hairline bg-wa-surface">
+            <header className="flex shrink-0 items-baseline justify-between gap-2 border-b border-wa-hairline px-3 py-2">
+              <h2 className="text-xs font-semibold">
+                Chats im Archiv
+                {chats.length > 0 && (
+                  <span className="ml-1 font-normal text-wa-muted">({chats.length})</span>
+                )}
+              </h2>
+              <span className="text-[11px] text-wa-muted">Klick zeigt den Verlauf</span>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {chats.map((chat) => {
+                const selected = chat.id === chatId
+                return (
+                  <button
+                    key={chat.id}
+                    type="button"
+                    aria-current={selected ? 'true' : undefined}
+                    onClick={() => {
+                      setChatId(chat.id)
+                    }}
+                    // shrink-0 matters: a flex column with a bounded height compresses its children
+                    // into unreadable slivers otherwise, instead of letting the list scroll.
+                    className={`flex w-full shrink-0 items-baseline justify-between gap-3 border-l-2 px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? 'border-wa-accent bg-wa-accent-soft'
+                        : 'border-transparent hover:bg-wa-raised'
+                    }`}
+                  >
+                    <span
+                      className={`min-w-0 truncate text-sm ${selected ? 'font-medium' : ''}`}
+                      title={chat.name ?? chat.id}
+                    >
+                      {chat.name ?? chat.id}
+                    </span>
+                    {/* The date the archive last saw something here. It costs nothing — the query
+                        already returns it — and it turns a list of names into a list whose order
+                        the reader can see a reason for. */}
+                    <span className="shrink-0 text-[11px] tabular-nums text-wa-muted">
+                      {chat.lastMsgTs
+                        ? new Date(chat.lastMsgTs * 1000).toLocaleDateString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                          })
+                        : ''}
+                    </span>
+                  </button>
+                )
+              })}
+              {chats.length === 0 && (
+                <p className="p-3 text-sm text-wa-muted">
+                  Noch nichts archiviert. Sobald WhatsApp Web geladen und verknüpft ist, schreibt
+                  WatIs? jede neue Nachricht mit. Was WhatsApp jetzt schon im Speicher hat, holt
+                  „Jetzt übernehmen" in einem Zug herein.
+                </p>
+              )}
+            </div>
+          </section>
         </div>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
@@ -739,7 +782,7 @@ export function ArchivePanel(): React.JSX.Element {
                 className={`rounded-full border px-2 py-0.5 ${
                   view === value
                     ? 'border-wa-accent text-wa-accent'
-                    : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+                    : 'border-wa-hairline text-wa-muted hover:text-wa-text'
                 }`}
               >
                 {label}
@@ -807,7 +850,7 @@ export function ArchivePanel(): React.JSX.Element {
                   className={`rounded-full border px-2 py-0.5 ${
                     active
                       ? 'border-wa-accent text-wa-accent'
-                      : 'border-wa-hairline text-wa-muted hover:text-slate-200'
+                      : 'border-wa-hairline text-wa-muted hover:text-wa-text'
                   }`}
                 >
                   {label}
@@ -826,7 +869,7 @@ export function ArchivePanel(): React.JSX.Element {
                       .trim(),
                   )
                 }}
-                className="rounded-full border border-wa-hairline px-2 py-0.5 text-wa-muted hover:text-slate-200"
+                className="rounded-full border border-wa-hairline px-2 py-0.5 text-wa-muted hover:text-wa-text"
               >
                 Filter zurücksetzen
               </button>
@@ -836,7 +879,7 @@ export function ArchivePanel(): React.JSX.Element {
           {error !== undefined && (
             <p
               role="alert"
-              className="rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500"
+              className="rounded-md border border-wa-danger/40 px-3 py-2 text-sm text-wa-danger"
             >
               {error}
             </p>

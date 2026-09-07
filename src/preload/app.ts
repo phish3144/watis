@@ -128,8 +128,8 @@ const api = {
   /** The archive data plane. Shapes live in @shared/ipc/archive-protocol. */
   archive: (request: unknown): Promise<unknown> => ipcRenderer.invoke('archive:request', request),
 
-  /** Opens the panel from the rail. */
-  openPanel: (): void => {
+  /** Shows or hides the panel. The rail opens it; the header button closes it again. */
+  togglePanel: (): void => {
     ipcRenderer.send('app:toggle-panel')
   },
 

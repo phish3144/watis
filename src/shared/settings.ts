@@ -33,6 +33,8 @@ export const settingsSchema = z.object({
   dndTo: z.string().regex(/^\d{2}:\d{2}$/),
 
   // --- Darstellung -------------------------------------------------------
+  /** Light by default: a tool kept open all day should not be the darkest thing on the screen. */
+  theme: z.enum(['system', 'light', 'dark']),
   compactMode: z.boolean(),
   fontScale: z.number().min(0.8).max(1.6),
   customCssEnabled: z.boolean(),
@@ -116,6 +118,7 @@ export const defaultSettings: Settings = {
   dndFrom: '22:00',
   dndTo: '07:00',
 
+  theme: 'system' as const,
   compactMode: false,
   fontScale: 1,
   customCssEnabled: false,

@@ -50,7 +50,7 @@ export function StoragePanel(): React.JSX.Element {
           <li key={section.key} className="rounded-md bg-wa-surface px-3 py-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>{section.label}</span>
-              <span className="tabular-nums text-slate-200">{formatBytes(section.bytes)}</span>
+              <span className="tabular-nums text-wa-text">{formatBytes(section.bytes)}</span>
             </div>
             {section.note && <p className="mt-0.5 text-wa-muted">{section.note}</p>}
             {!section.clearable && !section.note && (
@@ -117,7 +117,7 @@ export function StoragePanel(): React.JSX.Element {
               )} Nachrichten`
             : 'Noch nie gelaufen.'}
         </p>
-        {schedule?.lastError && <p className="text-red-400">Fehler: {schedule.lastError}</p>}
+        {schedule?.lastError && <p className="text-wa-danger">Fehler: {schedule.lastError}</p>}
       </div>
 
       <div className="rounded-md bg-wa-surface px-3 py-2">
@@ -162,7 +162,7 @@ export function StoragePanel(): React.JSX.Element {
             </button>
           </span>
         </label>
-        <p className="mt-1 text-[11px] leading-snug text-slate-500">
+        <p className="mt-1 text-[11px] leading-snug text-wa-muted">
           Verschiebt nur die Medien, nicht die Datenbank: die ist klein, und ohne sie läuft nichts —
           sie auf ein Laufwerk zu legen, das abgezogen werden kann, wäre ein schlechter Tausch.
           Kopiert und prüft, bevor am alten Ort etwas gelöscht wird.

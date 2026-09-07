@@ -26,11 +26,11 @@ export function PanelRail({
     <button
       type="button"
       onClick={() => {
-        api().openPanel()
+        api().togglePanel()
       }}
       title="Archiv und Einstellungen öffnen (Strg + ,)"
       aria-label="Archiv und Einstellungen öffnen"
-      className="flex h-screen w-full flex-col items-center gap-3 border-l border-wa-hairline bg-wa-panel py-3 text-slate-400 hover:bg-wa-surface hover:text-slate-200"
+      className="flex h-screen w-full flex-col items-center gap-3 border-l border-wa-hairline bg-wa-panel py-3 text-wa-muted hover:bg-wa-surface hover:text-wa-text"
     >
       <span aria-hidden="true" className="text-xs leading-none">
         ‹
@@ -45,7 +45,7 @@ export function PanelRail({
       {(broken || degraded) && (
         <span
           aria-hidden="true"
-          className={`h-2 w-2 rounded-full ${broken ? 'bg-red-500' : 'bg-amber-400'}`}
+          className={`h-2 w-2 rounded-full ${broken ? 'bg-wa-danger' : 'bg-wa-warning'}`}
         />
       )}
 

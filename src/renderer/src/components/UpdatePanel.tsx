@@ -132,7 +132,7 @@ export function UpdateSettings({
         Automatisch nach Updates suchen
       </label>
 
-      <p className="text-[11px] leading-snug text-slate-500">
+      <p className="text-[11px] leading-snug text-wa-muted">
         Updates kommen von GitHub Releases. Sie brauchen keine Adminrechte und installieren nur,
         wenn du es sagst. <strong>Archiv, Mediendateien und die Anmeldung bleiben unberührt</strong>{' '}
         — sie liegen in einem anderen Verzeichnis als das Programm, und ein Test hält das fest.

@@ -26,7 +26,7 @@ import type { HealthState } from '@shared/health/degraded'
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   return (
     <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${ok ? 'bg-wa-accent' : 'bg-red-500'}`}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${ok ? 'bg-wa-accent' : 'bg-wa-danger'}`}
       aria-hidden="true"
     />
   )
@@ -45,6 +45,27 @@ export function App(): React.JSX.Element {
   const [lock, setLock] = useState<LockState | undefined>(undefined)
   const [panelOpen, setPanelOpen] = useState(true)
   const [update, setUpdate] = useState<UpdateState | undefined>(undefined)
+
+  /**
+   * Paints the chosen theme onto <html>, where the CSS variables live.
+   *
+   * 'system' follows the operating system and keeps following it: somebody who switches their
+   * machine to dark in the evening expects this to come with them, not to need a second switch.
+   */
+  useEffect(() => {
+    const choice = settings?.theme ?? 'system'
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = (): void => {
+      const dark = choice === 'dark' || (choice === 'system' && media.matches)
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+    }
+    apply()
+    if (choice !== 'system') return
+    media.addEventListener('change', apply)
+    return () => {
+      media.removeEventListener('change', apply)
+    }
+  }, [settings?.theme])
 
   useEffect(() => {
     void api().getSettings().then(setSettings)
@@ -107,7 +128,7 @@ export function App(): React.JSX.Element {
   if (!panelOpen) return <PanelRail unread={unread} health={degraded} />
 
   if (!settings) {
-    return <div className="p-5 text-sm text-slate-500">Lade Einstellungen …</div>
+    return <div className="p-5 text-sm text-wa-muted">Lade Einstellungen …</div>
   }
 
   const downloadScheme = settings.sortDownloadsByChat
@@ -115,12 +136,34 @@ export function App(): React.JSX.Element {
     : `${settings.downloadDir}/2026-08-30_Angebot.pdf`
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-wa-panel px-5 py-4 text-sm text-slate-200">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-wa-panel px-4 py-3 text-sm text-wa-text">
       <LockScreen state={lock} />
-      <header className="mb-4 flex items-baseline justify-between gap-4">
-        <div>
-          <h1 className="text-base font-semibold">{t('app.title')}</h1>
-          <p className="text-xs text-slate-500">{t('app.subtitle')}</p>
+      <header className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {/* Collapsing the panel is a first-class control, not a shortcut somebody has to know
+              about. It sits where a close button sits, and the rail that stays behind reopens it. */}
+          <button
+            type="button"
+            onClick={() => {
+              api().togglePanel()
+            }}
+            title="Panel einklappen (Strg + ,)"
+            aria-label="Panel einklappen"
+            className="rounded-md p-1 text-wa-muted hover:bg-wa-raised hover:text-wa-text"
+          >
+            <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+              <path
+                d="M10 3.5 5.5 8l4.5 4.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path d="M13.5 3v10" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
+          <h1 className="truncate text-sm font-semibold">{t('app.title')}</h1>
         </div>
         <nav className="flex gap-1" aria-label="Ansicht">
           {(['archive', 'settings'] as const).map((value) => (
@@ -131,8 +174,10 @@ export function App(): React.JSX.Element {
               onClick={() => {
                 setTab(value)
               }}
-              className={`rounded-md px-3 py-1 text-xs ${
-                tab === value ? 'bg-wa-surface font-medium' : 'text-slate-400 hover:text-slate-200'
+              className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                tab === value
+                  ? 'bg-wa-accent-soft font-medium text-wa-accent'
+                  : 'text-wa-muted hover:bg-wa-raised hover:text-wa-text'
               }`}
             >
               {value === 'archive' ? 'Archiv' : 'Einstellungen'}
@@ -158,10 +203,10 @@ export function App(): React.JSX.Element {
             <span className="text-2xl font-semibold tabular-nums text-wa-accent">
               {unread.unread}
             </span>
-            <div className="text-xs leading-tight text-slate-400">
+            <div className="text-xs leading-tight text-wa-muted">
               <div>{t('status.unread')}</div>
               {unread.mutedUnread > 0 && (
-                <div className="text-slate-500">
+                <div className="text-wa-muted">
                   {unread.mutedUnread} {t('status.muted')}
                 </div>
               )}
@@ -292,7 +337,7 @@ export function App(): React.JSX.Element {
               }
             />
             {settings.dndEnabled && (
-              <div className="flex items-center justify-end gap-2 pb-1 text-xs text-slate-400">
+              <div className="flex items-center justify-end gap-2 pb-1 text-xs text-wa-muted">
                 <span>{t('notify.dnd.from')}</span>
                 <TimeField
                   label={t('notify.dnd.from')}
@@ -314,6 +359,40 @@ export function App(): React.JSX.Element {
           </Section>
 
           <Section title={t('section.appearance')}>
+            <Row
+              label="Erscheinungsbild"
+              hint={
+                '„Automatisch" folgt der Einstellung von Windows und wechselt mit, wenn du dort ' +
+                'abends auf dunkel stellst.'
+              }
+              control={
+                <div className="flex gap-1">
+                  {(
+                    [
+                      ['system', 'Automatisch'],
+                      ['light', 'Hell'],
+                      ['dark', 'Dunkel'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={settings.theme === value}
+                      onClick={() => {
+                        patch({ theme: value })
+                      }}
+                      className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                        settings.theme === value
+                          ? 'border-wa-accent bg-wa-accent-soft text-wa-accent'
+                          : 'border-wa-hairline text-wa-muted hover:bg-wa-raised hover:text-wa-text'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
             <Row
               label={t('appearance.compact')}
               hint={t('appearance.compact.hint')}
@@ -448,7 +527,7 @@ export function App(): React.JSX.Element {
                 />
               }
             />
-            <p className="pt-1 text-[11px] text-slate-500">{t('media.zoom.hint')}</p>
+            <p className="pt-1 text-[11px] text-wa-muted">{t('media.zoom.hint')}</p>
           </Section>
 
           <Section title={t('section.accounts')}>
@@ -514,9 +593,9 @@ export function App(): React.JSX.Element {
                 />
               }
             />
-            <div className="pt-1 text-[11px] text-slate-500">
+            <div className="pt-1 text-[11px] text-wa-muted">
               {t('files.scheme')}:{' '}
-              <span className="break-all font-mono text-slate-400">{downloadScheme}</span>
+              <span className="break-all font-mono text-wa-muted">{downloadScheme}</span>
             </div>
           </Section>
 
@@ -622,7 +701,7 @@ export function App(): React.JSX.Element {
                 />
               }
             />
-            <p className="pt-1 text-[11px] text-slate-500">{t('backup.restore.hint')}</p>
+            <p className="pt-1 text-[11px] text-wa-muted">{t('backup.restore.hint')}</p>
           </Section>
 
           <Section title={t('section.updates')}>
@@ -644,36 +723,36 @@ export function App(): React.JSX.Element {
               <div className="flex items-center gap-2">
                 <HealthDot ok={health?.archive ?? false} />
                 <span>{t('status.archive')}</span>
-                <span className="text-slate-500">
+                <span className="text-wa-muted">
                   {health?.archive ? t('status.running') : t('status.down')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <HealthDot ok={health?.contentIndex ?? false} />
                 <span>{t('status.index')}</span>
-                <span className="text-slate-500">
+                <span className="text-wa-muted">
                   {health?.contentIndex ? t('status.running') : t('status.down')}
                 </span>
               </div>
             </div>
 
             {versions && (
-              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-wa-muted">
                 {Object.entries(versions).map(([key, value]) => (
                   <div key={key} className="contents">
                     <dt>{key}</dt>
-                    <dd className="font-mono text-slate-400">{value}</dd>
+                    <dd className="font-mono text-wa-muted">{value}</dd>
                   </div>
                 ))}
               </dl>
             )}
 
             {paths && (
-              <div className="mt-3 space-y-0.5 text-[11px] text-slate-500">
+              <div className="mt-3 space-y-0.5 text-[11px] text-wa-muted">
                 {Object.entries(paths).map(([key, value]) => (
                   <div key={key}>
                     <div>{key}</div>
-                    <div className="truncate font-mono text-slate-400" title={value}>
+                    <div className="truncate font-mono text-wa-muted" title={value}>
                       {value}
                     </div>
                   </div>
@@ -682,7 +761,7 @@ export function App(): React.JSX.Element {
             )}
           </Section>
 
-          <p className="pb-4 text-[11px] leading-relaxed text-slate-500">{t('archive.reach')}</p>
+          <p className="pb-4 text-[11px] leading-relaxed text-wa-muted">{t('archive.reach')}</p>
         </div>
       )}
     </div>

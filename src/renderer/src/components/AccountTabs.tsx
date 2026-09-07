@@ -33,7 +33,7 @@ export function AccountTabs({ unread }: { unread: UnreadCounts }): React.JSX.Ele
               void api().accounts.activate(account.id).then(setList)
             }}
             className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${
-              active ? 'bg-wa-surface font-medium' : 'text-slate-400 hover:text-slate-200'
+              active ? 'bg-wa-surface font-medium' : 'text-wa-muted hover:text-wa-text'
             }`}
           >
             {account.label}
@@ -139,7 +139,7 @@ export function AccountSettings(): React.JSX.Element {
         </button>
       </div>
 
-      <p className="text-[11px] leading-snug text-slate-500">
+      <p className="text-[11px] leading-snug text-wa-muted">
         Jedes Konto bekommt eine eigene Anmeldung, ein eigenes Archiv und einen eigenen Medienordner
         — kein gemeinsamer Speicher mit einem Filter davor. Jedes läuft mit, auch das im
         Hintergrund; das kostet ungefähr so viel Speicher wie ein weiteres WhatsApp Web, und genau
