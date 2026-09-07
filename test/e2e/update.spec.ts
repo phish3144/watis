@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import {
   existsSync,
+  statSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -69,8 +70,17 @@ const DIAGNOSTIC_FILES = new Set([
   'declarative_performance_observer.db',
 ])
 
-/** The stores that ARE the session. Exempting any of these would empty the test of its meaning. */
-const SESSION_STORES = ['IndexedDB', 'Local Storage', 'Service Worker', 'Cookies']
+/**
+ * The LevelDB stores that ARE the session. Exempting their data would empty this test of meaning.
+ *
+ * Cookies are deliberately not in this list, and finding out why was the point of the guard below.
+ * Chromium keeps the cookie database under `Network/`, and `Network` has been on the disposable
+ * list all along — so the test has been exempting the cookies while claiming to protect them. The
+ * cookie file is SQLite that Chromium rewrites on its own shutdown, so byte equality was never the
+ * right question for it. It gets a stronger one instead, further down: it has to still be there,
+ * and still hold something. That is what "no new QR code after an update" actually rests on.
+ */
+const SESSION_STORES = ['IndexedDB', 'Local Storage', 'Service Worker']
 
 function volatile(name: string): boolean {
   const parts = name.split('\\').join('/').split('/')
@@ -255,6 +265,7 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   }
 
   const before = inventory(root)
+  const beforeRaw = inventoryRaw(root)
   expect(before.size).toBeGreaterThan(0)
 
   // --- the update: the application directory is destroyed and rebuilt ----------------------
@@ -296,6 +307,21 @@ test('leaves session, archive and blobs untouched across an update', async () =>
   // to that data are fine and always were; the .ldb, MANIFEST and CURRENT files beside them are the
   // login. Without this guard, one plausible-looking entry at a time turns a test that proves an
   // update keeps you signed in into a test that proves nothing.
+  // Cookies survive as cookies, not as bytes. Chromium rewrites this database when it shuts down,
+  // so comparing it byte for byte would be testing Chromium rather than the update — but it has to
+  // still exist and still hold something afterwards, or the user is scanning a QR code again, and
+  // that is the promise this whole test is here to keep.
+  const cookieFiles = (names: string[]): string[] =>
+    names.filter((n) => /(^|[\\/])Cookies$/.test(n))
+  for (const cookies of cookieFiles(beforeRaw)) {
+    const full = join(root, cookies)
+    expect(existsSync(full), `${cookies} is gone after the update — the session is lost`).toBe(true)
+    expect(
+      statSync(full).size,
+      `${cookies} survived the update but is empty — the session is lost`,
+    ).toBeGreaterThan(0)
+  }
+
   const exempted = inventoryRaw(root).filter((name) => volatile(name))
   for (const store of SESSION_STORES) {
     const dataExempted = exempted.filter((name) => {
