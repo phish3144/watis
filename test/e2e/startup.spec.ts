@@ -137,6 +137,14 @@ test('reports its own health, and never takes reading away', async () => {
   // them apart: either the archive worker never came up (a worker problem), or it came up and the
   // health monitor did not notice (a monitor problem). This failed once on CI and could not be
   // diagnosed from the log, which is the whole reason it now says which one it was.
+  // Reported as one string, not as an object.
+  //
+  // The first version of this returned { searchAvailable, faults, workers } and asserted with
+  // toMatchObject({ searchAvailable: true }). That prunes the received value to the expected shape
+  // before printing it, so the two fields put there specifically to explain a failure were computed
+  // and then thrown away by the reporter. The failure printed "expected true, received false" —
+  // exactly the useless output the diagnostic was added to replace. A string is compared whole, so
+  // all of it survives into the report.
   await expect
     .poll(
       async () => {
@@ -149,18 +157,23 @@ test('reports its own health, and never takes reading away', async () => {
             return (await panel?.executeJavaScript('window.watis.getWorkerHealth()')) as unknown
           }),
         ])
-        return {
-          searchAvailable: health.capabilities.find((c) => c.key === 'search')?.available,
-          faults: health.faults,
-          workers,
-        }
+        const available = health.capabilities.find((c) => c.key === 'search')?.available
+        return (
+          `search=${String(available)}` +
+          ` faults=[${health.faults.join(',')}]` +
+          ` severity=${health.severity}` +
+          ` workers=${JSON.stringify(workers)}`
+        )
       },
       {
         timeout: 60_000,
-        message: 'search should become available once the archive worker is up',
+        message:
+          'search should become available once the archive worker is up. If workers says archive:true ' +
+          'while faults still lists archive-unavailable, the workers are fine and the health monitor ' +
+          'is not being told; if archive is false, the worker itself never came up.',
       },
     )
-    .toMatchObject({ searchAvailable: true })
+    .toMatch(/^search=true /)
 
   // Severity is deliberately NOT pinned to a value. It depends on whether the machine running the
   // test can reach WhatsApp Web: a sandbox without a route reports "degraded", a CI runner with
