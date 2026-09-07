@@ -80,6 +80,11 @@ function handle(payload: unknown): unknown {
     case 'status':
       return {
         counts: queue?.counts() ?? null,
+        byKind: queue?.countsByKind() ?? null,
+        // Which extractors this build actually has. 'transcript' is deliberately absent: ADR 0008
+        // defers Whisper, and a UI that offers a voice-note filter without saying so is a promise
+        // the application does not keep.
+        engines: ['ocr', 'pdf'],
         verdict: lastVerdict,
         working,
       }

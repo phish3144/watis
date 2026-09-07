@@ -141,4 +141,24 @@ export class IndexQueue {
     for (const r of rows) counts[r.status] = r.n
     return counts
   }
+
+  /**
+   * The same numbers split by what is being extracted.
+   *
+   * A single total answers "is it working" and not "is OCR working", which is the question somebody
+   * actually has when text in their photos is not turning up. Voice notes are the sharpest case:
+   * they queue, find no engine, and are skipped — and a total of "done" hides that completely.
+   */
+  countsByKind(): Record<string, QueueCounts> {
+    const rows = this.#db
+      .prepare('SELECT kind, status, count(*) AS n FROM index_jobs GROUP BY kind, status')
+      .all() as { kind: string; status: keyof QueueCounts; n: number }[]
+    const out: Record<string, QueueCounts> = {}
+    for (const r of rows) {
+      out[r.kind] ??= { queued: 0, running: 0, done: 0, failed: 0, skipped: 0 }
+      const bucket = out[r.kind]
+      if (bucket) bucket[r.status] = r.n
+    }
+    return out
+  }
 }

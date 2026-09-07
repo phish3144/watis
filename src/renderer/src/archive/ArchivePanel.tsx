@@ -5,6 +5,7 @@ import { BackfillPanel } from '../components/BackfillPanel'
 import type { HitPreview, NameHit } from '../../../workers/archive/repository'
 import { Gallery } from './Gallery'
 import { FirstRun } from './FirstRun'
+import { IndexStatus } from '../components/IndexStatus'
 
 /**
  * The archive view: chat list, virtualised message list, search.
@@ -330,6 +331,12 @@ export function ArchivePanel(): React.JSX.Element {
   /** How many messages the archive holds, so an empty result can say which kind of empty it is. */
   const [archiveMessages, setArchiveMessages] = useState<number | undefined>(undefined)
   /**
+   * Whether the chat list is showing. Asked for as "kannst du die chat liste noch einklappbar
+   * machen für mehr platz" — in a panel capped at 460px wide, a list of chats and a list of
+   * messages are competing for the same screen, and only one of them is being read at a time.
+   */
+  const [chatsOpen, setChatsOpen] = useState(true)
+  /**
    * How far the content index has got. Without this, "Text in Bildern" and "PDFs" find nothing and
    * the panel gives no way to tell "not processed yet" from "not working" — the same complaint,
    * for the third subsystem in a row.
@@ -568,6 +575,8 @@ export function ArchivePanel(): React.JSX.Element {
     [loadOlder, messages.length, viewportHeight],
   )
 
+  const selectedChatName = chats.find((c) => c.id === chatId)?.name ?? chatId
+
   const runSearch = useCallback(async () => {
     if (query.trim() === '') {
       setHits(undefined)
@@ -673,18 +682,55 @@ export function ArchivePanel(): React.JSX.Element {
             chat's history in the pane below, and that it has nothing to do with the search, which
             always covers the whole archive. Both are written down now, where the question arises.
           */}
-          <section className="flex max-h-52 min-h-0 flex-col overflow-hidden rounded-lg border border-wa-hairline bg-wa-surface">
-            <header className="flex shrink-0 items-baseline justify-between gap-2 border-b border-wa-hairline px-3 py-2">
-              <h2 className="text-xs font-semibold">
+          <section
+            className={`flex min-h-0 shrink-0 flex-col overflow-hidden rounded-lg border border-wa-hairline bg-wa-surface ${
+              chatsOpen ? 'max-h-52' : ''
+            }`}
+          >
+            {/* The whole header is the toggle: a 460px panel has no room for a separate hit
+                target, and the heading is where somebody already looks. */}
+            <button
+              type="button"
+              aria-expanded={chatsOpen}
+              onClick={() => {
+                setChatsOpen((open) => !open)
+              }}
+              className="flex w-full shrink-0 items-baseline justify-between gap-2 border-b border-wa-hairline px-3 py-2 text-left hover:bg-wa-raised"
+            >
+              <span className="flex items-baseline gap-1.5 text-xs font-semibold">
+                {/* An SVG, not "▶": that character has an emoji presentation and several fonts
+                    render it orange, which put a coloured triangle in a neutral heading. */}
+                <svg
+                  viewBox="0 0 12 12"
+                  aria-hidden="true"
+                  className={`h-3 w-3 self-center text-wa-muted transition-transform ${
+                    chatsOpen ? 'rotate-90' : ''
+                  }`}
+                >
+                  <path
+                    d="M4.5 2.5 8 6l-3.5 3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
                 Chats im Archiv
                 {chats.length > 0 && (
-                  <span className="ml-1 font-normal text-wa-muted">({chats.length})</span>
+                  <span className="font-normal text-wa-muted">({chats.length})</span>
                 )}
-              </h2>
-              <span className="text-[11px] text-wa-muted">Klick zeigt den Verlauf</span>
-            </header>
+              </span>
+              <span className="text-[11px] text-wa-muted">
+                {chatsOpen
+                  ? 'Klick zeigt den Verlauf'
+                  : selectedChatName
+                    ? `Verlauf: ${selectedChatName}`
+                    : 'eingeklappt'}
+              </span>
+            </button>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className={`min-h-0 flex-1 overflow-y-auto ${chatsOpen ? '' : 'hidden'}`}>
               {chats.map((chat) => {
                 const selected = chat.id === chatId
                 return (
@@ -980,6 +1026,10 @@ export function ArchivePanel(): React.JSX.Element {
           forgets; it used to sit between the chat list and the search box, where it was in the way
           of both without being any easier to find.
         */}
+        {/* Below the results, above the backfill: it explains why a search over photos and PDFs
+            may still be finding nothing, which is exactly where that question comes up. */}
+        <IndexStatus />
+
         <details className="shrink-0 rounded-lg border border-wa-hairline">
           <summary className="cursor-pointer px-3 py-2 text-xs">
             Ältere Nachrichten nachladen
