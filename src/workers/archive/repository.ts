@@ -413,6 +413,29 @@ export class ArchiveRepository {
   }
 
   /** The recorded progress, so a restart can pick the queue back up where it stopped. */
+  /**
+   * Forgets that any chat finished its backfill, so the next run walks them all again.
+   *
+   * A chat is marked done when it reaches its floor — which says the pages were FETCHED, not that
+   * they were written. When the importer's ring buffer overflowed, messages were read out of
+   * WhatsApp and thrown away before reaching the archive, and the chat was still recorded as
+   * finished. On a real account that was 7758 events, unreachable afterwards: `restore` skips a
+   * finished chat, so there was no path back to them short of deleting the archive.
+   *
+   * Only the completion flag is cleared. The oldest timestamp reached stays, so a repeat run costs
+   * the pages again but nothing already stored is touched or duplicated — messages are upserted by
+   * id.
+   */
+  resetBackfill(): number {
+    const result = this.#db
+      .prepare(
+        `UPDATE sync_state SET backfill_done = 0, last_error = NULL, updated_ts = ?
+         WHERE backfill_done = 1`,
+      )
+      .run(Math.floor(Date.now() / 1000))
+    return result.changes
+  }
+
   syncState(chatId?: string): SyncStateRow[] {
     const sql =
       `SELECT chat_id, oldest_ts, newest_ts, backfill_done, depth_limit_ts, priority, last_error, updated_ts

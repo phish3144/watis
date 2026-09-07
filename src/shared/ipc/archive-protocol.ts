@@ -143,6 +143,7 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
       .max(MAX_BATCH),
   }),
   z.object({ op: z.literal('syncState'), chatId: z.string().min(1).optional() }),
+  z.object({ op: z.literal('resetBackfill') }),
   z.object({
     op: z.literal('storeBlob'),
     mediaId: z.string().min(1),

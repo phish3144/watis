@@ -108,6 +108,13 @@ export class BackfillMachine {
     this.#emit()
   }
 
+  /** Drops all recorded per-chat progress, so a repeat run treats every chat as unvisited. */
+  forget(): void {
+    if (this.#running) return
+    this.#chats = new Map()
+    this.#emit()
+  }
+
   /** Moves a chat to the front of the queue without disturbing the one in flight. */
   prioritise(chatId: string): void {
     const existing = this.#chats.get(chatId)

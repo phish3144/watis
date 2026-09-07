@@ -129,6 +129,7 @@ export interface WatIsApi {
     state(): Promise<BackfillState>
     start(chatIds: string[]): Promise<BackfillSnapshot>
     stop(): Promise<boolean>
+    redo(chatIds: string[]): Promise<BackfillSnapshot>
   }
   getSettings(): Promise<Settings>
   updateSettings(patch: SettingsPatch): Promise<Settings>

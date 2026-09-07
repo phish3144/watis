@@ -120,6 +120,9 @@ const api = {
     start: (chatIds: string[]): Promise<BackfillSnapshot> =>
       ipcRenderer.invoke('backfill:start', { chatIds }),
     stop: (): Promise<boolean> => ipcRenderer.invoke('backfill:stop'),
+    /** Forgets every chat's "finished" mark and walks them all again. */
+    redo: (chatIds: string[]): Promise<BackfillSnapshot> =>
+      ipcRenderer.invoke('backfill:redo', { chatIds }),
   },
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('app:settings'),
   updateSettings: (patch: SettingsPatch): Promise<Settings> =>

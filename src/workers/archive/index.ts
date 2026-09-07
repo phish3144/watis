@@ -77,6 +77,8 @@ async function handle(payload: unknown): Promise<unknown> {
       return { written: repo.saveSyncState(request.rows) }
     case 'syncState':
       return { rows: repo.syncState(request.chatId) }
+    case 'resetBackfill':
+      return { reset: repo.resetBackfill() }
     case 'stats':
       return repo.stats() satisfies ArchiveStats
     case 'storeBlob': {

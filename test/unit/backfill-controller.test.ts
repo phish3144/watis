@@ -53,6 +53,11 @@ describe('BackfillController', () => {
     const r = request as Request
     written.push(r)
     if (r.op === 'syncState') return Promise.resolve({ rows: stored })
+    if (r.op === 'resetBackfill') {
+      const reset = stored.filter((row) => row.backfillDone).length
+      stored = stored.map((row) => ({ ...row, backfillDone: false }))
+      return Promise.resolve({ reset })
+    }
     return Promise.resolve({ written: r.rows?.length ?? 0 })
   }
 
@@ -233,5 +238,65 @@ describe('BackfillController', () => {
     await controller.start()
     expect(seen.length).toBeGreaterThan(2)
     expect(seen.at(-1)).toBe(150)
+  })
+})
+
+describe('redoing a run whose messages were lost on the way', () => {
+  /**
+   * A chat is marked finished when its pages were FETCHED, not when they were written. When the
+   * importer's ring buffer overflowed — 7758 events on a real account — the messages were read out
+   * of WhatsApp and thrown away before reaching the archive, and the chat was still recorded as
+   * done. `restore` skips a finished chat, so those messages had no route back at all.
+   */
+  it('walks a chat that a normal start would skip', async () => {
+    const sent: { op: string; args?: Record<string, unknown> }[] = []
+    let stored: { chatId: string; backfillDone?: boolean }[] = [
+      { chatId: 'c1', backfillDone: true },
+    ]
+    const pages = new Map([['c1', 1]])
+
+    const bridge = {
+      get ready(): boolean {
+        return true
+      },
+      send: (op: string, args?: Record<string, unknown>): Promise<unknown> => {
+        sent.push(args ? { op, args } : { op })
+        if (op === 'openChat') return Promise.resolve(true)
+        if (op === 'earliestReachableTs') return Promise.resolve(1_690_000_000)
+        if (op === 'loadOlder') {
+          const left = pages.get(String(args?.chatId)) ?? 0
+          pages.set(String(args?.chatId), Math.max(0, left - 1))
+          return left > 0
+            ? Promise.resolve({ loaded: 50, oldestTs: 1_695_000_000, atFloor: false })
+            : Promise.resolve({ loaded: 0, atFloor: true })
+        }
+        return Promise.resolve(undefined)
+      },
+    }
+    const archive = (request: unknown): Promise<unknown> => {
+      const r = request as { op: string }
+      if (r.op === 'syncState') return Promise.resolve({ rows: stored })
+      if (r.op === 'resetBackfill') {
+        stored = stored.map((row) => ({ ...row, backfillDone: false }))
+        return Promise.resolve({ reset: 1 })
+      }
+      return Promise.resolve({ written: 0 })
+    }
+
+    const controller = new BackfillController({
+      bridge: bridge as never,
+      archive,
+      batchDelayMs: 0,
+    })
+
+    // A normal start honours the finished mark and fetches nothing.
+    await controller.restore(['c1'])
+    await controller.start()
+    expect(sent.filter((s) => s.op === 'loadOlder')).toHaveLength(0)
+
+    // Von vorn clears it and walks the chat again.
+    const result = await controller.redoAll(['c1'])
+    expect(sent.filter((s) => s.op === 'loadOlder').length).toBeGreaterThan(0)
+    expect(result.chats[0]?.chatId).toBe('c1')
   })
 })

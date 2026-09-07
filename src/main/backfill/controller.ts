@@ -176,6 +176,20 @@ export class BackfillController {
   stop(): void {
     this.#machine.stop()
   }
+
+  /**
+   * Clears every chat's "finished" mark and queues them all again.
+   *
+   * The one way back from a run whose messages were dropped between WhatsApp and the archive. It
+   * re-fetches rather than repairs: messages are upserted by id, so anything already stored is
+   * left as it is and only the gaps fill in.
+   */
+  async redoAll(chatIds: readonly string[]): Promise<BackfillSnapshot> {
+    await this.#options.archive({ op: 'resetBackfill' })
+    this.#machine.forget()
+    this.#machine.enqueue([...chatIds])
+    return this.start()
+  }
 }
 
 /**

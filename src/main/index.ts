@@ -860,6 +860,16 @@ function registerIpcHandlers(): void {
     pauseReason: activePipeline()?.backfill.pauseReason(),
   }))
 
+  ipcMain.handle('backfill:redo', async (_event, payload: unknown) => {
+    const args = payload as { chatIds?: unknown }
+    const chatIds = Array.isArray(args?.chatIds)
+      ? args.chatIds.filter((id): id is string => typeof id === 'string')
+      : []
+    const pipeline = activePipeline()
+    if (!pipeline) throw new Error('not ready')
+    return pipeline.backfill.redoAll(chatIds)
+  })
+
   ipcMain.handle('backfill:start', async (_event, payload: unknown) => {
     const args = payload as { chatIds?: unknown }
     const chatIds = Array.isArray(args?.chatIds)

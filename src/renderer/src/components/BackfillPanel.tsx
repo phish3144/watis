@@ -82,28 +82,56 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
             Anhalten
           </button>
         ) : (
-          <button
-            type="button"
-            disabled={chats.length === 0}
-            onClick={() => {
-              setError(undefined)
-              void api()
-                .backfill.start(chats.map((c) => c.id))
-                .catch((e: unknown) => {
-                  setError(String(e))
-                })
-            }}
-            className="rounded-md border border-wa-hairline px-2 py-1 disabled:opacity-40"
-          >
-            Starten
-          </button>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              disabled={chats.length === 0}
+              onClick={() => {
+                setError(undefined)
+                void api()
+                  .backfill.start(chats.map((c) => c.id))
+                  .catch((e: unknown) => {
+                    setError(String(e))
+                  })
+              }}
+              className="rounded-md border border-wa-hairline px-2 py-1 disabled:opacity-40"
+            >
+              Starten
+            </button>
+            {/*
+              The way back from a run that lost messages.
+              
+              A chat is marked finished when its pages were FETCHED. If the writer could not keep up
+              and the ring buffer dropped them, the chat is still recorded as done — and a normal
+              start skips finished chats, so there was no path back to those messages at all.
+            */}
+            {done > 0 && (
+              <button
+                type="button"
+                disabled={chats.length === 0}
+                onClick={() => {
+                  setError(undefined)
+                  void api()
+                    .backfill.redo(chats.map((c) => c.id))
+                    .catch((e: unknown) => {
+                      setError(String(e))
+                    })
+                }}
+                title="Holt auch die Chats erneut, die schon als fertig gelten"
+                className="rounded-md border border-wa-hairline px-2 py-1 text-wa-muted hover:text-wa-text disabled:opacity-40"
+              >
+                Von vorn
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       <p className="text-wa-muted">
         Das Nachladen öffnet jeden Chat der Reihe nach und bittet WhatsApp um eine Seite ältere
         Nachrichten — so, wie du selbst nach oben scrollen würdest. Geöffnete Chats gelten danach
-        als gelesen.
+        als gelesen. <em>Von vorn</em> holt auch die Chats noch einmal, die schon als fertig gelten;
+        bereits Gespeichertes bleibt dabei unangetastet.
       </p>
 
       {state?.running === false && state.chats.length === 0 && (
