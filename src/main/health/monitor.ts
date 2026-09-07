@@ -50,7 +50,25 @@ export class HealthMonitor {
     this.#timer = undefined
   }
 
+  /**
+   * The current state, computed now.
+   *
+   * This used to return the cached `#last`, and CI caught it saying exactly this:
+   *
+   *   search=false faults=[archive-unavailable] workers={"archive":true,"contentIndex":true}
+   *
+   * The worker was ready and the monitor was reporting it unavailable — a cached answer that had
+   * stopped matching the thing it described. The cache was fed by a one-second poll and, later, by
+   * a readiness notification; both are ways of keeping a copy fresh, and both were patched in turn
+   * while the copy went stale anyway.
+   *
+   * A copy that can go stale is the bug. The sources here are three boolean reads and a link-state
+   * check, so there is no reason to hold a copy at all for a reader: refresh first, then answer.
+   * `#last` stays, but only for deciding whether anything CHANGED and a listener should hear about
+   * it — which is what a cache is legitimately for.
+   */
   state(): HealthState {
+    this.refresh()
     return this.#last
   }
 

@@ -100,3 +100,44 @@ describe('HealthMonitor', () => {
     expect(monitor.state().banner).toBeUndefined()
   })
 })
+
+describe('a reader can never see a stale answer', () => {
+  /**
+   * The failure CI finally printed, after two rounds of patching the wrong end:
+   *
+   *   search=false faults=[archive-unavailable] workers={"archive":true,"contentIndex":true}
+   *
+   * The worker was ready and the monitor was reporting it unavailable. state() returned a cached
+   * copy kept fresh by a one-second poll and, later, by a readiness notification. Both are ways of
+   * refreshing a copy; neither removes the window in which the copy is wrong, and the panel showed
+   * "broken" over a working archive with a disabled search.
+   *
+   * So a reader never gets a copy. The sources are three boolean reads.
+   */
+  it('reflects a worker that came up since the last poll, without waiting for one', () => {
+    let archiveReady = false
+    const monitor = new HealthMonitor({
+      workerReady: (name) => (name === 'archive' ? archiveReady : true),
+      whatsappLoaded: () => true,
+    })
+
+    // No start(): no timer, no notification. Only what a reader asks for.
+    expect(monitor.state().faults).toContain('archive-unavailable')
+
+    archiveReady = true
+    expect(monitor.state().faults).not.toContain('archive-unavailable')
+    expect(monitor.state().capabilities.find((c) => c.key === 'search')?.available).toBe(true)
+  })
+
+  it('reflects a worker that went away, without waiting for one', () => {
+    let archiveReady = true
+    const monitor = new HealthMonitor({
+      workerReady: (name) => (name === 'archive' ? archiveReady : true),
+      whatsappLoaded: () => true,
+    })
+    expect(monitor.state().severity).toBe('ok')
+
+    archiveReady = false
+    expect(monitor.state().faults).toContain('archive-unavailable')
+  })
+})
