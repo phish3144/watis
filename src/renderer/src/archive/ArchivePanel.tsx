@@ -329,6 +329,12 @@ export function ArchivePanel(): React.JSX.Element {
   const [chatId, setChatId] = useState<string | undefined>(undefined)
   /** How many messages the archive holds, so an empty result can say which kind of empty it is. */
   const [archiveMessages, setArchiveMessages] = useState<number | undefined>(undefined)
+  /**
+   * How far the content index has got. Without this, "Text in Bildern" and "PDFs" find nothing and
+   * the panel gives no way to tell "not processed yet" from "not working" — the same complaint,
+   * for the third subsystem in a row.
+   */
+  const [indexPending, setIndexPending] = useState<number | undefined>(undefined)
   const [messages, setMessages] = useState<ArchiveMessage[]>([])
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ArchiveHit[] | undefined>(undefined)
@@ -362,6 +368,19 @@ export function ArchivePanel(): React.JSX.Element {
     let first = true
 
     const load = (): void => {
+      void api()
+        .getIndexStatus()
+        .then(
+          (status) => {
+            const counts = (status as { counts?: Record<string, number> } | null)?.counts
+            if (!cancelled && counts) {
+              setIndexPending((counts.pending ?? 0) + (counts.running ?? 0))
+            }
+          },
+          () => {
+            /* the health banner covers a worker that is not answering */
+          },
+        )
       void ask<{ messages: number }>({ op: 'stats' }).then(
         (r) => {
           if (!cancelled) setArchiveMessages(r.messages)
@@ -868,6 +887,17 @@ export function ArchivePanel(): React.JSX.Element {
                   {archiveMessages === 0
                     ? 'Es ist noch keine Nachricht archiviert — es gibt also noch nichts zu durchsuchen. Die Suche geht später über alle Chats auf einmal.'
                     : 'Keine Treffer. Gesucht wurde im ganzen Archiv, über alle Chats; der links ausgewählte Chat schränkt nichts ein. Nur „in:Name" tut das.'}
+                  {/* Text lives in the messages and is searchable the moment they arrive. Text
+                      inside images and PDFs has to be extracted first, which happens in the
+                      background and takes a while — saying so is the difference between "be
+                      patient" and "this feature is broken". */}
+                  {indexPending !== undefined && indexPending > 0 && (
+                    <span className="mt-1 block">
+                      Text in Bildern und PDFs ist noch nicht vollständig durchsuchbar:{' '}
+                      {indexPending.toLocaleString('de-DE')} Medien warten noch auf die
+                      Texterkennung. Nachrichtentext selbst ist sofort durchsuchbar.
+                    </span>
+                  )}
                 </li>
               )}
               {hits.map((hit) => (

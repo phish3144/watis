@@ -185,7 +185,10 @@ describe('operations', () => {
    * had said "opens the chat and asks for one page" all along; only the second half happened.
    */
   describe('opening before asking', () => {
-    it('opens the chat before requesting a page', async () => {
+    it('does not reopen the chat for every page', async () => {
+      // The backfill opens each chat once, before its first page. loadOlder used to open it too,
+      // and the machine calls loadOlder once per page — about 29 openings for a chat of 1450
+      // messages. Slow, and it drags WhatsApp's visible chat around under the user for nothing.
       const chat = chatModel([{ t: 500 }])
       const { page } = fullPage(chat)
       const cmd = (
@@ -197,11 +200,8 @@ describe('operations', () => {
 
       await loadOlder(page, 'c1')
 
-      expect(cmd.openChatBottom).toHaveBeenCalled()
       expect(loader.loadEarlierMsgs).toHaveBeenCalled()
-      const openedAt = cmd.openChatBottom.mock.invocationCallOrder[0] ?? Infinity
-      const askedAt = loader.loadEarlierMsgs.mock.invocationCallOrder[0] ?? 0
-      expect(openedAt).toBeLessThan(askedAt)
+      expect(cmd.openChatBottom).not.toHaveBeenCalled()
     })
 
     it('says the chat came back empty rather than calling it finished', async () => {

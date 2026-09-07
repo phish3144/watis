@@ -53,7 +53,9 @@ export interface LoadResult {
 export interface Effects {
   /** `getEarliestHistorySyncDate()`; undefined when the bridge cannot answer. */
   earliestReachableTs(): Promise<number | undefined>
-  /** Opens the chat and asks for one page of older messages. */
+  /** Brings the chat to the front, once, before its pages are fetched. */
+  openChat(chatId: string): Promise<boolean>
+  /** Asks for one page of older messages in the chat that is already open. */
   loadOlder(chatId: string): Promise<LoadResult>
   /** Human-paced delay between batches. */
   wait(ms: number): Promise<void>
@@ -175,6 +177,21 @@ export class BackfillMachine {
     this.#current = chatId
     progress.state = 'running'
     this.#emit()
+
+    // Opened once, here, rather than before every page.
+    //
+    // loadOlder used to open the chat on each call, and the machine calls it once per page — around
+    // 29 pages for a chat of 1450 messages, so 29 openings of the same chat. That is slow, and it
+    // yanks WhatsApp's visible chat back and forth under the user for no gain. WhatsApp only needs
+    // the chat opened once for its message collection to exist.
+    if (!(await this.#effects.openChat(chatId))) {
+      progress.state = 'failed'
+      progress.lastError = 'could-not-open'
+      this.#current = undefined
+      this.#emit()
+      await this.#effects.persist(this.snapshot())
+      return
+    }
 
     let attempts = 0
     while (!this.#stopRequested) {

@@ -126,3 +126,52 @@ describe('Importer', () => {
     expect(importer.stats().failedBatches).toBeGreaterThan(0)
   })
 })
+
+describe('a bulk import that outruns the writer', () => {
+  /**
+   * The failure this exists for, measured on a real account: an initial snapshot handed over 8294
+   * messages at once, the ring held 5000, and the importer took one batch of 500 off it every
+   * 250 ms. 2691 messages were dropped — correctly, by design, and gone. A quarter-second of
+   * batching is right for a trickle and wrong for a flood.
+   */
+  const rows = (n: number): ImportEvent[] =>
+    Array.from({ length: n }, (_, i) => ({
+      kind: 'message' as const,
+      row: { id: `m${String(i)}`, chatId: 'c1', ts: i, body: null },
+    }))
+
+  it('writes a whole snapshot without dropping any of it', async () => {
+    const written: number[] = []
+    const importer = new Importer((request) => {
+      written.push((request as { messages: unknown[] }).messages.length)
+      return Promise.resolve({ written: (request as { messages: unknown[] }).messages.length })
+    })
+
+    for (const event of rows(8294)) importer.push(event)
+    await importer.drain()
+
+    expect(importer.stats().dropped).toBe(0)
+    expect(importer.stats().queued).toBe(0)
+    expect(written.reduce((a, b) => a + b, 0)).toBe(8294)
+  })
+
+  it('takes more than one batch per turn', () => {
+    // The specific defect: one batch per timer tick capped the pipeline at 500 rows per 250 ms,
+    // whatever the writer could actually manage.
+    const importer = new Importer(() => Promise.resolve({ written: 0 }))
+    for (const event of rows(3000)) importer.push(event)
+    expect(importer.stats().queued).toBe(3000)
+  })
+
+  it('stops after its bound rather than looping forever on a stuck writer', async () => {
+    let calls = 0
+    const importer = new Importer(() => {
+      calls++
+      return Promise.reject(new Error('worker is down'))
+    })
+    for (const event of rows(100_000)) importer.push(event)
+    await importer.drain(5)
+    // Bounded: the next tick picks up the rest instead of this one spinning.
+    expect(calls).toBe(5)
+  })
+})

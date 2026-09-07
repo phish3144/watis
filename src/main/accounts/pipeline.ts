@@ -56,6 +56,9 @@ export class AccountPipeline {
     this.backfill = new BackfillController({
       bridge: this.bridge,
       archive: options.archive,
+      // The backfill and the importer share one writer. Without this the backfill fetches pages
+      // faster than the archive can absorb them and the ring buffer drops the difference.
+      queueDepth: () => this.importer.stats().queued,
       onChange: (snapshot) => {
         options.onBackfill(options.accountId, snapshot)
       },

@@ -125,21 +125,12 @@ export async function loadOlder(globals: PageGlobals, chatId: string): Promise<L
   // Opening is the same thing the user would do by clicking the chat. CLAUDE.md lists it among the
   // permitted reads, ADR 0006 covers the read receipt it causes, and the backfill panel warns about
   // it in as many words.
-  // Each step is attributed separately.
+  // The chat is NOT opened here.
   //
-  // Against a real account, 15 of 111 chats died with "Cannot read properties of undefined
-  // (reading 'id')" — thrown from inside WhatsApp's own code, since nothing here reads `.id`. One
-  // throw took the whole call down and the backfill recorded it as a bare TypeError with no way to
-  // tell which step produced it. A chat WhatsApp refuses to open is now one failed chat, named,
-  // and the run continues.
-  try {
-    if (!(await openChat(globals, { chatId }))) {
-      return { loaded: 0, atFloor: true, reason: 'could-not-open' }
-    }
-  } catch (error: unknown) {
-    return { loaded: 0, atFloor: true, reason: 'threw', detail: `openChat: ${String(error)}` }
-  }
-
+  // It used to be, on every call — and the backfill calls this once per page, so a chat of 1450
+  // messages was opened around 29 times. Slow, and it drags WhatsApp's visible chat back and forth
+  // under the user for nothing. The backfill opens each chat once, before its first page; WhatsApp
+  // only needs that once for the message collection to exist.
   const before = await settledCount(chat)
   let returned: unknown
   try {

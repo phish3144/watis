@@ -16,7 +16,7 @@ export type ImportEvent = MirrorRow
 export interface ImporterOptions {
   /** How often to drain. §3.1 asks for roughly a quarter second. */
   flushIntervalMs?: number
-  /** Ring size. Two flushes' worth of a very busy chat. */
+  /** Ring size. Large enough for a whole initial snapshot, not just a busy minute. */
   capacity?: number
   batchSize?: number
 }
@@ -46,7 +46,10 @@ export class Importer {
     this.#send = send
     this.#batchSize = Math.min(options.batchSize ?? MAX_BATCH, MAX_BATCH)
     this.#flushIntervalMs = options.flushIntervalMs ?? 250
-    this.#buffer = new RingBuffer<ImportEvent>(options.capacity ?? 5000)
+    // 50 000 rather than 5000. The ring is the shock absorber for exactly one event — the initial
+    // snapshot — and on a real account that was 8294 messages in one go. Sized to swallow a large
+    // one whole while the drain above keeps up, at roughly a megabyte of rows.
+    this.#buffer = new RingBuffer<ImportEvent>(options.capacity ?? 50_000)
   }
 
   push(event: ImportEvent): void {
@@ -55,8 +58,30 @@ export class Importer {
 
   start(): void {
     if (this.#timer) return
-    this.#timer = setInterval(() => void this.flush(), this.#flushIntervalMs)
+    this.#timer = setInterval(() => void this.drain(), this.#flushIntervalMs)
     this.#timer.unref?.()
+  }
+
+  /**
+   * Empties the buffer, rather than taking one batch off it and waiting a quarter second.
+   *
+   * The timer used to call flush() directly, which capped the whole pipeline at one batch per tick
+   * — 500 rows per 250 ms, about 2000 a second. An initial snapshot hands over everything WhatsApp
+   * has in memory at once: measured on a real account, 8294 messages arriving against a 5000-slot
+   * ring. The buffer did what it is designed to do and dropped the excess, and 2691 messages were
+   * simply gone. A quarter-second of batching is right for a trickle and wrong for a flood.
+   *
+   * Each round trip is awaited, so the main process is never blocked; it just stops idling between
+   * batches while there is work. The bound stops a producer that outruns us forever from turning
+   * this into an unbounded loop — the next tick picks up whatever is left.
+   */
+  async drain(maxBatches = 40): Promise<void> {
+    for (let i = 0; i < maxBatches && this.#buffer.size > 0; i++) {
+      const before = this.#buffer.size
+      await this.flush()
+      // flush() returns early while another drain is in flight; stopping avoids a busy loop.
+      if (this.#buffer.size >= before) return
+    }
   }
 
   async stop(): Promise<void> {
@@ -65,7 +90,7 @@ export class Importer {
     // Drain what is left, so shutting down does not throw away a partial batch.
     while (this.#buffer.size > 0) {
       const before = this.#buffer.size
-      await this.flush()
+      await this.drain()
       if (this.#buffer.size >= before) break // not draining; stop rather than spin
     }
   }

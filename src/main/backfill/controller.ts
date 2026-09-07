@@ -18,6 +18,15 @@ import { log } from '../logging'
 /** Between batches. Slow enough to look like a person scrolling, which is what it is standing in for. */
 const BATCH_DELAY_MS = 1500
 
+/**
+ * How many rows may be waiting to be written before the backfill stops fetching more.
+ *
+ * Well below the ring's capacity, so there is room for the live mirror to keep writing while the
+ * backfill waits. The point is never to reach the capacity at all: a full ring drops, and a dropped
+ * message is not fetched again until the next full snapshot.
+ */
+const QUEUE_HIGH_WATER = 5000
+
 export interface BackfillControllerOptions {
   bridge: BridgeHost
   /** Sends a request to the archive worker. */
@@ -25,6 +34,8 @@ export interface BackfillControllerOptions {
   onChange?: ((snapshot: BackfillSnapshot) => void) | undefined
   /** Overridable so tests do not have to sit through the human pacing. */
   batchDelayMs?: number | undefined
+  /** Rows still waiting to be written. The backfill holds off while the writer is behind. */
+  queueDepth?: (() => number) | undefined
 }
 
 export class BackfillController {
@@ -69,10 +80,23 @@ export class BackfillController {
           setTimeout(resolve, ms).unref?.()
         }),
 
-      // The machine asks before every batch. Both conditions here mean the same thing to it —
-      // not now — but they are different situations: a bridge that is gone is a fault, and a
-      // machine the user is sitting in front of is just bad timing.
-      canRun: () => Promise.resolve(this.#options.bridge.ready && !isUserBusy()),
+      openChat: async (chatId) =>
+        ((await this.#options.bridge.send('openChat', { chatId })) as boolean | undefined) === true,
+
+      // The machine asks before every batch. All three conditions mean the same thing to it —
+      // not now — but they are different situations: a bridge that is gone is a fault, a machine
+      // the user is sitting in front of is bad timing, and a writer that is behind is us.
+      //
+      // The last one is why 2691 messages were lost on a real run. The backfill fetched pages far
+      // faster than the archive could write them, the ring buffer filled, and dropped the excess
+      // exactly as designed. Waiting for the writer costs seconds; not waiting costs messages, and
+      // costs them silently.
+      canRun: () =>
+        Promise.resolve(
+          this.#options.bridge.ready &&
+            !isUserBusy() &&
+            (this.#options.queueDepth?.() ?? 0) < QUEUE_HIGH_WATER,
+        ),
 
       persist: (snapshot) => this.#persist(snapshot),
 

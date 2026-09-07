@@ -30,6 +30,7 @@ describe('BackfillController', () => {
     },
     send: (op: string, args?: Record<string, unknown>): Promise<unknown> => {
       sent.push(args ? { op, args } : { op })
+      if (op === 'openChat') return Promise.resolve(true)
       if (op === 'earliestReachableTs') {
         return reachableFails
           ? Promise.reject(new Error('bridge command failed'))

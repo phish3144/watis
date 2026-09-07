@@ -14,6 +14,7 @@ function fakeBridge(pages: Record<string, number>, overrides: Partial<Effects> =
 
   const effects: Effects = {
     earliestReachableTs: () => Promise.resolve(1_600_000_000),
+    openChat: () => Promise.resolve(true),
     loadOlder: (chatId): Promise<LoadResult> => {
       opened.push(chatId)
       const left = remaining[chatId] ?? 0
