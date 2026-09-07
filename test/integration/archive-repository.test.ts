@@ -215,3 +215,47 @@ describe('context around a hit', () => {
     expect(repo.contextAround('nope')).toEqual([])
   })
 })
+
+describe('search reaches every chat unless told otherwise', () => {
+  /**
+   * Asked directly by the first person to use the panel: "werde ich später in allen Chats
+   * gleichzeitig suchen können, es sieht aus, als wenn ich einen Chat zum Suchen auswählen müsste".
+   *
+   * It always did — the chat list simply sits above the search box, which reads as scoping, and the
+   * archive was empty at the time so every search answered "Keine Treffer". The behaviour is worth
+   * pinning so nobody later "fixes" the search to match that impression.
+   */
+  beforeEach(seed)
+
+  it('returns hits from several chats for one query', () => {
+    // The same word in two different chats, asked for once. This is the whole question: does one
+    // search cross chat boundaries, or does it answer for one chat at a time?
+    repo.upsertMessages([
+      { id: 'm10', chatId: 'c1', senderJid: 'anna@s', ts: 4000, body: 'Der Dachdecker kommt' },
+      { id: 'm11', chatId: 'c2', senderJid: 'anna@s', ts: 5000, body: 'Dachdecker war teuer' },
+    ])
+
+    const hits = repo.search(parseQuery('Dachdecker'), 50)
+    expect(hits.map((h) => h.msgId).sort()).toEqual(['m10', 'm11'])
+    expect(new Set(hits.map((h) => h.chatId))).toEqual(new Set(['c1', 'c2']))
+  })
+
+  it('does not restrict a plain query to any one chat', () => {
+    const all = repo.search(parseQuery('Rechnung'), 50)
+    expect(all.map((h) => h.msgId)).toContain('m2')
+    // Nothing in the query names a chat, so nothing may narrow it.
+    expect(repo.search(parseQuery('Grüße'), 50).map((h) => h.msgId)).toContain('m3')
+  })
+
+  it('narrows only when in: names a chat', () => {
+    const inFamilie = repo.search(parseQuery('in:Familie Rechnung'), 50)
+    expect(inFamilie.map((h) => h.msgId)).toEqual(['m2'])
+
+    // The same term, restricted to the other chat, must find nothing.
+    expect(repo.search(parseQuery('in:Anna Rechnung'), 50)).toEqual([])
+  })
+
+  it('accepts in: by chat id as well as by the name the user sees', () => {
+    expect(repo.search(parseQuery('in:c2 Grüße'), 50).map((h) => h.msgId)).toEqual(['m3'])
+  })
+})

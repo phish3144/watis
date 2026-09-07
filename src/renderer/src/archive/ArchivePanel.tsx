@@ -327,6 +327,8 @@ function HitRow({
 export function ArchivePanel(): React.JSX.Element {
   const [chats, setChats] = useState<ArchiveChat[]>([])
   const [chatId, setChatId] = useState<string | undefined>(undefined)
+  /** How many messages the archive holds, so an empty result can say which kind of empty it is. */
+  const [archiveMessages, setArchiveMessages] = useState<number | undefined>(undefined)
   const [messages, setMessages] = useState<ArchiveMessage[]>([])
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ArchiveHit[] | undefined>(undefined)
@@ -360,6 +362,14 @@ export function ArchivePanel(): React.JSX.Element {
     let first = true
 
     const load = (): void => {
+      void ask<{ messages: number }>({ op: 'stats' }).then(
+        (r) => {
+          if (!cancelled) setArchiveMessages(r.messages)
+        },
+        () => {
+          /* the health banner covers a worker that is not answering */
+        },
+      )
       void ask<{ chats: ArchiveChat[] }>({ op: 'chats', limit: 200 })
         .then((r) => {
           if (cancelled) return
@@ -678,9 +688,9 @@ export function ArchivePanel(): React.JSX.Element {
                   setHits(undefined)
                 }
               }}
-              placeholder="Suchen — von:, in:, vor:, nach:, hat:, quelle:   (Strg+K)"
+              placeholder="Im ganzen Archiv suchen — von:, in:, vor:, nach:, hat:, quelle:   (Strg+K)"
               className="flex-1 rounded-md border border-wa-hairline bg-transparent px-3 py-1.5 text-sm"
-              aria-label="Archiv durchsuchen"
+              aria-label="Im ganzen Archiv suchen, über alle Chats"
             />
             <button
               type="button"
@@ -850,7 +860,15 @@ export function ArchivePanel(): React.JSX.Element {
                 </li>
               )}
               {hits.length === 0 && names.length === 0 && (
-                <li className="p-3 text-sm text-wa-muted">Keine Treffer.</li>
+                // "Keine Treffer" over an empty archive is a true sentence that answers the wrong
+                // question: it sounds like the archive was searched and the word is not in it. The
+                // first person to try this searched an archive holding nothing and reasonably
+                // concluded the search was broken.
+                <li className="p-3 text-sm text-wa-muted">
+                  {archiveMessages === 0
+                    ? 'Es ist noch keine Nachricht archiviert — es gibt also noch nichts zu durchsuchen. Die Suche geht später über alle Chats auf einmal.'
+                    : 'Keine Treffer. Gesucht wurde im ganzen Archiv, über alle Chats; der links ausgewählte Chat schränkt nichts ein. Nur „in:Name" tut das.'}
+                </li>
               )}
               {hits.map((hit) => (
                 <HitRow
