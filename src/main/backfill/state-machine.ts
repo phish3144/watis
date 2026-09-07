@@ -40,6 +40,12 @@ export interface LoadResult {
   oldestTs?: number | undefined
   /** WhatsApp itself says there is nothing older to fetch. */
   atFloor?: boolean
+  /**
+   * Why nothing came back. 'at-floor' is the ordinary end of a chat; everything else is a fault
+   * that used to be recorded as a finished chat, which is how a completely broken backfill could
+   * report "110 von 110 fertig" without a single message.
+   */
+  reason?: string | undefined
 }
 
 export interface Effects {
@@ -207,7 +213,14 @@ export class BackfillMachine {
       this.#emit()
 
       if (result.loaded === 0 || result.atFloor === true) {
-        progress.state = 'done'
+        // Only a real floor counts as finished. A chat that came back empty because the page never
+        // handed over its history is a failure, and has to look like one.
+        if (result.reason !== undefined && result.reason !== 'at-floor') {
+          progress.state = 'failed'
+          progress.lastError = result.reason
+        } else {
+          progress.state = 'done'
+        }
         break
       }
       if (progress.batches >= this.#options.maxBatchesPerChat) {

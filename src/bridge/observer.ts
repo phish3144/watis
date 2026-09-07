@@ -182,7 +182,26 @@ export function observe(globals: PageGlobals, emit: Emit): ObserverHandle {
  * The initial import: everything the collections already hold. Yields in chunks so a large mirror
  * does not block the page — WhatsApp Web has to stay usable while this runs (§3.1).
  */
-export function* snapshot(globals: PageGlobals, chunkSize = 200): Generator<MirrorEvent[]> {
+/**
+ * How many models each collection held, and how many survived being mapped.
+ *
+ * "Nachrichten 0" has two completely different causes that look identical from outside: the message
+ * collection was empty — WhatsApp Web fills it per chat, on opening — or it was full and every row
+ * was dropped by the mapper for want of an id, a chat id or a timestamp. One is expected on a fresh
+ * link, the other is a broken bridge, and telling them apart took a round-trip through a user with
+ * a real account. Now the snapshot says.
+ */
+export interface SnapshotTally {
+  chat: { models: number; mapped: number }
+  contact: { models: number; mapped: number }
+  message: { models: number; mapped: number }
+}
+
+export function* snapshot(
+  globals: PageGlobals,
+  chunkSize = 200,
+  tally?: SnapshotTally,
+): Generator<MirrorEvent[]> {
   const sources = [
     { collection: collectionOf(globals, CHAT_COLLECTION), map: toChatRow, kind: 'chat' as const },
     {
@@ -199,14 +218,24 @@ export function* snapshot(globals: PageGlobals, chunkSize = 200): Generator<Mirr
 
   for (const source of sources) {
     const models = source.collection?.getModelsArray?.() ?? []
+    if (tally) tally[source.kind].models = models.length
     for (let i = 0; i < models.length; i += chunkSize) {
       const batch: MirrorEvent[] = []
       for (const model of models.slice(i, i + chunkSize)) {
         const row = source.map(model)
         if (row) batch.push({ kind: source.kind, row } as MirrorEvent)
       }
+      if (tally) tally[source.kind].mapped += batch.length
       if (batch.length > 0) yield batch
     }
+  }
+}
+
+export function emptyTally(): SnapshotTally {
+  return {
+    chat: { models: 0, mapped: 0 },
+    contact: { models: 0, mapped: 0 },
+    message: { models: 0, mapped: 0 },
   }
 }
 

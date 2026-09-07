@@ -52,8 +52,31 @@ export function MirrorStatus(): React.JSX.Element {
       .bridge.snapshot()
       .then(
         (result) => {
-          const count = (result as { count?: number } | undefined)?.count ?? 0
-          setNote(`${count} Einträge übernommen.`)
+          // Broken down by kind, because "514 Einträge übernommen" above an archive holding zero
+          // messages tells the user nothing about which half went wrong. `models` is what WhatsApp
+          // actually held and `mapped` is what survived being read: 0 of 0 means WhatsApp has not
+          // loaded that history yet, 0 of 5000 means WatIs? could not read what was there.
+          const r = result as
+            | {
+                count?: number
+                tally?: Record<'chat' | 'contact' | 'message', { models: number; mapped: number }>
+              }
+            | undefined
+          const t = r?.tally
+          if (!t) {
+            setNote(`${r?.count ?? 0} Einträge übernommen.`)
+            return
+          }
+          const part = (label: string, k: 'chat' | 'contact' | 'message'): string =>
+            t[k].models === t[k].mapped
+              ? `${t[k].mapped.toLocaleString('de-DE')} ${label}`
+              : `${t[k].mapped.toLocaleString('de-DE')} von ${t[k].models.toLocaleString('de-DE')} ${label}`
+          setNote(
+            `Übernommen: ${part('Chats', 'chat')}, ${part('Kontakte', 'contact')}, ${part('Nachrichten', 'message')}.` +
+              (t.message.models === 0
+                ? ' WhatsApp Web hält noch keine Nachrichten im Speicher — dafür ist „Ältere Nachrichten nachladen" da.'
+                : ''),
+          )
         },
         (error: unknown) => {
           setNote(String(error))

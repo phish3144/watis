@@ -20,6 +20,21 @@ function formatDate(ts: number | undefined): string {
   })
 }
 
+/**
+ * The bridge's reasons, in words. A raw 'empty-after-open' in the failure list is a clue for
+ * whoever wrote it and nothing at all for the person reading the panel.
+ */
+const REASON_TEXT: Record<string, string> = {
+  'chat-not-found': 'Chat in WhatsApp nicht gefunden.',
+  'module-unresolved':
+    'WatIs? findet die Stelle nicht mehr, an der WhatsApp ältere Nachrichten nachlädt — meist nach einem Update von WhatsApp Web.',
+  'function-missing':
+    'WhatsApp Web bietet das Nachladen an dieser Stelle nicht mehr an — meist nach einem Update.',
+  'could-not-open': 'Der Chat ließ sich nicht öffnen.',
+  'empty-after-open':
+    'Der Chat wurde geöffnet, WhatsApp gab aber keine einzige Nachricht heraus. Das ist kein leerer Chat, sondern ein Problem an der Schnittstelle.',
+}
+
 const PAUSE_TEXT: Record<'bridge' | 'in-use', string> = {
   bridge: 'Wartet: keine Verbindung zu WhatsApps Interna.',
   'in-use': 'Wartet auf Leerlauf — das Nachladen öffnet Chats und würde dir dazwischenfunken.',
@@ -130,7 +145,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
           <ul className="mt-1 text-wa-muted">
             {failed.map((c) => (
               <li key={c.chatId}>
-                {c.chatId}: {c.lastError ?? 'unbekannter Fehler'}
+                {c.chatId}: {REASON_TEXT[c.lastError ?? ''] ?? c.lastError ?? 'unbekannter Fehler'}
               </li>
             ))}
           </ul>

@@ -102,3 +102,43 @@ nicht belegen können, und der Default ist das, was die Oberfläche selbst sende
 >
 > Der Healthcheck ist genau dafür gebaut: Er sagt beim Start, welche dieser Annahmen nicht mehr gilt,
 > statt die App raten zu lassen.
+
+## Befund 2026-09-07: Nachladen öffnete die Chats nicht
+
+Gemeldet aus einem echten Konto: 110 Chats und 514 übernommene Einträge, aber **null Nachrichten**,
+und ein Backfill, der jeden der 110 Chats als fertig verbuchte.
+
+Ursache: `WAWebChatLoadMessages.loadEarlierMsgs({ chat })` wurde auf Chats aufgerufen, die nie
+geöffnet worden waren. WhatsApp Web füllt `chat.msgs` erst beim Öffnen eines Chats; vorher ist die
+Sammlung leer und `loadEarlierMsgs` hat keinen Anker, von dem aus es zurückblättern könnte. Es kam
+nichts zurück, der Zähler bewegte sich nicht, und das Ergebnis war von „dieser Chat hat keine
+älteren Nachrichten mehr" nicht zu unterscheiden.
+
+Dasselbe erklärt den leeren Snapshot: `MsgCollection.getModelsArray()` liefert auf einer frisch
+verknüpften Sitzung nichts, weil noch kein Chat offen war. Chats und Kontakte stehen dagegen sofort
+zur Verfügung — daher 514 Einträge ohne eine einzige Nachricht.
+
+`loadOlder` öffnet den Chat jetzt zuerst (erlaubt laut CLAUDE.md, Lesebestätigung gedeckt durch
+[ADR 0006](decisions/0006-lesebestaetigung-beim-chatoeffnen.md)) und wartet begrenzt darauf, dass die
+Modelle eintreffen, statt den Zähler einmal zu lesen und zu glauben.
+
+Jeder Fehlschlag trägt jetzt einen Grund (`chat-not-found`, `module-unresolved`, `could-not-open`,
+`empty-after-open`, `at-floor`). Nur `at-floor` gilt als fertig; alles andere wird als
+fehlgeschlagen angezeigt. Vorher sahen alle fünf identisch aus, weshalb ein vollständig kaputtes
+Nachladen „110 von 110 fertig" melden konnte.
+
+### `getEarliestHistorySyncDate` liefert eine Zeitspanne
+
+Dieselbe Sitzung lieferte `7_776_000` — keinen Zeitstempel, sondern exakt 90 Tage in Sekunden, also
+die Länge des Fensters statt seines Beginns. Als absolute Zeit gelesen ergibt das den 01.04.1970,
+und genau das stand im Panel, ausgewiesen als Angabe von WhatsApp. Werte unterhalb des
+WhatsApp-Starts (2009) werden jetzt als Zeitspanne ab jetzt gedeutet; alles andere, was kein Datum
+sein kann, wird `undefined` und die UI sagt „unbekannt".
+
+### Noch offen
+
+Der Fix ist **nicht gegen ein echtes Konto verifiziert** — dafür braucht es eine angemeldete
+Sitzung, die in CI nicht existiert. Belegt sind nur die Unit-Tests. Der Snapshot meldet deshalb neu
+`models` und `mapped` pro Sammlung: „0 von 0 Nachrichten" heißt, WhatsApp hatte keine geladen,
+„0 von 5.000" hieße, WatIs? konnte sie nicht lesen. Das ist die Zahl, die beim nächsten Bericht
+entscheidet, wo weitergesucht wird.

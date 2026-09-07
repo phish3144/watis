@@ -148,6 +148,84 @@ describe('operations', () => {
     expect(await loadOlder(page, 'c1')).toMatchObject({ loaded: 0, atFloor: true })
   })
 
+  /**
+   * The bug that made the whole archive pointless: 110 chats mirrored, 514 rows imported, zero
+   * messages, and a backfill that called every chat done.
+   *
+   * WhatsApp Web fills chat.msgs lazily, when a chat is opened. loadEarlierMsgs on a chat nobody
+   * opened has no anchor to page back from and returns nothing — which the old code reported as
+   * { loaded: 0, atFloor: true }, identical to a chat with no history left. The Effects interface
+   * had said "opens the chat and asks for one page" all along; only the second half happened.
+   */
+  describe('opening before asking', () => {
+    it('opens the chat before requesting a page', async () => {
+      const chat = chatModel([{ t: 500 }])
+      const { page } = fullPage(chat)
+      const cmd = (
+        page.require('WAWebCmd') as { Cmd: { openChatBottom: ReturnType<typeof vi.fn> } }
+      ).Cmd
+      const loader = page.require('WAWebChatLoadMessages') as {
+        loadEarlierMsgs: ReturnType<typeof vi.fn>
+      }
+
+      await loadOlder(page, 'c1')
+
+      expect(cmd.openChatBottom).toHaveBeenCalled()
+      expect(loader.loadEarlierMsgs).toHaveBeenCalled()
+      const openedAt = cmd.openChatBottom.mock.invocationCallOrder[0] ?? Infinity
+      const askedAt = loader.loadEarlierMsgs.mock.invocationCallOrder[0] ?? 0
+      expect(openedAt).toBeLessThan(askedAt)
+    })
+
+    it('says the chat came back empty rather than calling it finished', async () => {
+      // An opened chat that still holds nothing is a bridge problem, not an empty chat, and the
+      // difference is the whole reason a backfill can report success while archiving nothing.
+      const { page } = fullPage(chatModel([]))
+      expect(await loadOlder(page, 'c1')).toMatchObject({
+        loaded: 0,
+        atFloor: true,
+        reason: 'empty-after-open',
+      })
+    })
+
+    it('distinguishes a real floor from a fault', async () => {
+      const { page } = fullPage(chatModel([{ t: 500 }]))
+      expect((await loadOlder(page, 'c1')).reason).toBe('at-floor')
+    })
+
+    it('names an unknown chat', async () => {
+      const { page, collection } = fullPage()
+      collection.get.mockImplementation(() => undefined as never)
+      expect((await loadOlder(page, 'weg')).reason).toBe('chat-not-found')
+    })
+
+    it('names a module WhatsApp no longer registers', async () => {
+      // Built by taking a working page away, not by assembling a minimal one: every other module
+      // has to stay resolvable or the operation fails earlier and the test proves nothing.
+      const { page } = fullPage(chatModel([{ t: 500 }]))
+      const withoutLoader = {
+        require: (name: string) => {
+          if (name === 'WAWebChatLoadMessages')
+            throw new Error(`Requiring unknown module "${name}"`)
+          return page.require(name)
+        },
+      }
+      expect((await loadOlder(withoutLoader, 'c1')).reason).toBe('module-unresolved')
+    })
+
+    it('reports a module that lost the function as unresolved, because the signature catches it', async () => {
+      // LOAD_MESSAGES names loadEarlierMsgs in its signature, so resolveModule rejects a module
+      // without it before the operation ever looks. The typeof guard behind that is defensive and
+      // not reachable this way — worth pinning, so nobody later "fixes" the reason to match the
+      // guard's name and wonders why it never appears.
+      const { page } = fullPage(chatModel([{ t: 500 }]))
+      const emptyLoader = {
+        require: (name: string) => (name === 'WAWebChatLoadMessages' ? {} : page.require(name)),
+      }
+      expect((await loadOlder(emptyLoader, 'c1')).reason).toBe('module-unresolved')
+    })
+  })
+
   it('leaves the trigger at its default so the request is not misdescribed', async () => {
     const { page } = fullPage()
     const loader = page.require('WAWebChatLoadMessages') as {
@@ -174,6 +252,40 @@ describe('operations', () => {
 
   it('returns undefined for the reachable date rather than a number of our own', async () => {
     expect(await earliestReachableTs(fakePage({}))).toBeUndefined()
+  })
+
+  describe('the reachable date', () => {
+    it('does not present a 90-day window as the 1st of April 1970', async () => {
+      // What a real account returned: 7_776_000, which is not a timestamp but exactly ninety days
+      // in seconds — the length of the window, not its start. Read as an absolute time that is
+      // 01.04.1970, and the panel showed it as something WhatsApp had said.
+      const { page } = fullPage()
+      const utils = page.require('WAWebHistorySyncUtils') as {
+        getEarliestHistorySyncDate: ReturnType<typeof vi.fn>
+      }
+      utils.getEarliestHistorySyncDate.mockReturnValueOnce(7_776_000)
+
+      const ts = await earliestReachableTs(page)
+      expect(ts).toBeDefined()
+      const asDate = new Date((ts ?? 0) * 1000)
+      expect(asDate.getUTCFullYear()).toBeGreaterThan(2020)
+      // Ninety days back from now, give or take the second the test takes to run.
+      expect(Math.abs(Date.now() / 1000 - 7_776_000 - (ts ?? 0))).toBeLessThan(5)
+    })
+
+    it('refuses a value that cannot be a date at all', async () => {
+      const { page } = fullPage()
+      const utils = page.require('WAWebHistorySyncUtils') as {
+        getEarliestHistorySyncDate: ReturnType<typeof vi.fn>
+      }
+      utils.getEarliestHistorySyncDate.mockReturnValueOnce(-1)
+      expect(await earliestReachableTs(page)).toBeUndefined()
+    })
+
+    it('leaves a genuine timestamp alone', async () => {
+      const { page } = fullPage()
+      expect(await earliestReachableTs(page)).toBe(1_700_000_000)
+    })
   })
 
   it('never hands the raw Cmd object to a caller', async () => {

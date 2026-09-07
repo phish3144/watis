@@ -21,6 +21,7 @@ describe('BackfillController', () => {
   let stored: { chatId: string; backfillDone?: boolean }[]
   let bridgeReady: boolean
   let reachableFails: boolean
+  let loadReason: string | undefined
   let pages: Map<string, number>
 
   const bridge = {
@@ -35,6 +36,7 @@ describe('BackfillController', () => {
           : Promise.resolve(1_690_000_000)
       }
       if (op === 'loadOlder') {
+        if (loadReason) return Promise.resolve({ loaded: 0, atFloor: true, reason: loadReason })
         const chatId = String(args?.chatId)
         const left = pages.get(chatId) ?? 0
         pages.set(chatId, Math.max(0, left - 1))
@@ -62,6 +64,7 @@ describe('BackfillController', () => {
     stored = []
     bridgeReady = true
     reachableFails = false
+    loadReason = undefined
     idleSeconds = 600
     pages = new Map()
   })
@@ -115,6 +118,44 @@ describe('BackfillController', () => {
       expect(result.reachableTs).toBeUndefined()
       expect(result.chats[0]?.state).toBe('done')
       expect(result.chats[0]?.messages).toBeGreaterThan(0)
+    })
+  })
+
+  /**
+   * The failure that made the archive useless without ever looking like a failure.
+   *
+   * loadOlder reported every fault as { loaded: 0, atFloor: true } — the same shape as a chat with
+   * no history left. The machine wrote "done" for each one, so a backfill that fetched nothing at
+   * all across 110 chats reported 110 chats finished. A fault shaped like success is worse than a
+   * crash: nobody goes looking.
+   */
+  describe('a chat that came back empty for a reason', () => {
+    it('is recorded as failed, not as finished', async () => {
+      loadReason = 'empty-after-open'
+      const controller = build()
+      controller.enqueue(['c1'])
+      const result = await controller.start()
+
+      expect(result.chats[0]?.state).toBe('failed')
+      expect(result.chats[0]?.lastError).toBe('empty-after-open')
+    })
+
+    it('still treats a genuine floor as finished', async () => {
+      loadReason = 'at-floor'
+      const controller = build()
+      controller.enqueue(['c1'])
+      const result = await controller.start()
+      expect(result.chats[0]?.state).toBe('done')
+    })
+
+    it('does not mark a failed chat done on a later run', async () => {
+      // A failed chat has to stay visible. Recording it as done would hide the fault behind a
+      // "110 von 110 fertig" on the next start.
+      loadReason = 'module-unresolved'
+      const controller = build()
+      controller.enqueue(['c1', 'c2'])
+      const result = await controller.start()
+      expect(result.chats.every((c) => c.state === 'failed')).toBe(true)
     })
   })
 

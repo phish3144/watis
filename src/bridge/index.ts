@@ -1,6 +1,6 @@
 import { healthcheck, type PageGlobals } from './modules'
 import { CHAT_COLLECTION, CONTACT_COLLECTION, MSG_COLLECTION } from './signatures'
-import { observe, snapshot, type MirrorEvent, type ObserverHandle } from './observer'
+import { emptyTally, observe, snapshot, type MirrorEvent, type ObserverHandle } from './observer'
 import { downloadMedia, earliestReachableTs, loadOlder, openChat } from './operations'
 import { summarise, TO_HOST, TO_PAGE, type BridgeCommand, type BridgeMessage } from './protocol'
 
@@ -98,7 +98,8 @@ export function install(): { stop: () => void } {
         )
       case 'snapshot': {
         let count = 0
-        for (const batch of snapshot(globals)) {
+        const tally = emptyTally()
+        for (const batch of snapshot(globals, 200, tally)) {
           for (const event of batch) emit(event)
           count += batch.length
           // Yield to the page between chunks. WhatsApp Web has to stay usable while the initial
@@ -110,7 +111,7 @@ export function install(): { stop: () => void } {
           )
         }
         flush(true)
-        return { count, dropped }
+        return { count, dropped, tally }
       }
       case 'openChat': {
         if (typeof args.chatId !== 'string') throw new Error('chatId is required')

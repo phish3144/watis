@@ -52,11 +52,13 @@ export class BackfillController {
           loaded?: number
           oldestTs?: number
           atFloor?: boolean
+          reason?: string
         }
         return {
           loaded: result?.loaded ?? 0,
           oldestTs: result?.oldestTs,
           atFloor: result?.atFloor ?? false,
+          reason: result?.reason,
         }
       },
 
