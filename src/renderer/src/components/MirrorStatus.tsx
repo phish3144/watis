@@ -59,7 +59,17 @@ export function MirrorStatus(): React.JSX.Element {
           const r = result as
             | {
                 count?: number
-                tally?: Record<'chat' | 'contact' | 'message', { models: number; mapped: number }>
+                tally?: Record<
+                  'chat' | 'contact' | 'message',
+                  { models: number; mapped: number }
+                > & {
+                  messages?: {
+                    noId: number
+                    noChatId: number
+                    noTs: number
+                    firstRejected?: Record<string, string>
+                  }
+                }
               }
             | undefined
           const t = r?.tally
@@ -71,12 +81,38 @@ export function MirrorStatus(): React.JSX.Element {
             t[k].models === t[k].mapped
               ? `${t[k].mapped.toLocaleString('de-DE')} ${label}`
               : `${t[k].mapped.toLocaleString('de-DE')} von ${t[k].models.toLocaleString('de-DE')} ${label}`
-          setNote(
-            `Übernommen: ${part('Chats', 'chat')}, ${part('Kontakte', 'contact')}, ${part('Nachrichten', 'message')}.` +
-              (t.message.models === 0
-                ? ' WhatsApp Web hält noch keine Nachrichten im Speicher — dafür ist „Ältere Nachrichten nachladen" da.'
-                : ''),
-          )
+          const head = `Übernommen: ${part('Chats', 'chat')}, ${part('Kontakte', 'contact')}, ${part('Nachrichten', 'message')}.`
+          if (t.message.models === 0) {
+            setNote(
+              `${head} WhatsApp Web hält noch keine Nachrichten im Speicher — dafür ist „Ältere Nachrichten nachladen" da.`,
+            )
+            return
+          }
+          // Messages were there and none could be read. Which field was missing is the whole
+          // question, and it cannot be answered from a developer machine: there is no logged-in
+          // WhatsApp here or in CI. So it is shown, and it is only ever field names and types —
+          // never a chat id, never a body.
+          const d = t.messages
+          if (d && t.message.mapped === 0 && t.message.models > 0) {
+            const why = [
+              d.noId > 0 ? `${d.noId}× ohne lesbare Nachrichten-ID` : '',
+              d.noChatId > 0 ? `${d.noChatId}× ohne lesbare Chat-ID` : '',
+              d.noTs > 0 ? `${d.noTs}× ohne Zeitstempel` : '',
+            ]
+              .filter(Boolean)
+              .join(', ')
+            const shape = d.firstRejected
+              ? Object.entries(d.firstRejected)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join('\n')
+              : ''
+            setNote(
+              `${head}\nKeine einzige Nachricht war lesbar: ${why}.\n` +
+                `Form des ersten verworfenen Modells (nur Feldnamen und Typen, keine Inhalte):\n${shape}`,
+            )
+            return
+          }
+          setNote(head)
         },
         (error: unknown) => {
           setNote(String(error))
@@ -171,7 +207,11 @@ export function MirrorStatus(): React.JSX.Element {
       )}
 
       {stats?.lastError && <p className="text-red-400">Letzter Fehler: {stats.lastError}</p>}
-      {note && <p className="text-wa-muted">{note}</p>}
+      {note && (
+        <p className="whitespace-pre-wrap break-words font-mono text-[10px] leading-snug text-wa-muted select-text">
+          {note}
+        </p>
+      )}
     </div>
   )
 }

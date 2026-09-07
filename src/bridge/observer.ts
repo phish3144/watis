@@ -37,16 +37,80 @@ type Emit = (event: MirrorEvent) => void
  * so a later schema can be rebuilt from what we already stored rather than from a re-sync that may
  * no longer reach that far back (§5.4).
  */
-export function toMessageRow(model: unknown): MessageRow | undefined {
+/**
+ * Why message models were rejected, and what one looks like. Names and types only — never values.
+ *
+ * Measured against a real account: 111 of 111 chats mapped and 0 of 375 messages. That number said
+ * the models were there and unreadable, which was already worth three rounds of guessing. Which
+ * FIELD was missing is the next question, and it cannot be answered from here — there is no
+ * logged-in WhatsApp on this machine or in CI. So the build asks it.
+ *
+ * Nothing here may carry content. Field names are structure; a chat id is a phone number and a body
+ * is a message, so neither is ever recorded. `describe` enforces that by construction: it reports
+ * typeof and key names and never a value.
+ */
+export interface MessageDiagnostics {
+  noId: number
+  noChatId: number
+  noTs: number
+  /** The shape of the first model that could not be read. Names only. */
+  firstRejected?: Record<string, string>
+}
+
+/** A value's shape, never its content: type, and for objects the names of its keys. */
+function describe(value: unknown, depth = 1): string {
+  if (value === undefined) return 'undefined'
+  if (value === null) return 'null'
+  const type = typeof value
+  if (type !== 'object') return type
+  const keys = Object.keys(value).slice(0, 20)
+  if (depth <= 0) return `object{${keys.join(',')}}`
+  const inner = keys
+    .slice(0, 8)
+    .map((k) => `${k}:${describe((value as Record<string, unknown>)[k], depth - 1)}`)
+  return `object{${inner.join(', ')}${keys.length > 8 ? ', …' : ''}}`
+}
+
+export function toMessageRow(
+  model: unknown,
+  diagnostics?: MessageDiagnostics,
+): MessageRow | undefined {
   const m = model as Record<string, unknown> | null
   if (!m) return undefined
 
   const id = readId(m.id)
-  const chatId = readId(m.chatId ?? (m.id as Record<string, unknown> | undefined)?.remote)
-  if (id === undefined || chatId === undefined) return undefined
+  // Every place the chat a message belongs to has been known to live. `from`/`to` are the same
+  // fact seen from either end, so whichever is present answers the question.
+  const key = m.id as Record<string, unknown> | undefined
+  const chatId = readId(
+    m.chatId ??
+      key?.remote ??
+      (m.chat as Record<string, unknown> | undefined)?.id ??
+      (m.fromMe === true || key?.fromMe === true ? m.to : m.from),
+  )
+  const ts = readTimestamp(m.t ?? (m as { timestamp?: unknown }).timestamp)
 
-  const ts = typeof m.t === 'number' ? m.t : undefined
-  if (ts === undefined) return undefined
+  if (id === undefined || chatId === undefined || ts === undefined) {
+    if (diagnostics) {
+      if (id === undefined) diagnostics.noId++
+      if (chatId === undefined) diagnostics.noChatId++
+      if (ts === undefined) diagnostics.noTs++
+      diagnostics.firstRejected ??= {
+        // Own enumerable keys. On a Backbone-style model the interesting ones may hide behind
+        // `attributes`, and seeing that is itself the answer, so both are reported.
+        keys: Object.keys(m).slice(0, 30).join(','),
+        id: describe(m.id),
+        chatId: describe(m.chatId),
+        t: describe(m.t),
+        timestamp: describe((m as { timestamp?: unknown }).timestamp),
+        from: describe(m.from, 0),
+        to: describe(m.to, 0),
+        attributes: describe((m as { attributes?: unknown }).attributes, 0),
+        hasGet: String(typeof (m as { get?: unknown }).get === 'function'),
+      }
+    }
+    return undefined
+  }
 
   return {
     id,
@@ -55,7 +119,10 @@ export function toMessageRow(model: unknown): MessageRow | undefined {
     ts,
     kind: typeof m.type === 'string' ? m.type : null,
     body: typeof m.body === 'string' ? m.body : typeof m.caption === 'string' ? m.caption : null,
-    quotedId: readId(m.quotedStanzaID ?? m.quotedMsgId),
+    // quotedMsgId first: it is a MsgKey and serialises to the same form message ids are stored in,
+    // so the link resolves. quotedStanzaID is the bare stanza id — a string readId happily returns
+    // and which can never match a stored `fromMe_remote_id`, so it is only a last resort.
+    quotedId: readId(m.quotedMsgId) ?? readId(m.quotedStanzaID),
     mediaId: typeof m.filehash === 'string' ? m.filehash : null,
     edited: Boolean(m.latestEditMsgKey ?? m.isEdited),
     revoked: m.type === 'revoked' || Boolean(m.isRevoked),
@@ -122,10 +189,78 @@ export function toReactionRow(model: unknown): MessageRow | undefined {
 }
 
 /** WhatsApp ids are sometimes strings, sometimes objects with `_serialized`. Never reshape them. */
+/**
+ * An id, from whichever shape WhatsApp is handing out.
+ *
+ * `_serialized` used to be the only accepted form, and against a real account that read 111 of 111
+ * chats and 0 of 375 messages. A chat id is a Wid, which carries `_serialized`; a message id is a
+ * MsgKey, which does not always — where it is a prototype getter it survives, and where a model has
+ * been through a structured copy it does not, leaving a plain object with the parts and no getter.
+ *
+ * So the parts are reassembled into the same string WhatsApp itself produces,
+ * `fromMe_remote_id`, rather than the row being thrown away. This invents nothing: it is the
+ * documented serialisation, rebuilt from the fields it is made of.
+ */
 function readId(value: unknown): string | undefined {
   if (typeof value === 'string') return value
-  const serialized = (value as Record<string, unknown> | null)?._serialized
-  return typeof serialized === 'string' ? serialized : undefined
+  const v = value as Record<string, unknown> | null
+  if (!v) return undefined
+
+  if (typeof v._serialized === 'string') return v._serialized
+
+  // MsgKey's own toString(), which still returns the serialised key.
+  //
+  // This is the documented route and the reason 375 messages were being dropped: WhatsApp Web
+  // >= 2.3000.1042401057 caches the serialised key in a minified property (`this.$1`) instead of
+  // `this._serialized`, so the property vanished while toString() kept working. wa-js carries a
+  // compatibility patch for exactly this (src/whatsapp/misc/MsgKey.ts, release v4.4.0: "restore
+  // MsgKey._serialized on WhatsApp Web >= 2.3000.1042401057"). Wid was never touched, which is why
+  // chats mapped and messages did not.
+  //
+  // The lint rule guards against Object.prototype.toString producing "[object Object]". That is the
+  // one case handled explicitly below, by rejecting the result rather than trusting the call.
+  if (typeof v.toString === 'function' && v.toString !== Object.prototype.toString) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    const serialised = String(v)
+    if (serialised !== '' && !serialised.startsWith('[object')) return serialised
+  }
+
+  // Last resort: rebuild the key from its parts, in WhatsApp's own format —
+  // fromMe_remote_id[_participant]. Independently documented by WAHA's parseMessageIdSerialized.
+  // If toString() is minified away too, this keeps working.
+  const remote = readId(v.remote)
+  if (typeof v.id === 'string' && remote !== undefined) {
+    const participant = readId(v.participant)
+    return (
+      `${v.fromMe === true ? 'true' : 'false'}_${remote}_${v.id}` +
+      (participant === undefined ? '' : `_${participant}`)
+    )
+  }
+
+  // A Wid assembled from its parts, for the same reason.
+  if (typeof v.user === 'string' && typeof v.server === 'string') {
+    return `${v.user}@${v.server}`
+  }
+
+  return undefined
+}
+
+/**
+ * A message timestamp in seconds.
+ *
+ * `t` as a number was the only accepted form. WhatsApp has also been seen using a Date and a
+ * numeric string, and milliseconds where seconds were expected — and one message model whose `t` is
+ * a Date is a message silently dropped, which is indistinguishable from a bridge that does not
+ * work at all.
+ */
+function readTimestamp(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    // Past the year 3000 it is milliseconds.
+    return value > 32_503_680_000 ? Math.floor(value / 1000) : Math.floor(value)
+  }
+  if (value instanceof Date) return Math.floor(value.getTime() / 1000)
+  if (typeof value === 'string' && /^\d+$/.test(value)) return readTimestamp(Number(value))
+  return undefined
 }
 
 function safeStringify(value: unknown): string | null {
@@ -195,6 +330,8 @@ export interface SnapshotTally {
   chat: { models: number; mapped: number }
   contact: { models: number; mapped: number }
   message: { models: number; mapped: number }
+  /** Only filled when messages were rejected — see MessageDiagnostics. Names and types, no values. */
+  messages: MessageDiagnostics
 }
 
 export function* snapshot(
@@ -211,7 +348,7 @@ export function* snapshot(
     },
     {
       collection: collectionOf(globals, MSG_COLLECTION),
-      map: toMessageRow,
+      map: (model: unknown) => toMessageRow(model, tally?.messages),
       kind: 'message' as const,
     },
   ]
@@ -236,6 +373,7 @@ export function emptyTally(): SnapshotTally {
     chat: { models: 0, mapped: 0 },
     contact: { models: 0, mapped: 0 },
     message: { models: 0, mapped: 0 },
+    messages: { noId: 0, noChatId: 0, noTs: 0 },
   }
 }
 

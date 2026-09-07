@@ -32,12 +32,19 @@ export type LoadOlderReason =
   | 'could-not-open'
   | 'empty-after-open'
   | 'at-floor'
+  /** WhatsApp's own code threw. `detail` says where and what — see the note in loadOlder. */
+  | 'threw'
 
 export interface LoadOlderResult {
   loaded: number
   oldestTs?: number | undefined
   atFloor: boolean
   reason?: LoadOlderReason | undefined
+  /**
+   * Structure, for a failure that needs explaining. Never content: no chat id, no message body.
+   * A shape here is the difference between another guess and a fix.
+   */
+  detail?: string | undefined
 }
 
 type Fn = (...args: unknown[]) => unknown
@@ -61,12 +68,28 @@ export async function openChat(globals: PageGlobals, options: OpenChatOptions): 
   const chat = await findChat(globals, options.chatId)
   if (!chat) return false
 
-  const fn = options.msgId
-    ? callable(globals, CMD, 'openChatAt')
-    : (callable(globals, CMD, 'openChatBottom') ?? callable(globals, CMD, 'openChatAt'))
+  // Always openChatBottom, and always with the object form.
+  //
+  // Two version changes collided here. Since WhatsApp Web >= 2.3000.1029960097 the signature is
+  // `openChatBottom({ chat, chatEntryPoint, threadId })`; the positional `openChatBottom(chat)` is
+  // deprecated. Passing the chat positionally makes WhatsApp destructure `chat` out of a ChatModel,
+  // get undefined, and read `.id` on it — which is exactly the "Cannot read properties of undefined
+  // (reading 'id')" that killed 15 chats in a backfill run.
+  //
+  // openChatAt is not used for the jump either: its second parameter is a `msgContext` built by
+  // WhatsApp's own getSearchContext, not a message id. Passing `{ chat, msgId }` set a field that
+  // does not exist in the signature, so scrolling to a message never worked. Until that context can
+  // be built properly, opening the chat at its bottom is the honest subset — the chat opens, and
+  // the caller is told the message was not jumped to.
+  const fn = callable(globals, CMD, 'openChatBottom') ?? callable(globals, CMD, 'openChatAt')
   if (!fn) return false
 
-  await Promise.resolve(fn(options.msgId ? { chat, msgId: options.msgId } : chat))
+  try {
+    await Promise.resolve(fn({ chat }))
+  } catch {
+    // Older WhatsApp builds take the chat positionally. Tried second so the current form wins.
+    await Promise.resolve(fn(chat))
+  }
   return true
 }
 
@@ -102,14 +125,45 @@ export async function loadOlder(globals: PageGlobals, chatId: string): Promise<L
   // Opening is the same thing the user would do by clicking the chat. CLAUDE.md lists it among the
   // permitted reads, ADR 0006 covers the read receipt it causes, and the backfill panel warns about
   // it in as many words.
-  if (!(await openChat(globals, { chatId }))) {
-    return { loaded: 0, atFloor: true, reason: 'could-not-open' }
+  // Each step is attributed separately.
+  //
+  // Against a real account, 15 of 111 chats died with "Cannot read properties of undefined
+  // (reading 'id')" — thrown from inside WhatsApp's own code, since nothing here reads `.id`. One
+  // throw took the whole call down and the backfill recorded it as a bare TypeError with no way to
+  // tell which step produced it. A chat WhatsApp refuses to open is now one failed chat, named,
+  // and the run continues.
+  try {
+    if (!(await openChat(globals, { chatId }))) {
+      return { loaded: 0, atFloor: true, reason: 'could-not-open' }
+    }
+  } catch (error: unknown) {
+    return { loaded: 0, atFloor: true, reason: 'threw', detail: `openChat: ${String(error)}` }
   }
 
   const before = await settledCount(chat)
-  await Promise.resolve((loadEarlier as Fn)({ chat }))
-  // loadEarlierMsgs can resolve before the models land, so the count is given a moment to move
-  // rather than being read once and believed.
+  let returned: unknown
+  try {
+    // The return value is the array of messages that arrived. Polling chat.msgs afterwards was a
+    // guess at the same number and needed a 2-second wait to make it; this is the answer, given
+    // directly. The poll stays below as a fallback for a build that returns nothing.
+    returned = await Promise.resolve((loadEarlier as Fn)({ chat }))
+  } catch (error: unknown) {
+    return {
+      loaded: 0,
+      atFloor: true,
+      reason: 'threw',
+      detail: `loadEarlierMsgs: ${String(error)} | msgs=${describeShape(
+        (chat as { msgs?: unknown } | null)?.msgs,
+      )}`,
+    }
+  }
+  if (Array.isArray(returned) && returned.length > 0) {
+    return { loaded: returned.length, oldestTs: oldestTimestamp(chat), atFloor: false }
+  }
+
+  // No array, or an empty one. An empty array means both "nothing older" and "the request failed",
+  // which WhatsApp does not distinguish, so the collection is still consulted before concluding
+  // anything: it can resolve before the models land.
   const after = await countAfter(chat, before)
 
   if (after > before) {
@@ -124,7 +178,31 @@ export async function loadOlder(globals: PageGlobals, chatId: string): Promise<L
     oldestTs: oldestTimestamp(chat),
     atFloor: true,
     reason: after === 0 ? 'empty-after-open' : 'at-floor',
+    // Only when it went wrong, and only the shape: if `msgs` is not where messageCount looks, the
+    // count can never move and every chat looks empty however well the rest works.
+    ...(after === 0
+      ? { detail: `msgs=${describeShape((chat as { msgs?: unknown } | null)?.msgs)}` }
+      : {}),
   }
+}
+
+/**
+ * A value's shape, never its content — type, and for an object the names of its keys.
+ *
+ * The same rule as the snapshot diagnostics: names are structure, values are somebody's messages.
+ */
+function describeShape(value: unknown): string {
+  if (value === undefined) return 'undefined'
+  if (value === null) return 'null'
+  if (typeof value !== 'object') return typeof value
+  const keys = Object.keys(value).slice(0, 15)
+  const length = (value as { length?: unknown }).length
+  const models = (value as { models?: unknown[] }).models
+  return (
+    `object{${keys.join(',')}}` +
+    ` length=${typeof length === 'number' ? String(length) : typeof length}` +
+    ` models=${Array.isArray(models) ? String(models.length) : typeof models}`
+  )
 }
 
 /** A short, bounded pause. The bridge runs in the page, so this is the page's own clock. */

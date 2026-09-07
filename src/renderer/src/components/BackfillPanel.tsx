@@ -145,7 +145,17 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
           <ul className="mt-1 text-wa-muted">
             {failed.map((c) => (
               <li key={c.chatId}>
-                {c.chatId}: {REASON_TEXT[c.lastError ?? ''] ?? c.lastError ?? 'unbekannter Fehler'}
+                {c.chatId}:{' '}
+                {REASON_TEXT[(c.lastError ?? '').split(':')[0] ?? ''] ??
+                  c.lastError ??
+                  'unbekannter Fehler'}
+                {/* The raw reason and its shape, kept verbatim and selectable: it is the thing
+                    that has to reach whoever can fix it, and paraphrasing it loses the answer. */}
+                {c.lastError?.includes(':') && (
+                  <span className="mt-0.5 block font-mono text-[10px] break-words opacity-70 select-text">
+                    {c.lastError}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

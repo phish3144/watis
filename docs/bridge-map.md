@@ -142,3 +142,61 @@ Sitzung, die in CI nicht existiert. Belegt sind nur die Unit-Tests. Der Snapshot
 `models` und `mapped` pro Sammlung: „0 von 0 Nachrichten" heißt, WhatsApp hatte keine geladen,
 „0 von 5.000" hieße, WatIs? konnte sie nicht lesen. Das ist die Zahl, die beim nächsten Bericht
 entscheidet, wo weitergesucht wird.
+
+## Befund 2026-09-07: `MsgKey._serialized` ist weg
+
+Gemessen an einem echten Konto: **111 von 111 Chats abgebildet, 0 von 375 Nachrichten.** Der
+Abbilder war nicht defekt — WhatsApp hat ihm die Property unter den Füßen weggezogen.
+
+Seit **WhatsApp Web ≥ 2.3000.1042401057** legt `MsgKey` den serialisierten Schlüssel in einer
+minifizierten Property (`this.$1 = [...].join('_')`) ab statt in `this._serialized`. `readId(m.id)`
+liefert deshalb `undefined`, und `toMessageRow` verwirft jede einzelne Nachricht.
+
+Belegt durch den Kompatibilitäts-Patch in
+[wa-js, `src/whatsapp/misc/MsgKey.ts`](https://github.com/wppconnect-team/wa-js/blob/main/src/whatsapp/misc/MsgKey.ts),
+Release v4.4.0: „restore MsgKey._serialized on WhatsApp Web >= 2.3000.1042401057".
+
+**Warum Chats überlebten:** Es sind zwei verschiedene ID-Klassen. `ChatModel.idClass = Wid`,
+`MsgModel.idClass = MsgKey`. `Wid` deklariert `_serialized` weiterhin als echte Property und ist
+nicht betroffen. `readId` darf also nicht annehmen, alle WhatsApp-IDs sähen gleich aus.
+
+| Klasse   | Wo                                                         | `_serialized` |
+| -------- | ---------------------------------------------------------- | ------------- |
+| `Wid`    | Chat-/Kontakt-ID, `from`, `to`, `author`, `id.remote`      | vorhanden     |
+| `MsgKey` | `msg.id`, `quotedMsgId`, `parentMsgKey`, `lastReceivedKey` | **fehlt**     |
+
+`readId` liest jetzt in dieser Reihenfolge: `_serialized` → `toString()` (liefert den Schlüssel
+weiterhin) → Rekonstruktion aus den Teilen, `fromMe_remote_id[_participant]`. Format unabhängig
+bestätigt durch WAHAs `parseMessageIdSerialized`. Da alle Stellen durch `readId` laufen, heilt der
+eine Fix zugleich Zitate und Reaktionen — bei denen aus demselben Grund **jede** Zeile still
+verworfen wurde.
+
+`msg.chatId` existiert übrigens nicht und hat nie existiert; `msg.id.remote` ist der richtige Weg
+und war nie das Problem.
+
+## Befund 2026-09-07: `openChatBottom` nimmt kein positionales Argument mehr
+
+`TypeError: Cannot read properties of undefined (reading 'id')` bei 15 von 111 Chats im Backfill.
+
+Seit **WhatsApp Web ≥ 2.3000.1029960097** lautet die Signatur
+`openChatBottom({ chat, chatEntryPoint, threadId })`; die positionale Form ist abgelöst
+([wa-js, `src/whatsapp/misc/Cmd.ts`](https://github.com/wppconnect-team/wa-js/blob/main/src/whatsapp/misc/Cmd.ts),
+`@deprecated`). Wird das Modell positional übergeben, destrukturiert WhatsApp `chat` daraus, erhält
+`undefined` und liest `.id` darauf. Die Bridge übergibt jetzt die Objektform und fällt bei einem
+Wurf auf die positionale zurück, damit sie gegen beide Versionen läuft.
+
+**`openChatAt` konnte nie zu einer Nachricht springen.** Der zweite Parameter ist ein `msgContext`
+aus WhatsApps eigenem `getSearchContext`, keine Nachrichten-ID. Die Bridge übergab `{ chat, msgId }`
+— ein Feld, das die Signatur nicht kennt. Bis der Kontext korrekt gebaut werden kann, öffnet ein
+Klick auf einen Suchtreffer den Chat unten; das Springen zur Nachricht fehlt und ist damit
+dokumentiert statt still kaputt.
+
+`loadEarlierMsgs({ chat })` ist dagegen unverändert korrekt und gibt die geladenen Nachrichten
+direkt zurück — das wird jetzt als Zählung verwendet statt `chat.msgs` zu pollen.
+
+### Noch offen
+
+Nicht gegen ein echtes Konto verifiziert — dafür fehlt hier wie in CI eine angemeldete Sitzung.
+Belegt sind die Unit-Tests und die zitierten Quellen. Der Snapshot meldet deshalb weiterhin
+`models`/`mapped` je Sammlung und bei einem Fehlschlag die **Form** des ersten verworfenen Modells
+(nur Feldnamen und Typen, nie Inhalte — durch einen Test erzwungen).

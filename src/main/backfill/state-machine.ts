@@ -46,6 +46,8 @@ export interface LoadResult {
    * report "110 von 110 fertig" without a single message.
    */
   reason?: string | undefined
+  /** Structure behind the reason, never content. Shown verbatim so it can be copied out. */
+  detail?: string | undefined
 }
 
 export interface Effects {
@@ -217,7 +219,7 @@ export class BackfillMachine {
         // handed over its history is a failure, and has to look like one.
         if (result.reason !== undefined && result.reason !== 'at-floor') {
           progress.state = 'failed'
-          progress.lastError = result.reason
+          progress.lastError = result.detail ? `${result.reason}: ${result.detail}` : result.reason
         } else {
           progress.state = 'done'
         }

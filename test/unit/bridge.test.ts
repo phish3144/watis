@@ -114,11 +114,38 @@ describe('operations', () => {
     expect(await openChat(page, { chatId: 'c1' })).toBe(true)
   })
 
-  it('opens a chat at a message when one is given', async () => {
-    const { page } = fullPage()
-    const cmd = (page.require('WAWebCmd') as { Cmd: { openChatAt: ReturnType<typeof vi.fn> } }).Cmd
-    await openChat(page, { chatId: 'c1', msgId: 'm9' })
-    expect(cmd.openChatAt).toHaveBeenCalledWith(expect.objectContaining({ msgId: 'm9' }))
+  it('passes the chat as an object, not positionally', async () => {
+    // WhatsApp Web >= 2.3000.1029960097 takes openChatBottom({ chat, … }); the positional form is
+    // deprecated. Passing the model positionally makes WhatsApp destructure `chat` out of it, get
+    // undefined and read `.id` on that — the "Cannot read properties of undefined (reading 'id')"
+    // that killed 15 chats in a real backfill run.
+    const { page, chat } = fullPage()
+    const cmd = (page.require('WAWebCmd') as { Cmd: { openChatBottom: ReturnType<typeof vi.fn> } })
+      .Cmd
+    await openChat(page, { chatId: 'c1' })
+    expect(cmd.openChatBottom).toHaveBeenCalledWith({ chat })
+  })
+
+  it('falls back to the positional form for an older WhatsApp', async () => {
+    const { page, chat } = fullPage()
+    const cmd = (page.require('WAWebCmd') as { Cmd: { openChatBottom: ReturnType<typeof vi.fn> } })
+      .Cmd
+    cmd.openChatBottom.mockImplementationOnce(() => {
+      throw new TypeError("Cannot read properties of undefined (reading 'id')")
+    })
+    expect(await openChat(page, { chatId: 'c1' })).toBe(true)
+    expect(cmd.openChatBottom).toHaveBeenLastCalledWith(chat)
+  })
+
+  it('opens the chat at its bottom even when a message was named', async () => {
+    // openChatAt's second parameter is a msgContext built by WhatsApp's own getSearchContext, not a
+    // message id. The old call passed `{ chat, msgId }`, a field that is not in the signature, so
+    // scrolling to a message never worked. Opening the chat is the part that does.
+    const { page, chat } = fullPage()
+    const cmd = (page.require('WAWebCmd') as { Cmd: { openChatBottom: ReturnType<typeof vi.fn> } })
+      .Cmd
+    expect(await openChat(page, { chatId: 'c1', msgId: 'm9' })).toBe(true)
+    expect(cmd.openChatBottom).toHaveBeenCalledWith({ chat })
   })
 
   it('reports failure instead of throwing when the chat is unknown', async () => {
