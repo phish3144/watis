@@ -3,10 +3,17 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [0.7.1] — 2026-09-13
 
-Es gibt noch kein Release. Der Stand pro Phase steht in [`PLAN.md`](PLAN.md); hier stehen die
-Änderungen, die für Nutzerinnen sichtbar wären.
+- **Linux (Ubuntu und andere)** als zweite Plattform, seit 0.7.0: ein AppImage, ohne `sudo`, ohne
+  Paketmanager. Die App trägt sich beim ersten Start selbst in den Desktop ein und erkennt, dass
+  GNOME keine Tray-Icons mehr zeigt ([ADR 0009](docs/decisions/0009-linux-appimage-und-gnome.md)).
+- Ein fehlgeschlagener Update-Versuch meldete sich zweimal, einmal davon als unbehandelte
+  Ausnahme im Fehlerprotokoll. Beide Wege werden jetzt behandelt.
+
+Ältere Versionen sind unter [Releases](https://github.com/phish3144/watis/releases) aufgeführt.
+Der Stand pro Phase steht in [`PLAN.md`](PLAN.md); darunter stehen die Änderungen, die für
+Nutzerinnen sichtbar sind.
 
 ### Hinzugefügt
 
@@ -43,7 +50,8 @@ Es gibt noch kein Release. Der Stand pro Phase steht in [`PLAN.md`](PLAN.md); hi
 
 - Kein Telemetrie-, Crash- oder Cloud-Verkehr. Netzverkehr nur zu WhatsApp und GitHub Releases.
 - Die Bridge ist read-only. Kein Senden, kein Löschen, kein Markieren ohne Nutzerhandlung.
-- Nutzdaten nur unter `%LOCALAPPDATA%\watis\`. Keine Adminrechte, keine Dienste, keine offenen Ports.
+- Nutzdaten nur unter `%LOCALAPPDATA%\watis\` beziehungsweise `~/.local/share/watis/`. Keine
+  Adminrechte, keine Dienste, keine offenen Ports.
 
 ### Bekannte Einschränkungen
 
