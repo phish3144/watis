@@ -141,3 +141,67 @@ describe('a reader can never see a stale answer', () => {
     expect(monitor.state().faults).toContain('archive-unavailable')
   })
 })
+
+describe('a remembered failure must not outlive its condition', () => {
+  /**
+   * The actual cause of a health check that went red on CI through three attempted fixes.
+   *
+   * At startup something asks the archive before its worker is up and gets back
+   * "archive@default worker is not ready". faultFromError maps "IS NOT READY" to
+   * archive-unavailable, and report() caches it for sixty seconds. The worker comes up a moment
+   * later — and the cached copy kept the fault alive regardless, because refresh() took the union
+   * of remembered and live faults. CI printed it exactly:
+   *
+   *   search=false faults=[archive-unavailable] workers={"archive":true,"contentIndex":true}
+   *
+   * The panel showed "broken" over a working archive, with search disabled, for a full minute.
+   * Refreshing did not help and could not: the stale value was not a cache of the answer, it was
+   * an input to it.
+   */
+  it('drops a reported archive fault as soon as the worker is up', () => {
+    let archiveReady = false
+    const monitor = new HealthMonitor({
+      workerReady: (name) => (name === 'archive' ? archiveReady : true),
+      whatsappLoaded: () => true,
+    })
+
+    monitor.report(new Error('archive@default worker is not ready'))
+    expect(monitor.state().faults).toContain('archive-unavailable')
+
+    archiveReady = true
+    // Not in sixty seconds. Now.
+    expect(monitor.state().faults).not.toContain('archive-unavailable')
+    expect(monitor.state().severity).toBe('ok')
+  })
+
+  it('keeps the fault while the worker really is down', () => {
+    const monitor = new HealthMonitor({
+      workerReady: (name) => name !== 'archive',
+      whatsappLoaded: () => true,
+    })
+    monitor.report(new Error('archive@default worker is not ready'))
+    expect(monitor.state().faults).toContain('archive-unavailable')
+  })
+
+  it('still expires a fault that has no source to ask', () => {
+    // disk-full and archive-locked cannot be observed directly — nothing can be polled to learn
+    // that a write would succeed now. Those keep their timeout, which is what it is for.
+    const monitor = new HealthMonitor({
+      workerReady: () => true,
+      whatsappLoaded: () => true,
+    })
+    monitor.report(new Error('ENOSPC: no space left on device'))
+    expect(monitor.state().faults).toContain('disk-full')
+  })
+
+  it('lets the bridge fault stand, since no source can answer for it either', () => {
+    const monitor = new HealthMonitor({
+      workerReady: () => true,
+      whatsappLoaded: () => true,
+    })
+    monitor.set('bridge-unavailable', true)
+    expect(monitor.state().faults).toContain('bridge-unavailable')
+    monitor.set('bridge-unavailable', false)
+    expect(monitor.state().faults).not.toContain('bridge-unavailable')
+  })
+})
