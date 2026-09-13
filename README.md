@@ -1,7 +1,7 @@
 # WatIs?
 
 Ein Desktop-Client für WhatsApp Web mit lokalem Archiv, Volltextsuche und ordentlicher
-Desktop-Integration. Für Windows 10/11; macOS wird mitgebaut.
+Desktop-Integration. Für Windows 10/11 und Linux (x64); macOS wird mitgebaut.
 
 > **Status: benutzbar, unsigniert.** Die Releases stehen unter
 > [Releases](https://github.com/phish3144/watis/releases). Der Installer ist noch nicht signiert –
@@ -33,6 +33,8 @@ Alles läuft lokal. Keine Telemetrie, keine Cloud, keine Accounts, keine laufend
 
 ## Installieren
 
+### Windows
+
 Windows 10 oder 11, 64 Bit. Keine Adminrechte, kein Node, kein Compiler.
 
 1. [Neuestes Release](https://github.com/phish3144/watis/releases/latest) öffnen und
@@ -49,6 +51,35 @@ Start selbst entpackt. Daten und Sitzung liegen in beiden Fällen an derselben S
 
 Fehlt der Knopf „Trotzdem ausführen", greift eine Richtlinie des Arbeitgebers – dazu
 [`docs/managed-deployment.md`](docs/managed-deployment.md).
+
+### Linux (Ubuntu und andere)
+
+64 Bit. Kein `sudo`, kein Paketmanager, keine Systeminstallation.
+
+1. [Neuestes Release](https://github.com/phish3144/watis/releases/latest) öffnen und
+   **`WatIs-x86_64.AppImage`** herunterladen — am besten nach `~/Applications/`.
+2. Ausführbar machen und starten:
+
+```bash
+chmod +x ~/Applications/WatIs-x86_64.AppImage
+~/Applications/WatIs-x86_64.AppImage
+```
+
+Beim ersten Start trägt sich WatIs? selbst in den Desktop ein: Menüeintrag, Icon, auffindbar über
+die Suche. Alles unter `~/.local/share/` — nichts außerhalb deines Benutzerkontos. Verschiebst du
+das AppImage später, korrigiert sich der Eintrag beim nächsten Start von selbst.
+
+**Deinstallieren** heißt: das AppImage löschen, dazu
+`~/.local/share/applications/watis.desktop`, `~/.local/share/icons/hicolor/512x512/apps/watis.png`
+und – falls Autostart aktiviert war – `~/.config/autostart/watis.desktop`. Das Archiv liegt separat
+unter `~/.local/share/watis/` und bleibt, bis du es selbst entfernst.
+
+**Zum Tray unter GNOME:** GNOME zeigt seit Version 3.26 keine Tray-Icons mehr. WatIs? erkennt das
+und beendet sich dann beim Schließen des Fensters, statt in einen unsichtbaren Tray zu
+verschwinden. Wer die AppIndicator-Erweiterung installiert hat und den Tray trotzdem will, startet
+mit `WATIS_FORCE_TRAY=1`. Unter KDE, XFCE, MATE und Cinnamon funktioniert der Tray direkt.
+
+Warum AppImage und kein `.deb`: [ADR 0009](docs/decisions/0009-linux-appimage-und-gnome.md).
 
 ### Die ersten fünf Minuten
 

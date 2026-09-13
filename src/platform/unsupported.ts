@@ -33,5 +33,8 @@ export function createUnsupportedPlatform(): Platform {
     trayIcon() {
       return nativeImage.createEmpty()
     },
+    trayIsReliable() {
+      return false
+    },
   }
 }

@@ -65,5 +65,9 @@ export function createWindowsPlatform(): Platform {
     trayIcon() {
       return nativeImage.createFromPath(resourcePath('tray', 'tray.ico'))
     },
+
+    trayIsReliable() {
+      return true
+    },
   }
 }

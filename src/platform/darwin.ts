@@ -54,5 +54,9 @@ export function createMacPlatform(): Platform {
       icon.setTemplateImage(true)
       return icon
     },
+
+    trayIsReliable() {
+      return true
+    },
   }
 }

@@ -83,6 +83,19 @@ export function configureUpdater(options: UpdaterOptions): void {
     log.info('updater disabled: not a packaged build')
     return
   }
+  // On Linux electron-updater can only update an AppImage: it replaces that one file in place.
+  // An unpacked build is `isPackaged` all the same, so without this check the updater would run,
+  // download a new AppImage and fail at the replacement with a message about a path the user never
+  // chose. Saying so up front is better than an error that arrives an hour later.
+  if (process.platform === 'linux' && !process.env.APPIMAGE) {
+    set({
+      status: 'disabled',
+      reason:
+        'Automatische Updates gibt es nur für das AppImage. Diese Version wurde anders gestartet.',
+    })
+    log.info('updater disabled: linux build is not running from an AppImage')
+    return
+  }
   if (!options.enabled) {
     set({ status: 'disabled', reason: 'In den Einstellungen abgeschaltet.' })
     log.info('updater disabled by configuration')

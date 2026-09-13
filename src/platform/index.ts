@@ -6,7 +6,7 @@ import type { BaseWindow, NativeImage } from 'electron'
  * macOS implementation or a documented stub in the same commit.
  */
 export interface Platform {
-  readonly id: 'win32' | 'darwin' | 'unsupported'
+  readonly id: 'win32' | 'darwin' | 'linux' | 'unsupported'
 
   /** Unread count in the taskbar/dock. Windows has no app.setBadgeCount — it is a silent no-op
    *  there — so this branches internally rather than at the call site. The window is required
@@ -29,8 +29,22 @@ export interface Platform {
   /** True when the machine is on mains power — the content index only runs on AC. */
   isOnAcPower(): Promise<boolean>
 
-  /** Tray icon for this platform: .ico on Windows, template PNG on macOS. */
+  /** Tray icon for this platform: .ico on Windows, template PNG on macOS, PNG on Linux. */
   trayIcon(): NativeImage
+
+  /**
+   * Whether a tray icon will actually be visible to the user.
+   *
+   * Windows and macOS: always. Linux: not necessarily. GNOME removed support for legacy tray
+   * icons, and Electron's Tray becomes a StatusNotifierItem that simply has nobody listening —
+   * the constructor succeeds, the icon is not empty, and nothing appears. The existing
+   * `icon.isEmpty()` guard cannot see that.
+   *
+   * It matters because of close-to-tray: hiding the window into a tray that does not exist
+   * takes the application away with no way back. Anything that would strand the user behind an
+   * invisible tray asks here first.
+   */
+  trayIsReliable(): boolean
 }
 
 export type { BaseWindow, NativeImage }

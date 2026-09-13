@@ -76,6 +76,70 @@ jobs:
             echo "Signing disabled: SignPath secrets are not set; publishing unsigned."
           fi
 
+  # Linux publishes alongside Windows rather than after it. They write different files into the
+  # same release and never touch each other's; what must not happen in parallel is two jobs
+  # CREATING the release, and the step below makes that a no-op for whichever arrives second.
+  release-linux:
+    name: Publish Linux release (AppImage)
+    needs: [check-version, verify-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+
+      - name: Ensure the release exists before anything uploads into it
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag already exists; publishing into it"
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$version" --generate-notes
+            echo "created release $tag at $GITHUB_SHA"
+          fi
+
+      - name: Publish the AppImage
+        run: npm run build && npx electron-builder --linux --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # latest-linux.yml is what an installed AppImage reads to decide whether to update. A release
+      # without it updates nobody, silently — the same failure the Windows gate exists for.
+      - name: Verify the Linux release carries what a user actually needs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="v$version"
+          have="$(gh release view "$tag" --json assets --jq '.assets[].name' | sort)"
+          echo "$have"
+          missing=""
+          for want in WatIs-x86_64.AppImage latest-linux.yml; do
+            grep -qx "$want" <<<"$have" || missing="$missing $want"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::$tag is published but missing:$missing"
+            exit 1
+          fi
+          got="$(curl -fsSL "https://github.com/phish3144/watis/releases/download/$tag/latest-linux.yml" |
+                 grep '^version:' | awk '{print $2}')"
+          if [ "$got" != "$version" ]; then
+            echo "::error::latest-linux.yml on $tag says $got, expected $version"
+            exit 1
+          fi
+          echo "ok: $tag carries the AppImage and latest-linux.yml says $version"
+
   release-windows:
     name: Publish Windows release (unsigned)
     if: needs.signing-mode.outputs.enabled != 'true'

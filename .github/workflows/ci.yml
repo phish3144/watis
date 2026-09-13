@@ -92,6 +92,12 @@ jobs:
           - os: macos-latest
             script: dist:mac
             artifact: macos-builds
+          # Linux for the same reason, and with more at stake: it is a release target now, and the
+          # AppImage is the only build whose packaging can be exercised on the machine that runs
+          # the E2E suite.
+          - os: ubuntu-latest
+            script: dist:linux
+            artifact: linux-appimage
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

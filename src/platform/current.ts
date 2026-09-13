@@ -1,6 +1,7 @@
 import type { Platform } from './index'
 import { createWindowsPlatform } from './win32'
 import { createMacPlatform } from './darwin'
+import { createLinuxPlatform } from './linux'
 import { createUnsupportedPlatform } from './unsupported'
 
 let cached: Platform | undefined
@@ -13,6 +14,8 @@ export function platform(): Platform {
       ? createWindowsPlatform()
       : process.platform === 'darwin'
         ? createMacPlatform()
-        : createUnsupportedPlatform()
+        : process.platform === 'linux'
+          ? createLinuxPlatform()
+          : createUnsupportedPlatform()
   return cached
 }

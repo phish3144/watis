@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { UpdateState } from '../../src/main/updater'
 
 type Handler = (payload?: unknown) => void
 
@@ -46,13 +47,31 @@ const supervisor = {
   },
 } as never
 
-const states: unknown[] = []
+// Typed, rather than unknown[] with a cast at each use: the assertions are about the shape of
+// this state, so the shape belongs in the declaration.
+const states: UpdateState[] = []
 
 function configure(enabled = true): void {
   updater.configureUpdater({ enabled, supervisor, onState: (s) => states.push(s) })
 }
 
+/**
+ * The platform these tests describe, stated rather than inherited from whatever machine runs them.
+ *
+ * The suite used to take process.platform as it found it, which meant it exercised the Windows path
+ * on a developer's Windows box and the Linux path in CI without saying so. Adding the Linux guard —
+ * updates there are only possible from an AppImage — broke seven of them at once, on Linux only.
+ * A test whose subject depends on the host is a test that will surprise somebody later.
+ */
+function runningAs(platform: NodeJS.Platform, options: { appImage?: boolean } = {}): void {
+  Object.defineProperty(process, 'platform', { value: platform, configurable: true })
+  if (options.appImage === true) process.env.APPIMAGE = '/home/someone/Applications/WatIs.AppImage'
+  else delete process.env.APPIMAGE
+}
+
 beforeEach(() => {
+  // Windows by default, which is what every existing case here was written against.
+  runningAs('win32')
   handlers.clear()
   states.length = 0
   stoppedWith.length = 0
@@ -151,7 +170,7 @@ describe('the updater', () => {
     handlers.get('checking-for-update')?.({})
     handlers.get('update-available')?.({ version: '2.0.0' })
     handlers.get('update-downloaded')?.({ version: '2.0.0' })
-    const statuses = states.map((s) => (s as { status: string }).status)
+    const statuses = states.map((s) => s.status)
     expect(statuses).toContain('checking')
     expect(statuses).toContain('downloading')
     expect(statuses).toContain('ready')
@@ -162,5 +181,35 @@ describe('the updater', () => {
     const boom = vi.spyOn(fake, 'checkForUpdates').mockRejectedValueOnce(new Error('offline'))
     await expect(updater.checkForUpdatesNow()).resolves.toBeDefined()
     boom.mockRestore()
+  })
+})
+
+describe('on Linux', () => {
+  /**
+   * electron-updater can only update an AppImage there: it replaces that one file in place. An
+   * unpacked build is `isPackaged` all the same, so without this the updater would run, download a
+   * new AppImage and fail at the replacement — an hour later, naming a path the user never chose.
+   */
+  it('updates when running from an AppImage', () => {
+    runningAs('linux', { appImage: true })
+    updater.configureUpdater({ enabled: true, onState: (s) => states.push(s), supervisor })
+    expect(states.at(-1)?.status).not.toBe('disabled')
+  })
+
+  it('says so plainly when it is not an AppImage, rather than failing later', () => {
+    runningAs('linux', { appImage: false })
+    updater.configureUpdater({ enabled: true, onState: (s) => states.push(s), supervisor })
+    const last = states.at(-1)
+    expect(last?.status).toBe('disabled')
+    expect(last?.status === 'disabled' ? last.reason : '').toContain('AppImage')
+  })
+
+  it('leaves Windows and macOS alone', () => {
+    for (const platform of ['win32', 'darwin'] as const) {
+      states.length = 0
+      runningAs(platform)
+      updater.configureUpdater({ enabled: true, onState: (s) => states.push(s), supervisor })
+      expect(states.at(-1)?.status, platform).not.toBe('disabled')
+    }
   })
 })

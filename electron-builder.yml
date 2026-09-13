@@ -83,6 +83,43 @@ portable:
   artifactName: '${productName}-Portable-${arch}.${ext}'
   unpackDirName: WatIs # stable, so state written beside the exe survives a restart
 
+linux:
+  icon: build/icon.png
+  # The Windows and macOS builds each drop the prebuilds they cannot use; this one keeps the Linux
+  # pair and discards the rest, for the same reason — eight platform binaries is 27 MB of ballast.
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{win32,darwin}*'
+  category: Network
+  synopsis: WhatsApp Web mit lokalem, durchsuchbarem Archiv
+  # AppImage and nothing else, on purpose.
+  #
+  # CLAUDE.md forbids system-wide installation, and a .deb or .rpm is exactly that: it needs root,
+  # writes under /usr, and leaves files a user without sudo cannot remove. A snap adds a daemon and
+  # confinement that would cut the app off from the download directory it is supposed to write to.
+  #
+  # An AppImage is one executable the user owns. What it normally lacks — a menu entry, an icon,
+  # a searchable name — the application creates for itself under ~/.local/share on first run
+  # (src/main/linux-integration.ts), so "portable" and "properly installed" stop being a choice.
+  # electron-updater supports AppImage natively: it replaces the file in place.
+  target:
+    - target: AppImage
+      arch: [x64]
+  # Path-safe and predictable: it becomes the file name, the process name and the WM class the
+  # desktop entry has to match.
+  executableName: watis
+  # Without this the desktop cannot link the running window to the menu entry: the dock shows a
+  # generic icon beside a correctly-installed launcher, which is precisely the "installed
+  # application" illusion breaking. electron-builder warns about it by name; `desktopName` lives in
+  # package.json and this switch makes Electron use it as the app_id / WM_CLASS.
+  syncDesktopName: true
+  artifactName: '${productName}-${arch}.${ext}'
+  desktop:
+    entry:
+      # Matches StartupWMClass in the entry the app writes for itself, so the running window is
+      # associated with the launcher icon rather than appearing as a second, generic one.
+      StartupWMClass: watis
+      Categories: Network;InstantMessaging;
+
 mac:
   icon: build/icon.png
   files:

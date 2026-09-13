@@ -1,6 +1,7 @@
 {
   "name": "watis",
   "version": "0.6.0",
+  "desktopName": "watis.desktop",
   "description": "Desktop client for WhatsApp Web with a local searchable archive",
   "license": "MIT",
   "author": "phish3144",
@@ -35,6 +36,7 @@
     "dist:win:unpacked": "npm run build && electron-builder --win --dir",
     "dist:win:prepackaged": "electron-builder --win --prepackaged release/win-unpacked --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
     "verify:no-elevate": "node scripts/verify-no-elevate.mjs",
     "verify": "node scripts/verify-all.mjs",
     "release:app-update-yml": "node scripts/write-app-update-yml.mjs",

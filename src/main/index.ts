@@ -66,6 +66,7 @@ import { moveBlobStore } from './storage/move-blobs'
 import { closePdfRenderer } from './pdf/render'
 import { PRIMARY_ACCOUNT_ID } from '@shared/accounts'
 import { platform } from '@platform/current'
+import { integrateAppImage } from './linux-integration'
 
 // Binds toasts, taskbar grouping and the jump list to this app. Must match electron-builder's
 // appId exactly, or Windows notifications fail with no error and no way to reproduce it in dev.
@@ -142,6 +143,14 @@ async function bootstrap(): Promise<void> {
   }
 
   log.info(`${DISPLAY_NAME} ${app.getVersion()} starting`)
+
+  // An AppImage is one file the desktop knows nothing about: no menu entry, no icon, nothing when
+  // you search for it. Registering under ~/.local/share costs nothing, needs no elevation, and is
+  // the difference between "a file I downloaded" and an installed application. A no-op everywhere
+  // else, and never fatal — see linux-integration.ts.
+  const integration = integrateAppImage()
+  if (integration.changed) log.info('registered with the desktop')
+  else if (integration.reason) log.info(`desktop integration skipped: ${integration.reason}`)
   log.info(`data root: ${paths.root}`)
   log.info(`user agent: ${applyUserAgent()}`)
   log.info(`platform: ${platform().id}`)
@@ -448,7 +457,13 @@ function installWindowBehaviour(): void {
   window.on('close', (event) => {
     // Close-to-tray is what makes this a day client: the window goes away, the process stays,
     // notifications keep arriving.
-    if (!quitting && settings().closeToTray) {
+    //
+    // Unless there is no tray to go to. GNOME has not shown legacy tray icons since 3.26, and
+    // Electron's Tray still constructs successfully with nobody listening — so the icon is not
+    // empty, the existing guard in the tray controller sees nothing wrong, and hiding the window
+    // would take the application away with no way back. Where the tray cannot be trusted, closing
+    // the window closes the application, which is at least a door the user can find.
+    if (!quitting && settings().closeToTray && platform().trayIsReliable()) {
       event.preventDefault()
       window.hide()
     }
@@ -977,7 +992,9 @@ const TRANSPARENT_PIXEL =
 
 app.on('window-all-closed', () => {
   // With close-to-tray the window can be gone while the app keeps running on purpose.
-  if (process.platform !== 'darwin' && !settings().closeToTray) app.quit()
+  if (process.platform !== 'darwin' && (!settings().closeToTray || !platform().trayIsReliable())) {
+    app.quit()
+  }
 })
 
 app.on('before-quit', () => {
