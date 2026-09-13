@@ -13,8 +13,24 @@ const fake = {
   on(event: string, handler: Handler) {
     handlers.set(event, handler)
   },
+  /** Set to make the next check reject, the way a failed DNS lookup or a bad certificate does. */
+  failNextCheck: null as Error | null,
+  /** Set to hand back a download promise that rejects, the way a dropped connection does. */
+  failNextDownload: null as Error | null,
   checkForUpdates() {
     this.checkCalls++
+    if (this.failNextCheck) {
+      const error = this.failNextCheck
+      this.failNextCheck = null
+      // electron-updater emits 'error' and then rethrows, so the returned promise rejects too.
+      handlers.get('error')?.(error)
+      return Promise.reject(error)
+    }
+    if (this.failNextDownload) {
+      const error = this.failNextDownload
+      this.failNextDownload = null
+      return Promise.resolve({ downloadPromise: Promise.reject(error) })
+    }
     return Promise.resolve(null)
   },
   quitAndInstall(silent: boolean, forceRun: boolean) {
@@ -76,6 +92,8 @@ beforeEach(() => {
   states.length = 0
   stoppedWith.length = 0
   fake.checkCalls = 0
+  fake.failNextCheck = null
+  fake.failNextDownload = null
   fake.quitAndInstallCalls.length = 0
   fake.autoInstallOnAppQuit = true
   packaged = true
@@ -211,5 +229,71 @@ describe('on Linux', () => {
       updater.configureUpdater({ enabled: true, onState: (s) => states.push(s), supervisor })
       expect(states.at(-1)?.status, platform).not.toBe('disabled')
     }
+  })
+})
+
+/**
+ * A failed update must stay a reported state and nothing more.
+ *
+ * electron-updater reports every failure twice: it emits `error` — which is what sets the state
+ * above — and then rethrows, so the promise rejects as well. The call sites used to `void` that
+ * promise, which does not handle it, so an offline start printed the failure once as handled and
+ * once as an unhandled rejection. A container with no route to GitHub showed exactly that:
+ *
+ *   update check failed: net::ERR_CERT_AUTHORITY_INVALID
+ *   Unhandled rejection Error: net::ERR_CERT_AUTHORITY_INVALID
+ *
+ * Nothing crashed, because electron-log catches them. That is the problem: the noise lands in
+ * error.log, where a real fault has to be found later.
+ */
+describe('a failure that is already reported', () => {
+  async function leaksFrom(run: () => void): Promise<unknown[]> {
+    const leaks: unknown[] = []
+    const onLeak = (reason: unknown): void => {
+      leaks.push(reason)
+    }
+    process.on('unhandledRejection', onLeak)
+    run()
+    // Two turns of the macrotask queue: one for the rejection to be seen as unhandled, one for
+    // Node to emit the event.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    process.off('unhandledRejection', onLeak)
+    return leaks
+  }
+
+  it('does not leak the rejection from a check that failed', async () => {
+    fake.failNextCheck = new Error('net::ERR_CERT_AUTHORITY_INVALID')
+    const leaks = await leaksFrom(() => {
+      configure()
+    })
+    expect(leaks).toEqual([])
+    expect(updater.updateState().status).toBe('error')
+  })
+
+  it('does not leak the rejection from a download that died halfway', async () => {
+    // The worse of the two, and the one an offline machine never reaches: with autoDownload on,
+    // the check hands back the download it started on result.downloadPromise and the library
+    // attaches nothing to it — its own checkForUpdatesAndNotify voids it without a catch as well.
+    fake.failNextDownload = new Error('net::ERR_CONNECTION_RESET')
+    const leaks = await leaksFrom(() => {
+      configure()
+    })
+    expect(leaks).toEqual([])
+  })
+
+  it('does not leak either of them from a manual check', async () => {
+    configure()
+    fake.failNextCheck = new Error('getaddrinfo ENOTFOUND github.com')
+    expect(
+      await leaksFrom(() => {
+        void updater.checkForUpdatesNow()
+      }),
+    ).toEqual([])
+    fake.failNextDownload = new Error('net::ERR_CONNECTION_RESET')
+    expect(
+      await leaksFrom(() => {
+        void updater.checkForUpdatesNow()
+      }),
+    ).toEqual([])
   })
 })

@@ -75,6 +75,14 @@ Das AppImage wurde gebaut und in einem leeren `HOME` gestartet. Nachgewiesen: Da
 Index-Worker gestartet, Updater aktiv (`Checking for update`), und der Eintrag folgt dem
 verschobenen AppImage.
 
-**Nicht nachgewiesen:** die Fensterklasse. `WM_CLASS` ließ sich unter Xvfb ohne Fenstermanager
-nicht auslesen. Belegt ist nur, dass electron-builders eigene Warnung dazu nach dem Setzen von
-`desktopName` und `syncDesktopName` verschwindet.
+Die Fensterklasse ist inzwischen ebenfalls nachgewiesen und war es vorher nicht: der erste Versuch
+suchte das Fenster über den Fenstermanager, den es unter Xvfb nicht gibt. `WM_CLASS` setzt aber das
+Programm selbst, nicht der Fenstermanager — `xwininfo -root -children` findet das Fenster auch ohne
+einen. Das Hauptfenster meldet:
+
+    WM_CLASS(STRING) = "watis", "watis"    WM_NAME(UTF8_STRING) = "WatIs?"
+
+Das ist genau der Wert, den `StartupWMClass=watis` im Desktop-Eintrag erwartet. GNOME ordnet das
+laufende Fenster damit dem Starter zu: ein Icon im Dock statt zweier Einträge, von denen einer
+namenlos ist. Der Fenstertitel trägt das Fragezeichen, die Fensterklasse nicht — so wie es die
+Namensregel in CLAUDE.md verlangt.

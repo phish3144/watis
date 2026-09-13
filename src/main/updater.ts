@@ -143,16 +143,55 @@ export function configureUpdater(options: UpdaterOptions): void {
     })
   })
 
-  void autoUpdater.checkForUpdates()
-  timer = setInterval(() => void autoUpdater.checkForUpdates(), CHECK_INTERVAL_MS)
+  startCheck()
+  timer = setInterval(startCheck, CHECK_INTERVAL_MS)
   timer.unref?.()
+}
+
+/**
+ * Starts a check and makes sure both promises it produces are handled.
+ *
+ * electron-updater reports failures twice over. `checkForUpdates()` catches internally, emits
+ * `error` — which is where the state above comes from — and then rethrows, so the promise it
+ * returns rejects as well. `void`ing that promise does not count as handling it, so every failed
+ * check also became an unhandled rejection. A run in an offline container printed both lines, one
+ * after the other:
+ *
+ *   update check failed: net::ERR_CERT_AUTHORITY_INVALID
+ *   Unhandled rejection Error: net::ERR_CERT_AUTHORITY_INVALID
+ *
+ * The second one is the same event, logged again as if nothing had caught it. electron-log's
+ * errorHandler keeps the process alive, so nothing crashed — but error.log filled up with a
+ * condition the updater is specifically built to survive, which is exactly the noise that hides a
+ * real fault later.
+ *
+ * The download is the worse of the two and did not show up here only because the container never
+ * got as far as finding an update. With autoDownload on, `checkForUpdates()` starts the download
+ * and hands the promise back on `result.downloadPromise`; the library attaches nothing to it — its
+ * own `checkForUpdatesAndNotify` does `void it.downloadPromise.then(...)`, without a catch either.
+ * A connection that drops halfway through a 180 MB download is an ordinary Tuesday, and it would
+ * have leaked every time.
+ *
+ * Neither catch reports anything: the `error` handler above has already set the state and written
+ * the log line. These exist so the rejection is handled, not so it is handled twice.
+ */
+function startCheck(): void {
+  autoUpdater.checkForUpdates().then(
+    (result) => {
+      result?.downloadPromise?.catch(() => undefined)
+    },
+    () => undefined,
+  )
 }
 
 /** The manual check, for somebody who does not want to wait six hours to find out. */
 export async function checkForUpdatesNow(): Promise<UpdateState> {
   if (state.status === 'disabled') return state
   try {
-    await autoUpdater.checkForUpdates()
+    // Same reason as startCheck: awaiting the check handles the check, and leaves the download it
+    // may have started with nobody attached to it.
+    const result = await autoUpdater.checkForUpdates()
+    result?.downloadPromise?.catch(() => undefined)
   } catch (error: unknown) {
     log.warn(`manual update check failed: ${String(error)}`)
   }
