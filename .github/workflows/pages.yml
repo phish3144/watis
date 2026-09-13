@@ -2,7 +2,11 @@ name: Landing page
 
 on:
   push:
-    branches: ['**']
+    # The default branch only. This used to be '**', which meant any branch that happened to touch
+    # site/ published straight to the public page — a draft on a feature branch would have gone
+    # live without anybody asking for it. Previewing from another branch still works, on purpose,
+    # through workflow_dispatch.
+    branches: [claude/whatsapp-desktop-wrapper-dkxpp3]
     paths: ['site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 

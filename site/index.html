@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="WatIs? - Desktop-Client fuer WhatsApp Web. Tray, Benachrichtigungen, Dateien ohne Dialog. Installation ohne Adminrechte, alles bleibt lokal."
+      content="WatIs? - Desktop-Client fuer WhatsApp Web mit lokalem, durchsuchbarem Archiv. Fuer Windows und Linux. Installation ohne Adminrechte, alles bleibt auf dem eigenen Rechner."
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E7C6F'/%3E%3Cpath d='M5 6h14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7.5L7 19l.8-4H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z' fill='white'/%3E%3C/svg%3E" />
-    <title>WatIs? - Desktop-Client fuer WhatsApp Web</title>
+    <title>WatIs? - WhatsApp Web mit lokalem Archiv</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
@@ -164,7 +164,7 @@
     border-radius: 4px;
     box-shadow: var(--shadow);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @media (max-width: 46rem) {
@@ -173,20 +173,39 @@
     }
   }
 
-  .download-action {
+  /* One column per platform. Neither is the fallback for the other. */
+  .platform {
     padding: 1.75rem;
-    border-right: 1px solid var(--hairline);
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
     align-items: flex-start;
   }
 
+  .platform + .platform {
+    border-left: 1px solid var(--hairline);
+  }
+
   @media (max-width: 46rem) {
-    .download-action {
-      border-right: none;
-      border-bottom: 1px solid var(--hairline);
+    .platform + .platform {
+      border-left: none;
+      border-top: 1px solid var(--hairline);
     }
+  }
+
+  .platform-name {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .download-action {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    align-items: flex-start;
   }
 
   .btn {
@@ -221,6 +240,16 @@
     flex: none;
   }
 
+  /* On a phone the longer of the two labels wrapped while the other did not, which made the two
+     primary buttons different shapes. Less padding buys the line back. */
+  @media (max-width: 30rem) {
+    .btn {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      font-size: 1rem;
+    }
+  }
+
   .btn-secondary {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.8125rem;
@@ -234,17 +263,72 @@
     color: var(--ink);
   }
 
+  .platform-heading {
+    margin: 2rem 0 0.75rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .platform-heading:first-of-type {
+    margin-top: 1rem;
+  }
+
+  .shell {
+    margin: 0.75rem 0 0;
+    padding: 0.875rem 1rem;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    overflow-x: auto;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+
+  .shell code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    white-space: pre;
+  }
+
+  .download-foot {
+    margin: -2rem 0 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.25rem;
+  }
+
+  .download-note {
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+
   .download-meta {
-    padding: 1.75rem;
+    margin: 0.25rem 0 0;
+    width: 100%;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.8125rem;
   }
 
   .meta-row {
     display: grid;
-    grid-template-columns: 8.5rem minmax(0, 1fr);
+    grid-template-columns: 7.5rem minmax(0, 1fr);
     gap: 0.75rem;
     padding: 0.3125rem 0;
+  }
+
+  /* The columns collapse before the card does: 7.5rem of label beside a path leaves nothing. */
+  @media (max-width: 62rem) {
+    .meta-row {
+      grid-template-columns: 1fr;
+      gap: 0.125rem;
+      padding: 0.375rem 0;
+    }
   }
 
   .meta-row dt {
@@ -289,7 +373,7 @@
 
   @media (max-width: 40rem) {
     .spec-row {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 0.25rem;
     }
   }
@@ -318,6 +402,13 @@
     border: 1px solid var(--hairline);
     border-radius: 2px;
     padding: 0.1em 0.35em;
+    /* A path is one unbreakable word to the line breaker, and the longest ones here are wider
+       than a phone. Breaking them is better than scrolling the whole page sideways. */
+    overflow-wrap: anywhere;
+  }
+
+  .meta-row dd {
+    overflow-wrap: anywhere;
   }
 
   /* the limits section carries the same weight as the features - that is the point */
@@ -408,28 +499,31 @@
       </span>
       <div>
         <div class="wordmark">WatIs?</div>
-        <div class="eyebrow">Desktop-Client für WhatsApp Web · Windows</div>
+        <div class="eyebrow">Desktop-Client für WhatsApp Web · Windows und Linux</div>
       </div>
     </div>
 
     <h1 class="thesis">Ab heute geht <em>nichts mehr verloren.</em></h1>
     <p class="standfirst">
       Ein eigener Desktop-Client, der WhatsApp Web hostet und drumherum baut, was die offizielle App
-      nicht kann: Tray mit echtem Zähler, Benachrichtigungen, die den richtigen Chat öffnen, Dateien
-      ohne Dialog im richtigen Ordner. Installation ohne Adminrechte. Alles bleibt auf deinem
-      Rechner.
+      nicht kann: ein <strong>durchsuchbares Archiv auf deiner Platte</strong>, das ab dem ersten
+      Start mitschreibt und auch Text in Bildern und PDFs findet. Dazu Tray mit echtem Zähler,
+      Benachrichtigungen, die den richtigen Chat öffnen, Dateien ohne Dialog im richtigen Ordner.
+      Installation ohne Adminrechte. Alles bleibt auf deinem Rechner.
     </p>
   </div>
 </header>
 
 <div class="wrap">
   <div class="download">
-    <div class="download-action">
-      <a
-        class="btn"
-        href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
-      >
-        <svg
+    <div class="platform">
+      <div class="platform-name">Windows 10 / 11 · 64 Bit</div>
+      <div class="download-action">
+        <a
+          class="btn"
+          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
+        >
+          <svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -442,51 +536,130 @@
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        Für Windows herunterladen
-      </a>
-      <a class="btn-secondary" href="https://github.com/phish3144/watis/releases/latest"
-        >Alle Dateien und Versionshinweise →</a
-      >
-      <a
-        class="btn-secondary"
-        href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
-        >Portable Fassung, ohne Installation →</a
-      >
+          Für Windows herunterladen
+        </a>
+        <a
+          class="btn-secondary"
+          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
+          >Portable Fassung, ohne Installation →</a
+        >
+      </div>
+
+      <dl class="download-meta">
+        <div class="meta-row">
+          <dt>Datei</dt>
+          <dd>WatIs-Setup-x64.exe</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Installiert nach</dt>
+          <dd>%LOCALAPPDATA%\Programs\WatIs</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Deine Daten</dt>
+          <dd>%LOCALAPPDATA%\watis\</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Adminrechte</dt>
+          <dd>keine, keine UAC-Abfrage</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Signatur</dt>
+          <dd>keine — siehe „Signatur“</dd>
+        </div>
+      </dl>
     </div>
 
-    <dl class="download-meta">
-      <div class="meta-row">
-        <dt>Datei</dt>
-        <dd>WatIs-Setup-x64.exe</dd>
+    <div class="platform">
+      <div class="platform-name">Linux · x86-64</div>
+      <div class="download-action">
+        <a
+          class="btn"
+          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-x86_64.AppImage"
+        >
+          <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+          Für Linux herunterladen
+        </a>
+        <a class="btn-secondary" href="#installieren">Was nach dem Download zu tun ist →</a>
       </div>
-      <div class="meta-row">
-        <dt>System</dt>
-        <dd>Windows 10 / 11, 64 Bit</dd>
-      </div>
-      <div class="meta-row">
-        <dt>Installiert nach</dt>
-        <dd>%LOCALAPPDATA%\Programs\WatIs</dd>
-      </div>
-      <div class="meta-row">
-        <dt>Adminrechte</dt>
-        <dd>keine, keine UAC-Abfrage</dd>
-      </div>
-      <div class="meta-row">
-        <dt>Signatur</dt>
-        <dd>keine — siehe Schritt 2</dd>
-      </div>
-      <div class="meta-row">
-        <dt>macOS</dt>
-        <dd>wird gebaut, noch nicht veröffentlicht</dd>
-      </div>
-    </dl>
+
+      <dl class="download-meta">
+        <div class="meta-row">
+          <dt>Datei</dt>
+          <dd>WatIs-x86_64.AppImage</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Installiert nach</dt>
+          <dd>nirgends — eine Datei, wohin du willst</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Deine Daten</dt>
+          <dd>~/.local/share/watis/</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Adminrechte</dt>
+          <dd>keine, kein sudo, kein Paketmanager</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Tray</dt>
+          <dd>nicht unter GNOME — siehe „Tray unter GNOME“</dd>
+        </div>
+      </dl>
+    </div>
   </div>
+
+  <p class="download-foot">
+    <a class="btn-secondary" href="https://github.com/phish3144/watis/releases/latest"
+      >Alle Dateien und Versionshinweise →</a
+    >
+    <span class="download-note"
+      >macOS wird bei jedem Commit gebaut, aber nicht veröffentlicht: unsigniert würde ihn Gatekeeper
+      ohnehin nicht starten.</span
+    >
+  </p>
 </div>
 
 <div class="wrap">
   <section>
     <h2>Was es kann</h2>
     <div class="spec">
+      <div class="spec-row">
+        <div class="spec-label">Archiv</div>
+        <div class="spec-value">
+          Jede Nachricht, die ankommt, landet in einer <strong>SQLite-Datenbank auf deiner
+          Platte</strong> — Text, Absender, Zeitpunkt, Anhang. WhatsApp kann sie danach löschen,
+          dein Archiv behält sie. Es liegt außerhalb des Sitzungsordners: ein Abmelden, ein
+          Cache-Löschen oder ein Update fasst es nicht an.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Suche</div>
+        <div class="spec-value">
+          Volltext über <strong>alle Chats gleichzeitig</strong>, nicht einer nach dem anderen.
+          Deutsche Normalisierung — <code>Grüße</code> findet <code>Gruesse</code>. Dazu eine
+          Suchsyntax mit <code>von:</code>, <code>in:</code>, <code>vor:</code>, <code>nach:</code>,
+          <code>hat:</code> und <code>quelle:</code>.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Text in Bildern und PDFs</div>
+        <div class="spec-value">
+          Texterkennung und PDF-Text laufen mit und werden mitdurchsucht, sodass auch der
+          abfotografierte Zettel und die angehängte Rechnung auffindbar sind. Beides
+          <strong>lokal</strong>, nur im Leerlauf und am Netzstrom, über den Tray pausierbar.
+        </div>
+      </div>
       <div class="spec-row">
         <div class="spec-label">Session</div>
         <div class="spec-value">
@@ -513,10 +686,11 @@
       <div class="spec-row">
         <div class="spec-label">Dateien</div>
         <div class="spec-value">
-          Kein Speichern-Dialog. Alles landet unter
-          <code>~/Downloads/WhatsApp/&lt;Chat&gt;/2026-08-30_Angebot.pdf</code>. Umlaute und Emoji
-          im Dateinamen bleiben erhalten — Electron würde sie sonst zu
-          <code>download</code> verkürzen.
+          Kein Speichern-Dialog. Alles landet im Downloads-Ordner unter
+          <code>WhatsApp/&lt;Chat&gt;/2026-08-30_Angebot.pdf</code>, gleiche Struktur auf beiden
+          Systemen. Umlaute und Emoji im Dateinamen bleiben erhalten — Electron würde sie sonst zu
+          <code>download</code> verkürzen. Dazu ein Toast mit <em>Öffnen</em> und
+          <em>Im Ordner zeigen</em>, und Gleiches zweimal geladen liegt nur einmal auf der Platte.
         </div>
       </div>
       <div class="spec-row">
@@ -534,10 +708,34 @@
         </div>
       </div>
       <div class="spec-row">
+        <div class="spec-label">Export und Sicherung</div>
+        <div class="spec-value">
+          Jeder Chat als JSON, HTML oder TXT. Eine Sicherung nimmt Datenbank und Medien mit und legt
+          einen <strong>Bericht dazu, was nicht drin ist</strong> — zeitgesteuert in einen Ordner,
+          den restic oder rsync abholen kann.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Mehrere Konten</div>
+        <div class="spec-value">
+          Jedes mit eigener Anmeldung, eigenem Archiv und eigenem Medienordner, umschaltbar über
+          Tabs. Alle laufen mit, auch im Hintergrund. Ein Konto zu entfernen nimmt es aus der Liste
+          und löscht keine Daten.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">App-Sperre</div>
+        <div class="spec-value">
+          PIN beim Start und nach Inaktivität, Weichzeichnen, sobald das Fenster den Fokus verliert.
+          Ausdrücklich Sichtschutz — siehe unten.
+        </div>
+      </div>
+      <div class="spec-row">
         <div class="spec-label">Datenschutz</div>
         <div class="spec-value">
           Keine Telemetrie, kein Konto, keine Cloud. Netzwerkverkehr nur zu WhatsApp und zu GitHub
-          für Updates. Keine offenen Ports.
+          für Updates. Keine offenen Ports. Texterkennung und alles andere rechnet auf deinem
+          Rechner.
         </div>
       </div>
     </div>
@@ -552,24 +750,46 @@
         <div class="spec-row">
           <div class="spec-label">Alte Nachrichten</div>
           <div class="spec-value">
-            <strong>WhatsApp Web liefert höchstens 90 Tage rückwirkend.</strong> Das ist eine Grenze
-            im Client von WhatsApp, keine Einstellung — einen Massenabruf gibt es für Web-Clients
-            gar nicht. Was vor der Installation liegt, bleibt draußen. Der Nutzen liegt darin, dass
-            ab dem Installationstag nichts mehr verschwindet.
+            <strong>WhatsApp Web liefert höchstens rund 90 Tage rückwirkend.</strong> Das ist eine
+            Grenze im Client von WhatsApp, keine Einstellung — einen Massenabruf gibt es für
+            Web-Clients gar nicht. Bis dorthin holt WatIs? auf ausdrücklichen Start nach: ein Chat
+            nach dem anderen, mit Pausen, nach einem Neustart fortsetzbar. Was älter ist, bleibt
+            draußen. Der eigentliche Nutzen liegt darin, dass ab dem Installationstag nichts mehr
+            verschwindet.
           </div>
         </div>
         <div class="spec-row">
-          <div class="spec-label">Archiv und Suche</div>
+          <div class="spec-label">Sprachnachrichten</div>
           <div class="spec-value">
-            Noch nicht enthalten. Das durchsuchbare Archiv, die Volltextsuche und der Inhaltsindex
-            (Text in Bildern, PDFs, Sprachnachrichten) sind gebaut, aber noch nicht ausgeliefert.
+            Werden <strong>noch nicht transkribiert</strong> und sind darum auch nicht durchsuchbar.
+            Die Aufträge dafür entstehen und werden übersprungen; welche Engine es wird, steht in
+            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0008-ocr-und-pdf-engines.md"
+              >ADR 0008</a
+            >. Text in Bildern und PDFs wird dagegen erkannt.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Tray unter GNOME</div>
+          <div class="spec-value">
+            GNOME zeigt seit 3.26 keine Tray-Icons mehr. WatIs? erkennt das und
+            <strong>beendet sich beim Schließen des Fensters</strong>, statt in einen unsichtbaren
+            Tray zu verschwinden — eine Tür, die man wiederfindet. Mit der AppIndicator-Erweiterung
+            und <code>WATIS_FORCE_TRAY=1</code> gibt es ihn trotzdem. Unter KDE, XFCE, MATE und
+            Cinnamon läuft er direkt.
           </div>
         </div>
         <div class="spec-row">
           <div class="spec-label">Senden</div>
           <div class="spec-value">
             Die App schreibt nichts über WhatsApps interne Schnittstellen — sie liest nur. Du
-            schreibst wie gewohnt im WhatsApp-Fenster.
+            schreibst wie gewohnt im WhatsApp-Fenster. Die eine Stelle, an der sie doch etwas
+            auslöst: öffnet sie einen Chat, weil du auf einen Suchtreffer geklickt oder das
+            Nachladen gestartet hast, <strong>markiert WhatsApp diesen Chat als gelesen</strong> —
+            genauso, als hättest du ihn selbst angeklickt
+            (<a
+              href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md"
+              >ADR 0006</a
+            >).
           </div>
         </div>
         <div class="spec-row">
@@ -584,15 +804,49 @@
             — dafür gibt es bewusst keine Ausnahme pro Programm. Was dann bleibt, steht in
             <a href="https://github.com/phish3144/watis/blob/HEAD/docs/windows-signing.md"
               >docs/windows-signing.md</a
+            >. Unter Linux gibt es keine vergleichbare Hürde: dort entscheidet das
+            Ausführbar-Bit, das du selbst setzt. Wer eine unsignierte Datei trotzdem prüfen will:
+            GitHub zeigt zu jedem Anhang auf der
+            <a href="https://github.com/phish3144/watis/releases/latest">Release-Seite</a> dessen
+            SHA-256-Digest an, und der lässt sich mit <code>sha256sum</code> beziehungsweise
+            <code>Get-FileHash</code> gegen die heruntergeladene Datei halten.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Suche nach Relevanz</div>
+          <div class="spec-value">
+            Zeitlich sortiert ist die Suche schnell, auch über eine Million Nachrichten. Nach
+            Relevanz sortiert braucht ein sehr häufiges Wort länger als die angepeilten 200 ms —
+            bauartbedingt, festgehalten in
+            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md"
+              >ADR 0007</a
             >.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Verschlüsselung</div>
+          <div class="spec-value">
+            Das Archiv liegt <strong>unverschlüsselt</strong> auf der Platte. Der Schutz kommt von
+            BitLocker beziehungsweise LUKS, nicht von dieser App. Die PIN-Sperre ist Sichtschutz
+            gegen jemanden, der am Bildschirm vorbeigeht — sie verschlüsselt nichts.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Wenn WhatsApp sich ändert</div>
+          <div class="spec-value">
+            Der Client hängt an internen Strukturen von WhatsApp Web. Das Medienholen hängt an einer
+            Signatur, die als einzige im Projekt nicht gegen ein laufendes Bundle geprüft ist: löst
+            sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft weiter. Kaputt heißt
+            hier also nicht „alles weg", sondern „ein Teil fehlt, bis es nachgezogen ist".
           </div>
         </div>
         <div class="spec-row">
           <div class="spec-label">Auf Firmengeräten</div>
           <div class="spec-value">
-            AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden. Und ein
-            lokales Archiv privater Nachrichten auf einem verwalteten Gerät liegt auf fremder
-            Infrastruktur — „läuft lokal" heißt dort nicht „nur du kommst dran".
+            AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden, und unter
+            Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Und ein lokales
+            Archiv privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur
+            — „läuft lokal" heißt dort nicht „nur du kommst dran".
           </div>
         </div>
       </div>
@@ -601,8 +855,10 @@
 </div>
 
 <div class="wrap">
-  <section>
+  <section id="installieren">
     <h2>Installieren</h2>
+
+    <h3 class="platform-heading">Windows</h3>
     <ol class="steps">
       <li>
         <div>
@@ -619,6 +875,32 @@
           es nicht SmartScreen, sondern Smart App Control — siehe „Signatur“ oben.
         </div>
       </li>
+    </ol>
+
+    <h3 class="platform-heading">Linux</h3>
+    <ol class="steps">
+      <li>
+        <div>
+          <strong>Ausführbar machen und starten.</strong> Ein AppImage ist eine einzelne Datei, die
+          dir gehört — kein Paketmanager, kein <code>sudo</code>, nichts unter <code>/usr</code>.
+          <pre class="shell"><code>mkdir -p ~/Applications
+mv ~/Downloads/WatIs-x86_64.AppImage ~/Applications/
+chmod +x ~/Applications/WatIs-x86_64.AppImage
+~/Applications/WatIs-x86_64.AppImage</code></pre>
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Danach wie jedes andere Programm.</strong> Beim ersten Start trägt WatIs? sich
+          selbst in den Desktop ein: Menüeintrag, Icon, über die Suche auffindbar. Alles unter
+          <code>~/.local/share/</code>. Verschiebst du die Datei später, korrigiert sich der Eintrag
+          beim nächsten Start von selbst.
+        </div>
+      </li>
+    </ol>
+
+    <h3 class="platform-heading">Auf beiden</h3>
+    <ol class="steps">
       <li>
         <div>
           <strong>QR-Code scannen</strong>, wie bei WhatsApp Web. Danach nie wieder — die Sitzung
@@ -627,8 +909,10 @@
       </li>
       <li>
         <div>
-          <strong>Einstellungen öffnen</strong> mit <code>Strg</code> + <code>,</code> oder über das
-          Tray-Symbol. Dort liegen alle Schalter.
+          <strong>Archiv und Einstellungen</strong> liegen im Panel rechts:
+          <code>Strg</code> + <code>,</code> (macOS: <code>Cmd</code> + <code>,</code>), die Leiste
+          am rechten Rand oder das Tray-Menü. <em>Jetzt übernehmen</em> holt in einem Zug, was
+          WhatsApp Web schon im Speicher hat; danach wächst das Archiv von selbst weiter.
         </div>
       </li>
     </ol>
@@ -639,26 +923,41 @@
     <div class="spec">
       <div class="spec-row">
         <div class="spec-label">Unterbau</div>
-        <div class="spec-value">Electron 44 · Chromium 152 · Node 24</div>
+        <div class="spec-value">
+          Electron 44 · Chromium 152 · Node 24 · SQLite mit FTS5 · Windows 10/11 und Linux, je 64
+          Bit
+        </div>
       </div>
       <div class="spec-row">
         <div class="spec-label">Daten</div>
         <div class="spec-value">
-          <code>%LOCALAPPDATA%\watis\</code> — nie im Roaming-Profil, damit ein Domänen-Konto keine
-          Gigabytes synchronisiert
+          Windows: <code>%LOCALAPPDATA%\watis\</code> — nie im Roaming-Profil, damit ein
+          Domänen-Konto keine Gigabytes synchronisiert. Linux: <code>~/.local/share/watis/</code>.
+          Darunter jeweils <code>session/</code>, <code>archive/</code>, <code>blobs/</code> und
+          <code>logs/</code>.
         </div>
       </div>
       <div class="spec-row">
         <div class="spec-label">Updates</div>
         <div class="spec-value">
-          Automatisch über GitHub Releases, ohne Adminrechte. Sitzung und Archiv bleiben unberührt.
+          Automatisch über GitHub Releases, ohne Adminrechte; alle sechs Stunden geprüft, im
+          Hintergrund geladen, installiert erst auf deinen Klick oder beim nächsten Beenden.
+          Sitzung und Archiv bleiben unberührt — das beweist ein Test bei jedem Commit.
+          <strong>Unter Linux nur aus dem AppImage heraus</strong>, weil der Updater genau diese
+          eine Datei ersetzt; startest du einen entpackten Build, sagt die App das und prüft gar
+          nicht erst.
         </div>
       </div>
       <div class="spec-row">
         <div class="spec-label">Deinstallation</div>
         <div class="spec-value">
-          Über die Windows-Einstellungen. Deine Daten bleiben erhalten und müssen separat gelöscht
-          werden.
+          Windows: über die Einstellungen. Der Deinstaller <em>fragt</em>, ob Archiv, Medien und
+          Anmeldung mitgehen sollen — voreingestellt ist Nein, weil das die richtige Antwort ist,
+          wenn neu installiert werden soll. Linux: die AppImage-Datei löschen, dazu
+          <code>~/.local/share/applications/watis.desktop</code>, das Icon unter
+          <code>~/.local/share/icons/</code> und, falls Autostart an war,
+          <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen liegen,
+          bis du es selbst entfernst.
         </div>
       </div>
       <div class="spec-row">
