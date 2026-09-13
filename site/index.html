@@ -277,6 +277,12 @@
     margin-top: 1rem;
   }
 
+  .step-note {
+    margin: 0.75rem 0 0;
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+
   .shell {
     margin: 0.75rem 0 0;
     padding: 0.875rem 1rem;
@@ -613,7 +619,7 @@
         </div>
         <div class="meta-row">
           <dt>Tray</dt>
-          <dd>nicht unter GNOME — siehe „Tray unter GNOME“</dd>
+          <dd>nicht unter GNOME, Unity, Pantheon</dd>
         </div>
       </dl>
     </div>
@@ -671,8 +677,10 @@
         <div class="spec-label">Tray</div>
         <div class="spec-value">
           Schließen minimiert in den Tray, die App läuft weiter. Der Zähler kommt aus WhatsApps
-          eigener Datenbank, nicht aus dem Fenstertitel — er stimmt also auch dann, wenn das Fenster
-          zu ist.
+          eigener Datenbank statt aus dem Fenstertitel — er stimmt also auch dann, wenn das Fenster
+          zu ist. Ändert WhatsApp sein Schema, fällt er auf den Fenstertitel zurück und ist wieder
+          so grob wie überall sonst, statt auszufallen. Einen Tray gibt es nicht auf jedem
+          Linux-Desktop; siehe unten.
         </div>
       </div>
       <div class="spec-row">
@@ -735,7 +743,9 @@
         <div class="spec-value">
           Keine Telemetrie, kein Konto, keine Cloud. Netzwerkverkehr nur zu WhatsApp und zu GitHub
           für Updates. Keine offenen Ports. Texterkennung und alles andere rechnet auf deinem
-          Rechner.
+          Rechner. Eine einzige Ausnahme, und die ist abgeschaltet, bis du sie einschaltest:
+          Die Rechtschreibprüfung lässt Chromium unter Windows einmalig ein Wörterbuch von einem
+          Google-Server laden. Genau deshalb ist sie aus.
         </div>
       </div>
     </div>
@@ -759,9 +769,10 @@
           </div>
         </div>
         <div class="spec-row">
-          <div class="spec-label">Sprachnachrichten</div>
+          <div class="spec-label">Was nicht durchsuchbar wird</div>
           <div class="spec-value">
-            Werden <strong>noch nicht transkribiert</strong> und sind darum auch nicht durchsuchbar.
+            Sprachnachrichten werden <strong>noch nicht transkribiert</strong> und sind darum auch
+            nicht durchsuchbar. Word-Dateien ebenso wenig.
             Die Aufträge dafür entstehen und werden übersprungen; welche Engine es wird, steht in
             <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0008-ocr-und-pdf-engines.md"
               >ADR 0008</a
@@ -771,11 +782,13 @@
         <div class="spec-row">
           <div class="spec-label">Tray unter GNOME</div>
           <div class="spec-value">
-            GNOME zeigt seit 3.26 keine Tray-Icons mehr. WatIs? erkennt das und
-            <strong>beendet sich beim Schließen des Fensters</strong>, statt in einen unsichtbaren
-            Tray zu verschwinden — eine Tür, die man wiederfindet. Mit der AppIndicator-Erweiterung
-            und <code>WATIS_FORCE_TRAY=1</code> gibt es ihn trotzdem. Unter KDE, XFCE, MATE und
-            Cinnamon läuft er direkt.
+            GNOME zeigt seit 3.26 keine Tray-Icons mehr; für Unity und Pantheon gilt dasselbe.
+            WatIs? erkennt diese drei und <strong>beendet sich dort beim Schließen des
+            Fensters</strong>, statt in einen unsichtbaren Tray zu verschwinden — eine Tür, die man
+            wiederfindet. Mit der AppIndicator-Erweiterung und <code>WATIS_FORCE_TRAY=1</code> gibt
+            es ihn trotzdem. Unter KDE, XFCE, MATE und Cinnamon läuft er direkt. Erkennt die App den
+            Desktop gar nicht, entscheidet sie sich gegen den Tray — die Richtung, in der ein Irrtum
+            nichts kostet.
           </div>
         </div>
         <div class="spec-row">
@@ -810,6 +823,35 @@
             <a href="https://github.com/phish3144/watis/releases/latest">Release-Seite</a> dessen
             SHA-256-Digest an, und der lässt sich mit <code>sha256sum</code> beziehungsweise
             <code>Get-FileHash</code> gegen die heruntergeladene Datei halten.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Nachrichten anderer Leute</div>
+          <div class="spec-value">
+            Das Archiv behält, was gelöscht oder zurückgezogen wurde — und
+            <strong>auch verschwindende Nachrichten</strong>, sobald sie einmal angekommen sind. Das
+            ist eine bewusste Entscheidung ohne Schalter: eine Ausnahme wäre nur dann etwas wert,
+            wenn man sich auf sie verlassen könnte, und das kann man bei einer Kopie auf der eigenen
+            Platte nicht. Wer dir so etwas schickt, geht von einer Befristung aus. Ob dieses Archiv
+            entstehen soll, entscheidest du — für Leute, die davon nichts wissen.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Dein WhatsApp-Konto</div>
+          <div class="spec-value">
+            WhatsApps Bedingungen untersagen inoffizielle Clients, und die Policy nennt die
+            <strong>Sperre des Kontos</strong> ausdrücklich als mögliche Folge. Dokumentierte
+            Sperrwellen trafen bisher Clients, die senden und in Masse operieren — WatIs? liest,
+            sendet nicht und drosselt das Nachladen. Das ist der Grund für die Read-only-Regel; es
+            ist keine Zusicherung. Das Risiko bleibt bei dir.
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Videos und große Dateien</div>
+          <div class="spec-value">
+            Bilder und Dokumente holt das Archiv von selbst, <strong>Videos nicht</strong> — die
+            bleiben bei einem Klick, sonst wäre die Platte in einer Woche voll. Im Archiv steht dann
+            der Eintrag ohne die Datei.
           </div>
         </div>
         <div class="spec-row">
@@ -887,6 +929,14 @@
 mv ~/Downloads/WatIs-x86_64.AppImage ~/Applications/
 chmod +x ~/Applications/WatIs-x86_64.AppImage
 ~/Applications/WatIs-x86_64.AppImage</code></pre>
+          <p class="step-note">
+            Bricht der Start mit <code>error loading libfuse.so.2</code> ab, fehlt FUSE 2: Ubuntu
+            22.04 und neuer liefern nur FUSE 3 mit. Mit Adminrechten behebt das
+            <code>sudo apt install libfuse2</code>. <strong>Ohne Adminrechte</strong> — der Fall,
+            für den diese App gebaut ist — startet sie genauso mit
+            <code>--appimage-extract-and-run</code>; sie entpackt sich dann bei jedem Start selbst
+            in <code>/tmp</code>.
+          </p>
         </div>
       </li>
       <li>
@@ -940,8 +990,11 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
       <div class="spec-row">
         <div class="spec-label">Updates</div>
         <div class="spec-value">
-          Automatisch über GitHub Releases, ohne Adminrechte; alle sechs Stunden geprüft, im
-          Hintergrund geladen, installiert erst auf deinen Klick oder beim nächsten Beenden.
+          Automatisch über GitHub Releases, ohne Adminrechte; alle sechs Stunden geprüft und im
+          Hintergrund geladen. <strong>Installiert wird erst, wenn du es sagst</strong> —
+          <em>Jetzt neu starten</em> oder <em>Beim nächsten Beenden</em>; ohne diese Wahl bleibt das
+          Update liegen. Abschalten lässt sich die Prüfung im Panel; dann greift die App dafür auf
+          gar nichts mehr zu.
           Sitzung und Archiv bleiben unberührt — das beweist ein Test bei jedem Commit.
           <strong>Unter Linux nur aus dem AppImage heraus</strong>, weil der Updater genau diese
           eine Datei ersetzt; startest du einen entpackten Build, sagt die App das und prüft gar
@@ -955,8 +1008,9 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
           Anmeldung mitgehen sollen — voreingestellt ist Nein, weil das die richtige Antwort ist,
           wenn neu installiert werden soll. Linux: die AppImage-Datei löschen, dazu
           <code>~/.local/share/applications/watis.desktop</code>, das Icon unter
-          <code>~/.local/share/icons/</code> und, falls Autostart an war,
-          <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen liegen,
+          <code>~/.local/share/icons/hicolor/512x512/apps/watis.png</code>, den
+          Zwischenspeicher des Updaters unter <code>~/.cache/watis-updater/</code> und, falls
+          Autostart an war, <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen liegen,
           bis du es selbst entfernst.
         </div>
       </div>
