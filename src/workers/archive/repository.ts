@@ -124,9 +124,16 @@ export class ArchiveRepository {
       INSERT INTO media (id, msg_id, chat_id, mime, size, sha256, filename, status)
       VALUES (@id, @msgId, @chatId, @mime, @size, @sha256, @filename, @status)
       ON CONFLICT(id) DO UPDATE SET
-        msg_id = excluded.msg_id, chat_id = excluded.chat_id, mime = excluded.mime,
-        size = excluded.size, sha256 = excluded.sha256, filename = excluded.filename,
-        status = excluded.status
+        msg_id = COALESCE(excluded.msg_id, media.msg_id),
+        chat_id = COALESCE(excluded.chat_id, media.chat_id),
+        mime = COALESCE(excluded.mime, media.mime),
+        size = COALESCE(excluded.size, media.size),
+        sha256 = COALESCE(excluded.sha256, media.sha256),
+        filename = COALESCE(excluded.filename, media.filename),
+        -- A message is mirrored again on every change event (an ack, an edit). Its attachment
+        -- arrives as 'pending' each time, and must not undo a download that already happened or
+        -- a decision not to fetch: only a row still pending takes the new status.
+        status = CASE WHEN media.status = 'pending' THEN excluded.status ELSE media.status END
     `)
     return this.#runBatch(rows, (r) =>
       stmt.run({

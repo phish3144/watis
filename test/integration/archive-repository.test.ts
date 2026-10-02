@@ -257,3 +257,33 @@ describe('search reaches every chat unless told otherwise', () => {
     expect(repo.search(parseQuery('in:c2 Grüße'), 50).map((h) => h.msgId)).toEqual(['m3'])
   })
 })
+
+describe('media rows survive being mirrored again', () => {
+  // A message is re-mirrored on every change event, and its attachment arrives as 'pending' each
+  // time. That must not undo a download or a decision not to fetch.
+  it('keeps a fetched file fetched, and its hash', () => {
+    repo.upsertMedia([
+      { id: 'f1', msgId: 'm1', chatId: 'c1', mime: 'image/png', status: 'pending' },
+    ])
+    repo.attachBlob('f1', 'ab'.repeat(32), 10)
+    repo.upsertMedia([
+      { id: 'f1', msgId: 'm1', chatId: 'c1', mime: 'image/png', status: 'pending' },
+    ])
+    expect(repo.mediaById('f1')).toMatchObject({ status: 'done', sha256: 'ab'.repeat(32) })
+    expect(repo.pendingMedia(10)).toEqual([])
+  })
+
+  it('keeps a skipped file skipped', () => {
+    repo.upsertMedia([{ id: 'v1', msgId: 'm2', chatId: 'c1', mime: 'video/mp4' }])
+    repo.markMedia('v1', 'skipped')
+    repo.upsertMedia([{ id: 'v1', msgId: 'm2', chatId: 'c1', mime: 'video/mp4' }])
+    expect(repo.mediaById('v1')?.status).toBe('skipped')
+  })
+
+  it('fills in what a later event knows and an earlier one did not', () => {
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1' }])
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1', mime: 'application/pdf', size: 7 }])
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1' }])
+    expect(repo.mediaById('d1')).toMatchObject({ mime: 'application/pdf', size: 7 })
+  })
+})

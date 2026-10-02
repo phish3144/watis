@@ -20,9 +20,10 @@ würde die Exception in einem WhatsApp-Stackframe auslösen.
 
 ## Noch nicht verifiziert
 
-| Modul                  | Pfad               | Verlangt                    | Wofür        | Stand                                                      |
-| ---------------------- | ------------------ | --------------------------- | ------------ | ---------------------------------------------------------- |
-| `WAWebDownloadManager` | `.downloadManager` | `downloadAndMaybeDecrypt()` | Medien holen | **aus der Doku, nicht gegen ein laufendes Bundle geprüft** |
+| Modul                                    | Pfad                                       | Verlangt                    | Wofür                  | Stand                                                                            |
+| ---------------------------------------- | ------------------------------------------ | --------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
+| `WAWebDownloadManager`                   | `.downloadManager`                         | `downloadAndMaybeDecrypt()` | Medien holen           | **aus der Doku, nicht gegen ein laufendes Bundle geprüft**                       |
+| Nachrichtenmodell (`WAWebMsgCollection`) | `filehash`, `mimetype`, `size`, `filename` | Felder am Modell            | Medienzeile pro Anhang | **aus whatsapp-web.js abgeleitet, nicht gegen eine angemeldete Sitzung geprüft** |
 
 Jede andere Signatur in diesem Dokument wurde gegen das laufende Bundle geprüft. Diese nicht — sie
 steht deshalb in `OPTIONAL`: Löst sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft
@@ -30,6 +31,15 @@ weiter. Vor dem Smoke-Test gilt sie als unbelegt.
 
 Die Operation liest: Sie holt Bytes, die der Client der Nutzerin ohnehin referenziert, und entschlüsselt
 sie mit dem Schlüssel, der bereits in der Nachricht steht. Sie sendet nichts und markiert nichts.
+
+**Medienzeilen (2026-10-02).** Bis zu diesem Datum legte die Bridge für Anhänge **keine** Zeile in
+`media` an: `messages.media_id` wurde aus `filehash` gesetzt, aber ohne passenden Eintrag fand der
+Medien-Fetcher nie etwas im Zustand `pending`, und es wurde nie eine Datei geholt — im Desktop wie im
+Browser. `observer.ts` leitet jetzt aus jeder Nachricht mit `filehash` eine Medienzeile ab
+(`toMediaRow`): `id = filehash`, dazu `mimetype`, `size`, `filename`. Es sind dieselben Felder, die
+`downloadMedia` am selben Modell schon liest. Gegen eine angemeldete Sitzung geprüft ist das nicht;
+fehlt ein Feld, bleibt die Spalte leer und die Abrufregeln greifen auf Dateiname bzw. „unbekannter Typ"
+zurück.
 
 ## Wie der Code in die Seite kommt
 
