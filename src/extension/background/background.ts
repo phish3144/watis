@@ -54,10 +54,20 @@ setUpPanel()
 
 // --- first run and housekeeping ---------------------------------------------------------------
 
+const INSTALLED_KEY = 'watis:installed'
+
 ext.runtime.onInstalled.addListener(({ reason }) => {
-  // A first run should say what this is and where it lives, not leave an icon to be discovered.
-  if (reason === 'install')
-    void ext.tabs.create({ url: ext.runtime.getURL('panel.html#willkommen') })
+  if (reason !== 'install') return
+  void (async () => {
+    // Firefox reports a temporary add-on loaded again after a restart as a fresh install, although
+    // its archive is still there (the add-on id is fixed). Removing an extension clears its
+    // storage, so this marker survives exactly when the archive does.
+    const stored = await ext.storage.local.get(INSTALLED_KEY)
+    if (stored[INSTALLED_KEY]) return
+    await ext.storage.local.set({ [INSTALLED_KEY]: Date.now() })
+    // A first run should say what this is and where it lives, not leave an icon to be discovered.
+    await ext.tabs.create({ url: ext.runtime.getURL('panel.html#willkommen') })
+  })()
 })
 
 /**
