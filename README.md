@@ -18,8 +18,8 @@ nur im Browser arbeiten ([Im Browser](#im-browser-chrome-edge-firefox)).
 - Schreibt ab dem Installationstag lückenlos mit und nimmt beim Verknüpfen mit, was WhatsApp Web
   hergibt – das sind rund 90 Tage, mehr gibt der Web-Client nicht her
 - Speichert Dateien ohne Dialog in eine feste Ordnerstruktur
-- Macht Text in Bildern (OCR), in PDFs – auch eingescannten – und, auf Anforderung, in Sprachnachrichten
-  durchsuchbar
+- Macht Text in Bildern (OCR) und in PDFs – auch eingescannten – durchsuchbar; in der
+  Browser-Erweiterung auf Klick auch Sprachnachrichten
 - Tray, Badge, native Benachrichtigungen, Autostart, Shortcuts, Themes, Declutter-Schalter
 - Exportiert alles in offene Formate (JSON, HTML, TXT)
 
