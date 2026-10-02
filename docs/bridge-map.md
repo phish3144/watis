@@ -25,9 +25,11 @@ würde die Exception in einem WhatsApp-Stackframe auslösen.
 | `WAWebDownloadManager`                   | `.downloadManager`                         | `downloadAndMaybeDecrypt()` | Medien holen           | **aus der Doku, nicht gegen ein laufendes Bundle geprüft**                       |
 | Nachrichtenmodell (`WAWebMsgCollection`) | `filehash`, `mimetype`, `size`, `filename` | Felder am Modell            | Medienzeile pro Anhang | **aus whatsapp-web.js abgeleitet, nicht gegen eine angemeldete Sitzung geprüft** |
 
-Jede andere Signatur in diesem Dokument wurde gegen das laufende Bundle geprüft. Diese nicht — sie
-steht deshalb in `OPTIONAL`: Löst sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft
-weiter. Vor dem Smoke-Test gilt sie als unbelegt.
+Jede andere Signatur in diesem Dokument wurde gegen das laufende Bundle geprüft. Diese beiden nicht.
+Der Downloader steht deshalb in `OPTIONAL`: Löst er nicht auf, schaltet sich das Medienholen ab und
+der Rest läuft weiter. Fehlt eines der Felder, bleibt die Spalte leer (siehe „Medienzeilen" unten).
+Vor dem Smoke-Test gelten beide als unbelegt. Das gilt für den Desktop und die Browser-Erweiterung
+gleichermaßen, denn beide laden dieselbe Bridge.
 
 Die Operation liest: Sie holt Bytes, die der Client der Nutzerin ohnehin referenziert, und entschlüsselt
 sie mit dem Schlüssel, der bereits in der Nachricht steht. Sie sendet nichts und markiert nichts.

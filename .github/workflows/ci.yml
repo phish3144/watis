@@ -76,6 +76,45 @@ jobs:
             test-results/
           retention-days: 7
 
+  extension:
+    name: Browser extension (Chromium, Firefox)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The full Chromium, not the headless shell: only the full build loads extensions.
+      - run: npx playwright install --with-deps chromium
+      # A real speech model for the transcription tests, fetched from whisper.cpp's own repository
+      # and checked against the SHA-256 pinned in the repo. It never changes for a given pin, so it
+      # is cached rather than downloaded on every push.
+      - uses: actions/cache@v6
+        with:
+          path: .cache/whisper
+          key: whisper-${{ hashFiles('src/extension/whisper-models.json') }}
+      - run: npm run models:fetch -- base
+      - run: npm run test:extension
+      # Firefox comes with the Ubuntu runner. Playwright's own Firefox cannot load extensions, so
+      # this check drives a release Firefox over WebDriver BiDi (scripts/e2e-firefox-extension.mjs).
+      - run: FIREFOX="$(command -v firefox)" npm run test:extension:firefox
+      - run: npm run pack:extension
+      - uses: actions/upload-artifact@v7
+        with:
+          name: browser-extension
+          path: out/extension/*.zip
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-extension
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

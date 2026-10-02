@@ -24,6 +24,7 @@ Ausgelegt auf hohes Aufkommen: viele Gruppen, Millionen Nachrichten, hunderttaus
 
 Plattform: Windows 10/11 zuerst (Release), macOS wird von Anfang an mitgebaut und darf durch keine
 Entscheidung ausgeschlossen werden. Installation und Updates laufen ohne Administratorrechte.
+Dazu kommt eine Browser-Erweiterung für Chrome, Edge und Firefox auf demselben Kern (Phase 10).
 
 **Bewusst nicht:** kein Protokoll-Client (kein whatsmeow/Baileys), keine Sende-Automatisierung.
 
@@ -683,6 +684,52 @@ Sprachnachricht sind per Suche auffindbar und führen zur richtigen Stelle.
   will Jahre an Nachrichten an einen weggeklickten Dialog verliert. `verify:no-elevate` prüft, dass
   dieses Skript nicht die vierte Umgehung der Per-User-Installation wird (kein `runas`, kein HKLM,
   kein UAC-Plugin). Offen: der Lauf gegen einen echten Installer unter Windows
+
+### Phase 10 – Im Browser: Erweiterung für Chrome, Edge und Firefox (L)
+
+Damit WatIs? auch nutzen kann, wer nichts installieren darf oder nur im Browser arbeitet. Eine
+gehostete Web-App geht nicht: WhatsApp Web lässt sich nicht einbetten, und ein Server, der sich als
+Client anmeldet, wäre ein Protokoll-Client mit Cloud ([ADR 0010](docs/decisions/0010-browser-erweiterung.md)).
+
+- [x] Spike in drei Versuchen: Bridge unter WhatsApps Nonce-CSP, Speicher, Ort des Archivs in
+      Chromium und Firefox ([`docs/extension-spike.md`](docs/extension-spike.md))
+- [x] Gemeinsamer SQL-Kern: `SqlDatabase` als Schnittstelle, better-sqlite3 und SQLite-WASM dahinter,
+      die Integrationstests laufen gegen beide Engines
+- [x] Erweiterung aus einer Codebasis, Manifest pro Browser: Bridge in der MAIN world, Relay,
+      Archiv im unsichtbaren Frame des WhatsApp-Tabs (SQLite-WASM auf OPFS), Besitz über die
+      OPFS-Sperre, das Panel als Ersatz ohne Tab. In Firefox spricht der Frame über einen
+      MessagePort mit Token, weil er kaum Erweiterungs-APIs hat
+- [x] Hintergrund: Badge, Benachrichtigungen mit Bündelung, Ruhezeit und „nicht für den offenen
+      Chat", Download-Ordner pro Chat (nur Chromium kann Download-Namen ändern)
+- [x] Neu gestaltete Oberfläche statt Kopie des Desktop-Panels: Suche, Chats, Medien, Einstellungen;
+      schmal neben WhatsApp, breit als eigener Tab, für den Desktop-Browser zuerst
+- [x] Medien in OPFS, im selben Layout wie am Desktop; Abrufregeln als Einstellungen, neue Anhänge
+      sofort nach dem Eintreffen geholt ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md))
+- [x] Texterkennung, PDF-Text und gescannte PDF im Archiv-Worker, alles im Paket, nichts vom CDN
+      ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md))
+- [x] Transkription auf Klick mit whisper.cpp als WASM: in Chrome und Edge im Panel, in Firefox im
+      WhatsApp-Tab, weil nur dort isoliert. Modelle aus dem eigenen Release, gegen SHA-256 geprüft,
+      alternativ aus einer Datei; Sprache einstellbar, Deutsch voreingestellt
+- [x] Sicherung im Desktop-Format: in einen gewählten Ordner (Chrome, Edge) oder als ZIP-Downloads
+      (alle), jeweils nur Neues ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md))
+- [x] E2E gegen eine nachgebaute WhatsApp-Seite mit den echten Headern pro Browser: Chromium über
+      Playwright (`npm run test:extension`), Firefox über WebDriver BiDi
+      (`npm run test:extension:firefox`); eigener CI-Job, Pakete als Artefakt
+- [ ] Release `whisper-models` als **Prerelease** anlegen: `npm run models:fetch`, dann die
+      ausgegebenen `gh`-Befehle. Bis dahin geht nur der Weg über die Modelldatei
+- [ ] Einträge im Chrome Web Store, bei Edge Add-ons und auf addons.mozilla.org (Konten,
+      Datenschutzangaben, Prüfung). Bis dahin: entpackt laden bzw. temporär in Firefox
+- [ ] Smoke-Test gegen eine angemeldete Sitzung, wie für den Desktop ([`docs/bridge-map.md`](docs/bridge-map.md))
+- [ ] Lasttest nach §3.1 gegen die WASM-Engine
+- [ ] Dauer einer Transkription auf einem echten Arbeitsplatzrechner messen. In der Cloud-VM der
+      Entwicklung waren es 33–75 s für 4 s Sprache, und das ist kein Maßstab
+- [ ] Eine Sicherung zurück in die Erweiterung spielen
+- [ ] Edge eigens prüfen. Bisher gilt es als Chromium, gemessen ist es nicht
+
+**DoD:** In Chrome, Edge und Firefox spiegelt die Erweiterung WhatsApp Web lückenlos ins Archiv,
+findet ein Wort aus einer Nachricht, einem Foto, einem PDF und einer transkribierten Sprachnachricht,
+und eine Sicherung im Desktop-Format liegt außerhalb des Browsers — gegen eine angemeldete Sitzung
+geprüft, nicht nur gegen die nachgebaute Seite.
 
 ---
 

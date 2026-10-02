@@ -215,6 +215,17 @@ Firefox zwei Besitzer. Die Sperre, die tatsächlich trägt, ist die des Dateisys
 exklusive Sync-Access-Handles, und ein zweiter Öffner scheitert. **Die Besitzfrage wird also über die
 OPFS-Sperre entschieden, nicht über Web Locks.**
 
+### Nachtrag: Warum der Frame in Firefox isoliert ist
+
+Die Zeile `crossOriginIsolated im Frame` hat einen Grund, der erst später gemessen wurde (2026-10-02):
+WhatsApp schickt **dem echten Firefox** `Cross-Origin-Opener-Policy: same-origin`, Chromium dagegen
+`same-origin-allow-popups` und eine `Document-Isolation-Policy`. Ein `curl` mit dem User-Agent des
+jeweiligen Browsers bekommt beides nicht; WhatsApp unterscheidet offenbar an mehr als dem User-Agent.
+Firefox' Erweiterungsseiten selbst sind nie isoliert, denn die Manifest-Schlüssel `cross_origin_*`
+wirken dort nicht. Für whisper.cpp heißt das: In Firefox läuft es im Frame des WhatsApp-Tabs, in
+Chromium im Panel ([ADR 0012](decisions/0012-ocr-und-transkription-im-browser.md)). Die
+nachgebaute WhatsApp-Seite der E2E-Tests liefert deshalb die Header pro Browser.
+
 ### Was dieser Versuch nicht zeigt
 
 - **Edge** wurde nicht gemessen. Es ist Chromium mit derselben Erweiterungs-Plattform; die Annahme ist,
