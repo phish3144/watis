@@ -163,8 +163,3 @@ export function install(): { stop: () => void } {
     },
   }
 }
-
-// Re-injection happens on every navigation, and WhatsApp Web navigates on its own. Without this
-// the listeners would stack and every message would be mirrored several times over.
-window.__watisBridge?.stop()
-window.__watisBridge = install()

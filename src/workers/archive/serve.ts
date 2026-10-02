@@ -60,6 +60,8 @@ function answer(repo: ArchiveRepository, request: ArchiveRequest): unknown {
       return { names: repo.findChatsAndContacts(request.query, request.limit) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
+    case 'senderNames':
+      return { names: repo.senderNames(request.jids) }
     case 'saveSyncState':
       return { written: repo.saveSyncState(request.rows) }
     case 'syncState':
@@ -73,6 +75,8 @@ function answer(repo: ArchiveRepository, request: ArchiveRequest): unknown {
       return { ok: true }
     case 'pendingMedia':
       return { media: repo.pendingMedia(request.limit) }
+    case 'media':
+      return { media: repo.mediaById(request.mediaId) ?? null }
     case 'addReminder':
       return { id: repo.addReminder(request.msgId, request.dueTs, request.note) }
     case 'reminders':

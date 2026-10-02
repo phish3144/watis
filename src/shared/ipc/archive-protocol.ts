@@ -125,6 +125,7 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
     limit: z.number().int().min(1).max(50).default(8),
   }),
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
+  z.object({ op: z.literal('senderNames'), jids: z.array(z.string().min(1)).max(500) }),
   z.object({ op: z.literal('stats') }),
   z.object({
     op: z.literal('saveSyncState'),
@@ -170,6 +171,7 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('completeReminder'), id: z.number().int() }),
   z.object({ op: z.literal('dueReminders'), nowTs: z.number().int() }),
   z.object({ op: z.literal('blobPath'), mediaId: z.string().min(1) }),
+  z.object({ op: z.literal('media'), mediaId: z.string().min(1) }),
   z.object({
     op: z.literal('saveMedia'),
     mediaIds: z.array(z.string().min(1)).min(1).max(500),

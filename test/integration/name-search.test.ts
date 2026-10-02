@@ -64,3 +64,21 @@ describe('finding chats and contacts by name', () => {
     expect(docs.n).toBe(0)
   })
 })
+
+describe('sender names for a message list', () => {
+  it('answers with the name, falling back to the push name, and leaves unknown senders out', () => {
+    repo.upsertContacts([
+      { jid: 'a@s', name: 'Anna Beispiel', pushname: 'Anna' },
+      { jid: 'b@s', name: '', pushname: 'Bernd' },
+      { jid: 'c@s', name: null, pushname: null },
+    ])
+    expect(repo.senderNames(['a@s', 'b@s', 'c@s', 'unknown@s', 'a@s'])).toEqual({
+      'a@s': 'Anna Beispiel',
+      'b@s': 'Bernd',
+    })
+  })
+
+  it('answers an empty page with an empty map rather than an invalid IN ()', () => {
+    expect(repo.senderNames([])).toEqual({})
+  })
+})

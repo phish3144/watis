@@ -16,7 +16,7 @@ export default defineConfig({
     // nothing to down-level for.
     target: 'chrome120',
     lib: {
-      entry: resolve(__dirname, 'src/bridge/index.ts'),
+      entry: resolve(__dirname, 'src/bridge/main.ts'),
       formats: ['iife'],
       name: '__watisBridgeBundle',
       fileName: () => 'bridge.js',

@@ -2,6 +2,9 @@ import { Notification } from 'electron'
 import type { BaseWindow, WebContents } from 'electron'
 import { settings } from '../config/store'
 import { log } from '../logging'
+import { isWithinQuietHours } from '@shared/quiet-hours'
+
+export { isWithinQuietHours }
 
 /**
  * Turns WhatsApp's in-page notifications into native ones.
@@ -27,19 +30,6 @@ interface Pending {
   count: number
   latest: IncomingNotification
   timer: NodeJS.Timeout
-}
-
-function minutesOfDay(value: string): number {
-  const [hours, minutes] = value.split(':').map((part) => Number.parseInt(part, 10))
-  return (hours ?? 0) * 60 + (minutes ?? 0)
-}
-
-/** Handles a window that wraps past midnight, e.g. 22:00 to 07:00. */
-export function isWithinQuietHours(now: Date, from: string, to: string): boolean {
-  const current = now.getHours() * 60 + now.getMinutes()
-  const start = minutesOfDay(from)
-  const end = minutesOfDay(to)
-  return start <= end ? current >= start && current < end : current >= start || current < end
 }
 
 export class NotificationManager {

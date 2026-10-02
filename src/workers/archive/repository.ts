@@ -883,6 +883,25 @@ export class ArchiveRepository {
     ]
   }
 
+  /**
+   * Display names for senders, so a message list can say "Anna" instead of a phone-number id.
+   *
+   * Bounded by the caller's page: the list asks for the senders on screen, never for every
+   * contact. A jid without a contact row is simply absent from the answer, and the UI shows the
+   * number instead — inventing a name is worse than showing none.
+   */
+  senderNames(jids: readonly string[]): Record<string, string> {
+    const unique = [...new Set(jids)].slice(0, 500)
+    if (unique.length === 0) return {}
+    const rows = this.#db
+      .prepare(
+        `SELECT jid, COALESCE(NULLIF(name, ''), NULLIF(pushname, '')) AS label FROM contacts
+         WHERE jid IN (${unique.map(() => '?').join(', ')})`,
+      )
+      .all(...unique) as { jid: string; label: string | null }[]
+    return Object.fromEntries(rows.flatMap((r) => (r.label ? [[r.jid, r.label]] : [])))
+  }
+
   stats(pendingWrites = 0): {
     messages: number
     chats: number
