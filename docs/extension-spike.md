@@ -166,3 +166,69 @@ xvfb-run -a node spikes/extension-csp/run4.mjs spikes/extension-csp   # Cross-Or
 ```
 
 `run2.mjs` erwartet die Dateien aus `manifest.probe2.json` als `manifest.json`.
+
+## Dritter Versuch: Wo läuft das Archiv – in Chrome, Edge **und** Firefox?
+
+_Gemessen am 2026-10-02 gegen `https://web.whatsapp.com/` (nicht angemeldet), Chromium 141.0.7390.37
+und Firefox 157.0, beide Manifest V3, SQLite-WASM 3.53.4. Quelltext:
+[`spikes/browser-host/`](../spikes/browser-host/)._
+
+Die ersten beiden Versuche setzten das Archiv in ein **Offscreen Document**. Das gibt es nur in
+Chromium. Firefox kennt weder `chrome.offscreen` noch `chrome.sidePanel`, und sein Hintergrundskript ist
+eine Event Page, die nach Leerlauf beendet wird. Ein Archiv, das in allen drei Browsern läuft, braucht
+also einen anderen Ort — und es gibt einen, der in allen dreien derselbe ist: **ein unsichtbarer Frame
+mit einer Erweiterungsseite, eingehängt in den WhatsApp-Tab selbst.** Er lebt genau so lange wie der
+Tab, und länger muss der Archivierer ohnehin nicht leben — die Nachrichten kommen aus diesem Tab.
+
+Ob das trägt, hing an vier Fragen, die keine Dokumentation sauber beantwortet. Also gemessen.
+
+| Gemessen                                                       | Chromium 141                 | Firefox 157           |
+| -------------------------------------------------------------- | ---------------------------- | --------------------- |
+| MAIN-world-Skript bei `document_start`                         | ja                           | ja                    |
+| `window.require` in der Seitenwelt                             | `function` nach 0,7–4,2 s    | `function` nach 0,8 s |
+| Erweiterungs-Frame lädt trotz WhatsApps CSP                    | ja                           | ja                    |
+| Worker aus einer Erweiterungs-URL in diesem Frame              | **nur mit COEP im Manifest** | ja                    |
+| SQLite-WASM mit `opfs-sahpool`, FTS5, im Worker dieses Frames  | ja (`journal_mode = delete`) | ja                    |
+| Frame-OPFS = OPFS des Hintergrundskripts (nicht partitioniert) | **ja**                       | **ja**                |
+| Web Lock aus dem Frame im Hintergrundskript sichtbar           | ja                           | **nein**              |
+| `crossOriginIsolated` im Frame                                 | `false`                      | `true`                |
+
+### Der Stolperstein: WhatsApps COEP
+
+`web.whatsapp.com` liefert `Cross-Origin-Embedder-Policy: require-corp` und eine
+`Document-Isolation-Policy: isolate-and-require-corp`. Ein Worker, den der eingebettete Frame startet,
+erbt diese Einbettungsregel — und das Worker-Skript der Erweiterung trug keinen passenden Header. Das
+Ergebnis war ein `error`-Ereignis ohne Meldung, für jeden Worker aus einer `chrome-extension://`-URL;
+ein Blob-Worker lief. Freigabe über `web_accessible_resources` änderte nichts.
+
+Die Lösung sind die beiden Manifest-Schlüssel aus dem zweiten Versuch:
+`cross_origin_embedder_policy: {"value": "require-corp"}` und
+`cross_origin_opener_policy: {"value": "same-origin"}`. Damit liefert die Erweiterung ihre Seiten mit
+COEP aus, und der Worker startet. Freigegeben werden muss dann **nur `host.html`** — Worker,
+SQLite-Bundle und WASM-Datei bleiben unsichtbar für Webseiten.
+
+### Was der Firefox-Befund zu Web Locks bedeutet
+
+Der Frame sieht dasselbe OPFS wie die übrige Erweiterung, aber in Firefox nicht dieselbe
+Sperrverwaltung. Wer „nur ein Besitzer der Datenbank" über `navigator.locks` regeln wollte, bekäme in
+Firefox zwei Besitzer. Die Sperre, die tatsächlich trägt, ist die des Dateisystems: `opfs-sahpool` hält
+exklusive Sync-Access-Handles, und ein zweiter Öffner scheitert. **Die Besitzfrage wird also über die
+OPFS-Sperre entschieden, nicht über Web Locks.**
+
+### Was dieser Versuch nicht zeigt
+
+- **Edge** wurde nicht gemessen. Es ist Chromium mit derselben Erweiterungs-Plattform; die Annahme ist,
+  dass es sich wie Chromium 141 verhält. Zu bestätigen, sobald ein Edge greifbar ist.
+- Wieder **ohne Anmeldung**. Die Modulauflösung gegen eine angemeldete Sitzung steht weiterhin aus.
+
+### Reproduzieren
+
+```bash
+xvfb-run -a node spikes/browser-host/run-chromium.mjs
+FIREFOX=/pfad/zu/firefox node spikes/browser-host/run-firefox.mjs
+```
+
+Für Firefox gibt es keinen Playwright-Weg: dessen Firefox-Build lädt keine Erweiterungen. Das Skript
+spricht deshalb WebDriver BiDi direkt (`webExtension.install`) und braucht nur Node und einen
+Firefox-Release-Build. Läuft der Netzverkehr über einen TLS-abfangenden Proxy, muss dessen CA per
+`policies.json` (`Certificates.Install`) in Firefox — die Prüfung bleibt an.
