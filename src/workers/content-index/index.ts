@@ -9,7 +9,7 @@ import { IndexRunner } from './runner'
 import { TesseractEngine } from './ocr-engine'
 import { PdfEngine } from './pdf-engine'
 import { ScannedPdfEngine, type RenderedPage } from './scanned-pdf-engine'
-import type { Engine, Extraction, ExtractionHint } from './engine'
+import { OcrRouter } from './ocr-router'
 import { decide, explain, type SchedulerPolicy, type SchedulerSignals } from './scheduler'
 
 /**
@@ -106,35 +106,6 @@ function readPolicy(raw: unknown): SchedulerPolicy {
   if (typeof p.allowOnBattery === 'boolean') policy.allowOnBattery = p.allowOnBattery
   if (typeof p.concurrency === 'number') policy.concurrency = p.concurrency
   return policy
-}
-
-/**
- * One `ocr` job can be either a picture or a PDF whose pages need rendering first. The router
- * decides on the hint rather than on the file extension: the hint is written by the PDF extraction
- * that found the empty pages, so it is the thing that actually knows.
- */
-class OcrRouter implements Engine {
-  readonly name = 'ocr'
-  readonly source = 'ocr' as const
-
-  constructor(
-    private readonly images: TesseractEngine,
-    private readonly scans: ScannedPdfEngine,
-  ) {}
-
-  get version(): string {
-    return this.images.version
-  }
-
-  isAvailable(): Promise<boolean> {
-    return this.images.isAvailable()
-  }
-
-  extract(file: string, mime: string, hint?: ExtractionHint): Promise<Extraction> {
-    return hint?.scannedPages?.length
-      ? this.scans.extract(file, mime, hint)
-      : this.images.extract(file)
-  }
 }
 
 /** Asks the main process to rasterise pages; a Node worker has no canvas of its own. */

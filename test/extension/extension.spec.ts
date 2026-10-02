@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
-import { fakeWhatsAppHeaders, fakeWhatsAppPage } from './fake-whatsapp'
+import { fakeWhatsAppHeaders, fakeWhatsAppPage, type FakeFile } from './fake-whatsapp'
 
 /**
  * The browser extension against a stand-in WhatsApp Web, in a real Chromium (ADR 0010).
@@ -17,7 +17,31 @@ import { fakeWhatsAppHeaders, fakeWhatsAppPage } from './fake-whatsapp'
 
 const root = resolve(__dirname, '..', '..')
 const extensionDir = join(root, 'out', 'extension', 'chromium')
-const image = readFileSync(join(root, 'test', 'fixtures', 'ocr-rechnung.png')).toString('base64')
+const fixture = (name: string): string =>
+  readFileSync(join(root, 'test', 'fixtures', name)).toString('base64')
+const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
+const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
+const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
+const files: FakeFile[] = [
+  {
+    hash: IMAGE,
+    mime: 'image/png',
+    caption: 'Die Rechnung vom Handwerker',
+    base64: fixture('ocr-rechnung.png'),
+  },
+  {
+    hash: TEXT_PDF,
+    mime: 'application/pdf',
+    filename: 'Angebot.pdf',
+    base64: fixture('angebot-text.pdf'),
+  },
+  {
+    hash: SCANNED_PDF,
+    mime: 'application/pdf',
+    filename: 'Scan.pdf',
+    base64: fixture('angebot-scan.pdf'),
+  },
+]
 
 let context: BrowserContext
 let extensionId: string
@@ -56,7 +80,7 @@ test.beforeAll(async () => {
     args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`],
   })
   await context.route('https://web.whatsapp.com/**', (route) =>
-    route.fulfill({ status: 200, headers: fakeWhatsAppHeaders(), body: fakeWhatsAppPage(image) }),
+    route.fulfill({ status: 200, headers: fakeWhatsAppHeaders(), body: fakeWhatsAppPage(files) }),
   )
   const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
   extensionId = new URL(worker.url()).host
@@ -100,12 +124,17 @@ test('the archive opens inside the WhatsApp tab, despite its COEP', async () => 
 test('the snapshot mirrors what WhatsApp holds into SQLite on OPFS', async () => {
   await expect
     .poll(() => archive<{ messages: number; chats: number }>({ op: 'stats' }), { timeout: 30_000 })
-    .toMatchObject({ messages: 3, chats: 2 })
+    .toMatchObject({ messages: 5, chats: 2 })
 })
 
 test('search finds a word in either German spelling', async () => {
   for (const query of ['München', 'Muenchen']) {
-    const result = await archive<{ hits: { msgId: string }[] }>({ op: 'search', query, limit: 10 })
+    // Only message text: the same word also turns up in the recognised invoice and the PDF.
+    const result = await archive<{ hits: { msgId: string }[] }>({
+      op: 'search',
+      query: `${query} source:body`,
+      limit: 10,
+    })
     expect(result.hits.map((h) => h.msgId)).toEqual(['false_fam@g.us_M1'])
   }
 })
@@ -148,7 +177,7 @@ test('an image is fetched through WhatsApp’s downloader into the OPFS media st
   // The panel reads the file straight from OPFS — the same origin as the worker that wrote it.
   const { path } = await archive<{ path: string }>({
     op: 'blobPath',
-    mediaId: 'ZmFrZS1yZWNobnVuZw==',
+    mediaId: IMAGE,
   })
   const size = await panel.evaluate(async (file) => {
     let dir = await navigator.storage.getDirectory()
@@ -157,7 +186,7 @@ test('an image is fetched through WhatsApp’s downloader into the OPFS media st
     for (const part of parts) dir = await dir.getDirectoryHandle(part)
     return (await (await dir.getFileHandle(name)).getFile()).size
   }, path)
-  expect(size).toBe(Buffer.from(image, 'base64').length)
+  expect(size).toBe(Buffer.from(files[0]?.base64 ?? '', 'base64').length)
 })
 
 test('the unread count from WhatsApp’s IndexedDB reaches the toolbar badge, muted chats aside', async () => {
@@ -210,4 +239,28 @@ test('a setting changed in the panel reaches WhatsApp’s page', async () => {
       whatsapp.evaluate(() => document.getElementById('watis-ui-layer')?.textContent ?? ''),
     )
     .toContain('channels')
+})
+
+/** The media ids of the hits for a query, once the index has caught up. */
+async function hitMedia(query: string): Promise<(string | null)[]> {
+  const result = await archive<{ hits: { mediaId: string | null }[] }>({
+    op: 'search',
+    query,
+    limit: 20,
+  })
+  return result.hits.map((hit) => hit.mediaId)
+}
+
+test('text in a picture is recognised and becomes searchable', async () => {
+  await expect.poll(() => hitMedia('Lieferung source:ocr'), { timeout: 90_000 }).toContain(IMAGE)
+})
+
+test('a PDF’s text layer becomes searchable', async () => {
+  await expect.poll(() => hitMedia('Angebot source:pdf'), { timeout: 90_000 }).toContain(TEXT_PDF)
+})
+
+test('a scanned PDF page is rendered and recognised', async () => {
+  await expect
+    .poll(() => hitMedia('Gescanntes source:ocr'), { timeout: 120_000 })
+    .toContain(SCANNED_PDF)
 })

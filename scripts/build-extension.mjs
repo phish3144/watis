@@ -132,7 +132,45 @@ for (const size of [16, 32, 48, 128]) {
   cpSync(join(root, 'build', `icon-${size}.png`), join(stage, 'icons', `icon-${size}.png`))
 }
 
-// 5. One manifest per browser. Firefox gets a copy of the same files.
+// 5. Text recognition and PDF text, shipped inside the package: tesseract.js's worker and its SIMD
+//    core, the German and English language data the desktop ships too, and pdf.js's worker. Nothing
+//    is fetched from a CDN at run time (CLAUDE.md, "Datenschutz und Netz").
+const ocr = join(stage, 'ocr')
+mkdirSync(join(ocr, 'lang'), { recursive: true })
+cpSync(
+  join(root, 'node_modules', 'tesseract.js', 'dist', 'worker.min.js'),
+  join(ocr, 'worker.min.js'),
+)
+cpSync(
+  join(root, 'node_modules', 'tesseract.js-core', 'tesseract-core-simd-lstm.wasm.js'),
+  join(ocr, 'tesseract-core-simd-lstm.wasm.js'),
+)
+for (const lang of ['deu', 'eng']) {
+  cpSync(
+    join(root, 'resources', 'tessdata', `${lang}.traineddata`),
+    join(ocr, 'lang', `${lang}.traineddata`),
+  )
+}
+cpSync(
+  join(root, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
+  join(ocr, 'pdf.worker.min.mjs'),
+)
+writeFileSync(
+  join(stage, 'THIRD_PARTY_NOTICES.txt'),
+  [
+    'WatIs? includes the following third-party software, unmodified:',
+    '',
+    'SQLite (public domain) and @sqlite.org/sqlite-wasm (Apache-2.0)',
+    'tesseract.js and tesseract.js-core (Apache-2.0); Tesseract OCR and its language data (Apache-2.0)',
+    'PDF.js / pdfjs-dist (Apache-2.0)',
+    'React and react-dom (MIT), zod (MIT)',
+    '',
+    'The Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0',
+    '',
+  ].join('\n'),
+)
+
+// 6. One manifest per browser. Firefox gets a copy of the same files.
 const { buildManifest } = await importTs('src/extension/manifest.ts')
 const firefox = join(out, 'firefox')
 cpSync(stage, firefox, { recursive: true })
@@ -146,7 +184,7 @@ for (const [browser, dir] of [
   )
 }
 
-// 6. Archives for the stores. No question mark in a file name, ever (CLAUDE.md).
+// 7. Archives for the stores. No question mark in a file name, ever (CLAUDE.md).
 if (pack) {
   zipDirectory(stage, join(out, `watis-${pkg.version}-chromium.zip`))
   zipDirectory(firefox, join(out, `watis-${pkg.version}-firefox.zip`))

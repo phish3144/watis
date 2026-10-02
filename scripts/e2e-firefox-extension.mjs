@@ -32,8 +32,30 @@ const fakeSource = ts.transpileModule(
 const fake = await import(
   `data:text/javascript;base64,${Buffer.from(fakeSource).toString('base64')}`
 )
-const image = readFileSync(join(root, 'test', 'fixtures', 'ocr-rechnung.png')).toString('base64')
-const page = fake.fakeWhatsAppPage(image)
+const fixture = (name) => readFileSync(join(root, 'test', 'fixtures', name)).toString('base64')
+const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
+const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
+const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
+const page = fake.fakeWhatsAppPage([
+  {
+    hash: IMAGE,
+    mime: 'image/png',
+    caption: 'Die Rechnung vom Handwerker',
+    base64: fixture('ocr-rechnung.png'),
+  },
+  {
+    hash: TEXT_PDF,
+    mime: 'application/pdf',
+    filename: 'Angebot.pdf',
+    base64: fixture('angebot-text.pdf'),
+  },
+  {
+    hash: SCANNED_PDF,
+    mime: 'application/pdf',
+    filename: 'Scan.pdf',
+    base64: fixture('angebot-scan.pdf'),
+  },
+])
 const headers = Object.entries(fake.fakeWhatsAppHeaders()).map(([name, value]) => ({
   name,
   value: { type: 'string', value },
@@ -207,12 +229,13 @@ try {
   await check('the snapshot mirrors what WhatsApp holds into SQLite on OPFS', async () => {
     await poll(
       () => archive({ op: 'stats' }),
-      (v) => v?.messages === 3 && v?.chats === 2,
+      (v) => v?.messages === 5 && v?.chats === 2,
     )
   })
   await check('search finds a word in either German spelling', async () => {
     for (const query of ['München', 'Muenchen']) {
-      const result = await archive({ op: 'search', query, limit: 10 })
+      // Only message text: the same word also turns up in the recognised invoice and the PDF.
+      const result = await archive({ op: 'search', query: `${query} source:body`, limit: 10 })
       if (result.hits.length !== 1) throw new Error(`${query}: ${String(result.hits.length)} hits`)
     }
   })
@@ -228,9 +251,32 @@ try {
   })
   await check('an image is fetched into the OPFS media store', async () => {
     await poll(
-      () => archive({ op: 'blobPath', mediaId: 'ZmFrZS1yZWNobnVuZw==' }),
+      () => archive({ op: 'blobPath', mediaId: IMAGE }),
       (v) => typeof v?.path === 'string',
       60_000,
+    )
+  })
+  const hitMedia = async (query) =>
+    (await archive({ op: 'search', query, limit: 20 })).hits.map((hit) => hit.mediaId)
+  await check('text in a picture is recognised and becomes searchable', async () => {
+    await poll(
+      () => hitMedia('Lieferung source:ocr'),
+      (v) => v.includes(IMAGE),
+      120_000,
+    )
+  })
+  await check('a PDF’s text layer becomes searchable', async () => {
+    await poll(
+      () => hitMedia('Angebot source:pdf'),
+      (v) => v.includes(TEXT_PDF),
+      120_000,
+    )
+  })
+  await check('a scanned PDF page is rendered and recognised', async () => {
+    await poll(
+      () => hitMedia('Gescanntes source:ocr'),
+      (v) => v.includes(SCANNED_PDF),
+      150_000,
     )
   })
   await check('the unread count reaches the toolbar badge', async () => {

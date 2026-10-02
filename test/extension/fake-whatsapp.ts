@@ -21,13 +21,23 @@ export function fakeWhatsAppHeaders(): Record<string, string> {
   }
 }
 
-/** `imageBase64` is the file the fake downloader hands back for the one image message. */
-export function fakeWhatsAppPage(imageBase64: string): string {
+export interface FakeFile {
+  /** WhatsApp's filehash, which becomes the media id. */
+  hash: string
+  mime: string
+  filename?: string
+  caption?: string
+  base64: string
+}
+
+/** Each file is attached to one message in Anna's chat; the fake downloader hands back its bytes. */
+export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
   return `<!doctype html>
 <html lang="de">
 <head><meta charset="utf-8"><title>WhatsApp</title>
 <script nonce="${NONCE}">
 (() => {
+  const files = ${JSON.stringify(files)}
   const collection = (models) => {
     const handlers = new Map()
     return {
@@ -51,17 +61,37 @@ export function fakeWhatsAppPage(imageBase64: string): string {
   const messages = collection([
     { id: key('M1', 'fam@g.us'), t: now - 3600, type: 'chat', body: 'Treffen am Samstag in München?', from: { _serialized: '4915550000001@c.us' } },
     { id: key('M2', 'fam@g.us', true), t: now - 3500, type: 'chat', body: 'Gerne, Grüße an alle!', from: { _serialized: 'me@c.us' } },
-    { id: key('M3', '4915550000001@c.us'), t: now - 600, type: 'image', caption: 'Die Rechnung vom Handwerker',
-      filehash: 'ZmFrZS1yZWNobnVuZw==', mimetype: 'image/png', size: ${Math.floor((imageBase64.length * 3) / 4)},
-      directPath: '/fake/path', mediaKey: 'ZmFrZQ==', mediaKeyTimestamp: now, from: { _serialized: '4915550000001@c.us' } },
+    ...files.map((file, i) => ({
+      id: key('F' + i, '4915550000001@c.us'),
+      t: now - 600 + i,
+      type: file.mime.startsWith('image/') ? 'image' : 'document',
+      caption: file.caption,
+      filename: file.filename,
+      filehash: file.hash,
+      mimetype: file.mime,
+      size: Math.floor((file.base64.length * 3) / 4),
+      directPath: '/fake/' + i,
+      mediaKey: 'ZmFrZQ==',
+      mediaKeyTimestamp: now,
+      from: { _serialized: '4915550000001@c.us' },
+    })),
   ])
 
-  const image = Uint8Array.from(atob('${imageBase64}'), (c) => c.charCodeAt(0))
+  const bytes = Object.fromEntries(
+    files.map((file) => [file.hash, Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0))]),
+  )
   const modules = {
     WAWebChatCollection: { ChatCollection: chats },
     WAWebMsgCollection: { MsgCollection: messages },
     WAWebContactCollection: { ContactCollection: contacts },
-    WAWebDownloadManager: { downloadManager: { downloadAndMaybeDecrypt: async () => image.buffer.slice(0) } },
+    WAWebDownloadManager: {
+      downloadManager: {
+        downloadAndMaybeDecrypt: async (options) => {
+          const message = messages.getModelsArray().find((m) => m.directPath === options.directPath)
+          return bytes[message.filehash].buffer.slice(0)
+        },
+      },
+    },
   }
   window.require = (name) => {
     if (!(name in modules)) throw new Error('Requiring unknown module "' + name + '"')

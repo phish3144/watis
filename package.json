@@ -49,6 +49,8 @@
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.4-build2",
+    "@transcribe/shout": "1.0.7",
+    "@transcribe/transcriber": "3.0.1",
     "better-sqlite3": "13.0.3",
     "electron-log": "5.4.4",
     "electron-store": "11.0.2",
