@@ -1,27 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import Database from 'better-sqlite3'
 import { LATEST_VERSION } from '../../src/workers/archive/schema'
-import { migrate, registerFunctions } from '../../src/workers/archive/db'
+import { migrate, registerFunctions } from '../../src/workers/archive/migrate'
+import type { SqlDatabase } from '../../src/workers/archive/sql'
+import { openArchiveMemory, openMemory } from '../helpers/sql'
 
 /** An in-memory archive at the current schema version. */
-function fresh(): Database.Database {
-  const db = new Database(':memory:')
-  registerFunctions(db)
-  migrate(db)
-  return db
-}
+const fresh = openArchiveMemory
 
-const insertChat = (db: Database.Database, id = 'c1') =>
+const insertChat = (db: SqlDatabase, id = 'c1') =>
   db
     .prepare("INSERT INTO chats (id, jid, name, kind) VALUES (?, ?, ?, 'dm')")
     .run(id, `${id}@s`, id)
 
-const insertMessage = (db: Database.Database, id: string, body: string | null, chat = 'c1') =>
+const insertMessage = (db: SqlDatabase, id: string, body: string | null, chat = 'c1') =>
   db
     .prepare('INSERT INTO messages (id, chat_id, ts, kind, body) VALUES (?, ?, ?, ?, ?)')
     .run(id, chat, 1_700_000_000, 'chat', body)
 
-const search = (db: Database.Database, match: string) =>
+const search = (db: SqlDatabase, match: string) =>
   db
     .prepare(
       `SELECT d.msg_id, d.source FROM search_fts f
@@ -43,7 +39,7 @@ describe('migrations', () => {
 
   it('refuses a database written by a newer build', () => {
     // Carrying on would run today's code against tomorrow's schema.
-    const db = new Database(':memory:')
+    const db = openMemory()
     registerFunctions(db)
     db.pragma(`user_version = ${String(LATEST_VERSION + 1)}`)
     expect(() => migrate(db)).toThrow(/only knows/)

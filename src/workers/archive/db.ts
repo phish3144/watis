@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3'
-import { indexForm } from '@shared/search/normalise'
-import { INDEX_FORM_FUNCTION, LATEST_VERSION, MIGRATIONS } from './schema'
+import { LATEST_VERSION } from './schema'
+import { migrate, registerFunctions } from './migrate'
+
+// Re-exported so the desktop side keeps one import for "open the archive and bring it up to date".
+export { migrate, registerFunctions }
 
 /**
  * Opens the archive database and brings it to the current schema version.
@@ -23,39 +26,6 @@ export function openArchive(file: string): Database.Database {
   registerFunctions(db)
   migrate(db)
   return db
-}
-
-/**
- * The triggers in the schema call this, so it must exist before any migration runs and on every
- * connection that writes. Marked deterministic so SQLite may use it inside a trigger and cache it.
- */
-export function registerFunctions(db: Database.Database): void {
-  db.function(INDEX_FORM_FUNCTION, { deterministic: true }, (text: unknown) =>
-    typeof text === 'string' ? indexForm(text) : null,
-  )
-}
-
-export function migrate(db: Database.Database): number {
-  const current = Number(db.pragma('user_version', { simple: true }))
-  if (current > LATEST_VERSION) {
-    // A newer build has already touched this file. Carrying on would run today's code against
-    // tomorrow's schema, so stop while the data is still intact.
-    throw new Error(
-      `archive schema is version ${String(current)}, but this build only knows ${String(LATEST_VERSION)}`,
-    )
-  }
-
-  for (const migration of MIGRATIONS) {
-    if (migration.version <= current) continue
-    // Each migration and its version bump land in one transaction: an interrupted upgrade must not
-    // leave a half-migrated database claiming to be finished.
-    db.transaction(() => {
-      db.exec(migration.sql)
-      db.pragma(`user_version = ${String(migration.version)}`)
-    })()
-  }
-
-  return Number(db.pragma('user_version', { simple: true }))
 }
 
 /**

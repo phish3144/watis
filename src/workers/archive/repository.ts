@@ -1,7 +1,7 @@
-import type Database from 'better-sqlite3'
 import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
 import { indexForm } from '@shared/search/normalise'
 import { INDEX_FORM_FUNCTION } from './schema'
+import type { SqlDatabase } from './sql'
 import type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow } from '@shared/model/rows'
 
 // Re-exported because most of this file's callers reach for the row types through the repository,
@@ -37,9 +37,9 @@ export interface SearchHit {
 const bool = (v: boolean | undefined): number => (v ? 1 : 0)
 
 export class ArchiveRepository {
-  readonly #db: Database.Database
+  readonly #db: SqlDatabase
 
-  constructor(db: Database.Database) {
+  constructor(db: SqlDatabase) {
     this.#db = db
   }
 
