@@ -145,7 +145,9 @@ export class MediaFetcher {
       return false
     } catch (error: unknown) {
       this.#stats.failed++
-      this.#stats.lastReason = String(error)
+      // The message, not String(error): the error has usually crossed a few contexts already, and
+      // each String() would put another "Error: " in front of it.
+      this.#stats.lastReason = error instanceof Error ? error.message : String(error)
       await this.#mark(candidate.id, 'failed')
       return false
     }

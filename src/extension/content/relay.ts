@@ -115,7 +115,7 @@ async function fromFrame(message: FromFrame): Promise<void> {
       try {
         reply = { ok: true, value: await runBridge(message.op, message.args) }
       } catch (error) {
-        reply = { ok: false, error: String(error) }
+        reply = { ok: false, error: error instanceof Error ? error.message : String(error) }
       }
       toFrame({ id: message.id, kind: 'reply', reply })
       return
@@ -251,7 +251,10 @@ ext.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
       return respond(
         runBridge(message.op, message.args).then(
           (value): Reply => ({ ok: true, value }),
-          (error: unknown): Reply => ({ ok: false, error: String(error) }),
+          (error: unknown): Reply => ({
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          }),
         ),
       )
     case 'archive':
