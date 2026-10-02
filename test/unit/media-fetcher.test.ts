@@ -40,7 +40,7 @@ describe('MediaFetcher', () => {
   }
 
   const build = (rules?: Record<string, unknown>): InstanceType<typeof MediaFetcher> =>
-    new MediaFetcher({ bridge: bridge as never, archive, rules, betweenFilesMs: 0 })
+    new MediaFetcher({ bridge, archive, rules, betweenFilesMs: 0 })
 
   beforeEach(() => {
     pending = []

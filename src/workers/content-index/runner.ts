@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3'
+import type { SqlDatabase } from '../archive/sql'
 import { classify, type Engine, type Extraction, type ExtractionHint } from './engine'
 import type { IndexQueue, Job } from './queue'
 
@@ -11,7 +11,7 @@ import type { IndexQueue, Job } from './queue'
  */
 
 export interface RunnerDeps {
-  db: Database.Database
+  db: SqlDatabase
   queue: IndexQueue
   /** One engine per source; a source with no engine yields skipped jobs. */
   engines: Partial<Record<Job['kind'], Engine>>

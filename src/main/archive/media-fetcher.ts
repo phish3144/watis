@@ -1,6 +1,6 @@
-import { decideFetch, type FetchRules, type MediaCandidate } from './media-pipeline'
-import type { BridgeHost } from '../bridge/host'
-import { log } from '../logging'
+import { decideFetch, type FetchRules, type MediaCandidate } from './fetch-rules'
+import { unref } from '@shared/timers'
+import type { BridgeCommand } from '../../bridge/protocol'
 
 /**
  * Fetches the attachments the rules say to fetch, and puts them in the blob store (PLAN.md Phase 3).
@@ -18,12 +18,23 @@ const PASS_INTERVAL_MS = 20_000
 const BATCH = 5
 const BETWEEN_FILES_MS = 750
 
+/**
+ * The two things the fetcher needs from a bridge. The desktop passes its BridgeHost; the browser
+ * extension passes a wrapper that reaches the bridge in the WhatsApp tab — the fetcher itself is
+ * the same in both (ADR 0010), which is why it takes no logger or host types from Electron.
+ */
+export interface MediaBridge {
+  readonly ready: boolean
+  send(op: BridgeCommand['op'], args?: Record<string, unknown>): Promise<unknown>
+}
+
 export interface MediaFetcherOptions {
-  bridge: BridgeHost
+  bridge: MediaBridge
   archive: (request: unknown) => Promise<unknown>
   rules?: FetchRules | undefined
   /** Overridable so tests do not have to sit through the pacing. */
   betweenFilesMs?: number | undefined
+  warn?: ((message: string) => void) | undefined
 }
 
 export interface MediaFetcherStats {
@@ -36,7 +47,7 @@ export interface MediaFetcherStats {
 export class MediaFetcher {
   readonly #options: MediaFetcherOptions
   readonly #stats: MediaFetcherStats = { fetched: 0, skipped: 0, failed: 0 }
-  #timer: NodeJS.Timeout | undefined
+  #timer: ReturnType<typeof setInterval> | undefined
   #running = false
 
   constructor(options: MediaFetcherOptions) {
@@ -46,7 +57,7 @@ export class MediaFetcher {
   start(): void {
     if (this.#timer) return
     this.#timer = setInterval(() => void this.pass(), PASS_INTERVAL_MS)
-    this.#timer.unref?.()
+    unref(this.#timer)
   }
 
   stop(): void {
@@ -71,7 +82,7 @@ export class MediaFetcher {
         await delay(this.#options.betweenFilesMs ?? BETWEEN_FILES_MS)
       }
     } catch (error: unknown) {
-      log.warn(`media pass failed: ${String(error)}`)
+      this.#options.warn?.(`media pass failed: ${String(error)}`)
     } finally {
       this.#running = false
     }
@@ -144,13 +155,13 @@ export class MediaFetcher {
     try {
       await this.#options.archive({ op: 'markMedia', mediaId, status })
     } catch (error: unknown) {
-      log.warn(`could not record media status: ${String(error)}`)
+      this.#options.warn?.(`could not record media status: ${String(error)}`)
     }
   }
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms).unref?.()
+    unref(setTimeout(resolve, ms))
   })
 }
