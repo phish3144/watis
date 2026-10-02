@@ -60,6 +60,8 @@ function answer(repo: ArchiveRepository, request: ArchiveRequest): unknown {
       return { names: repo.findChatsAndContacts(request.query, request.limit) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
+    case 'messages':
+      return { messages: repo.messagesByIds(request.ids) }
     case 'senderNames':
       return { names: repo.senderNames(request.jids) }
     case 'saveSyncState':

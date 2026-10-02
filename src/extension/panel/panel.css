@@ -1,1 +1,29 @@
-@import 'tailwindcss';
+/* The desktop panel's palette — light and dark tokens, focus ring — so both shells look like one
+   product. Everything else is the panel's own and lives in its components. */
+@import '../../renderer/src/index.css';
+
+html,
+body,
+#root {
+  overscroll-behavior: none;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The search fields draw their own focus ring on the rounded container and have their own clear
+   button; the browser's square outline and its native ✕ would be a second of each. */
+input[type='search']:focus-visible {
+  outline: none;
+}
+input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}

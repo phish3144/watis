@@ -126,6 +126,7 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   }),
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
   z.object({ op: z.literal('senderNames'), jids: z.array(z.string().min(1)).max(500) }),
+  z.object({ op: z.literal('messages'), ids: z.array(z.string().min(1)).max(200) }),
   z.object({ op: z.literal('stats') }),
   z.object({
     op: z.literal('saveSyncState'),

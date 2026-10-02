@@ -91,7 +91,15 @@ export class ArchiveHost {
   request(payload: unknown): Promise<Reply> {
     if (!this.#worker || !this.#owner)
       return Promise.resolve({ ok: false, error: 'not the archive' })
-    return this.#ask((id) => ({ type: 'request', id, payload }))
+    const reply = this.#ask((id) => ({ type: 'request', id, payload }))
+    // New attachments are fetched promptly rather than on the next timed pass: WhatsApp keeps
+    // media on its servers for a limited time, and soon after arrival is when a fetch is surest
+    // to succeed (ADR 0011).
+    const request = payload as { op?: unknown; media?: unknown[] } | null
+    if (request?.op === 'import' && request.media?.length) {
+      void reply.then(() => this.#fetcher?.pass())
+    }
+    return reply
   }
 
   /** Fetches one attachment now, past the automatic rules — "videos on click" (ADR 0001 §3). */

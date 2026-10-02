@@ -884,6 +884,35 @@ export class ArchiveRepository {
   }
 
   /**
+   * Specific messages by id, for a search result list that shows who wrote what. Bounded by the
+   * page of hits the caller holds; ids that are not in the archive are simply absent.
+   */
+  messagesByIds(ids: readonly string[]): MessageRow[] {
+    const unique = [...new Set(ids)].slice(0, 200)
+    if (unique.length === 0) return []
+    const rows = this.#db
+      .prepare(
+        `SELECT id, chat_id, sender_jid, ts, kind, body, quoted_id, media_id,
+                edited, revoked, from_me
+         FROM messages WHERE id IN (${unique.map(() => '?').join(', ')})`,
+      )
+      .all(...unique) as Record<string, unknown>[]
+    return rows.map((r): MessageRow => ({
+      id: r.id as string,
+      chatId: r.chat_id as string,
+      senderJid: r.sender_jid as string | null,
+      ts: r.ts as number,
+      kind: r.kind as string | null,
+      body: r.body as string | null,
+      quotedId: r.quoted_id as string | null,
+      mediaId: r.media_id as string | null,
+      edited: Boolean(r.edited),
+      revoked: Boolean(r.revoked),
+      fromMe: Boolean(r.from_me),
+    }))
+  }
+
+  /**
    * Display names for senders, so a message list can say "Anna" instead of a phone-number id.
    *
    * Bounded by the caller's page: the list asks for the senders on screen, never for every

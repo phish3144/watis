@@ -179,3 +179,35 @@ test('a WhatsApp notification becomes an extension notification', async () => {
     })
     .toBe(1)
 })
+
+test('the panel finds a message and says which chat it came from', async () => {
+  await panel.reload()
+  await panel.getByRole('searchbox', { name: 'In allen Chats suchen …' }).fill('Fussmatte')
+  const hit = panel.getByRole('listitem').filter({ hasText: 'Fußmatte' })
+  await expect(hit).toContainText('Familie Beispiel')
+  await expect(hit).toContainText('Anna Beispiel')
+})
+
+test('the panel opens a chat from the archive, with sender names instead of numbers', async () => {
+  await panel.getByRole('button', { name: 'Chats', exact: true }).first().click()
+  await panel
+    .getByRole('button', { name: /Familie Beispiel/ })
+    .first()
+    .click()
+  await expect(panel.getByText('Treffen am Samstag in München?')).toBeVisible()
+  await expect(panel.getByText('Anna Beispiel').first()).toBeVisible()
+  await expect(panel.getByText('Gerne, Grüße an alle!')).toBeVisible()
+})
+
+test('a setting changed in the panel reaches WhatsApp’s page', async () => {
+  await panel
+    .getByRole('button', { name: /Einstellungen|Mehr/ })
+    .first()
+    .click()
+  await panel.getByRole('switch', { name: 'Kanäle ausblenden' }).click()
+  await expect
+    .poll(() =>
+      whatsapp.evaluate(() => document.getElementById('watis-ui-layer')?.textContent ?? ''),
+    )
+    .toContain('channels')
+})

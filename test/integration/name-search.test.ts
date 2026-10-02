@@ -82,3 +82,17 @@ describe('sender names for a message list', () => {
     expect(repo.senderNames([])).toEqual({})
   })
 })
+
+describe('messages by id, for a result list', () => {
+  it('returns the messages that exist and skips the ones that do not', () => {
+    repo.upsertChats([{ id: 'c1', name: 'Familie', kind: 'group' }])
+    repo.upsertMessages([
+      { id: 'm1', chatId: 'c1', senderJid: 'a@s', ts: 1, body: 'eins' },
+      { id: 'm2', chatId: 'c1', senderJid: 'b@s', ts: 2, body: 'zwei', fromMe: true },
+    ])
+    const found = repo.messagesByIds(['m2', 'missing', 'm1', 'm2'])
+    expect(found.map((m) => m.id).sort()).toEqual(['m1', 'm2'])
+    expect(found.find((m) => m.id === 'm2')).toMatchObject({ body: 'zwei', fromMe: true })
+    expect(repo.messagesByIds([])).toEqual([])
+  })
+})
