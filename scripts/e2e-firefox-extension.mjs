@@ -68,10 +68,15 @@ const headers = Object.entries(fake.fakeWhatsAppHeaders()).map(([name, value]) =
 }))
 
 const profile = mkdtempSync(join(tmpdir(), 'watis-ff-'))
+const downloads = mkdtempSync(join(tmpdir(), 'watis-ff-downloads-'))
 writeFileSync(
   join(profile, 'user.js'),
   [
     'user_pref("browser.shell.checkDefaultBrowser", false);',
+    // Downloads into a folder of the test's own, without asking.
+    'user_pref("browser.download.folderList", 2);',
+    `user_pref("browser.download.dir", ${JSON.stringify(downloads)});`,
+    'user_pref("browser.download.useDownloadDir", true);',
     'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
     'user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);',
     // MV3 host permissions are granted at install in current Firefox; this makes it certain for a
@@ -316,6 +321,48 @@ try {
       () => evaluate(panel, 'window.__seen'),
       (seen) => Array.isArray(seen) && seen.some((id) => /^\d+:n\d+$/.test(id)),
     )
+  })
+  await check('a ZIP backup lands in the downloads, with the database and the media', async () => {
+    // Firefox has no folder access for extensions; the ZIP is its backup. Driven through the
+    // panel's own buttons, found by their text.
+    const click = (label) =>
+      evaluate(
+        panel,
+        `(() => {
+           const button = [...document.querySelectorAll('button')].find(
+             (b) => b.textContent.trim() === ${JSON.stringify(label)} ||
+               b.getAttribute('aria-label') === ${JSON.stringify(label)})
+           if (!button) throw new Error('no button ' + ${JSON.stringify(label)})
+           button.click()
+           return true
+         })()`,
+      )
+    await click('Einstellungen')
+    await poll(() => click('Als ZIP herunterladen'), Boolean)
+    await poll(
+      () => evaluate(panel, 'document.body.textContent'),
+      (text) => /Im Download-Ordner: watis-sicherung-[\d-]+\.zip · [3-9] Medien/.test(text),
+      60_000,
+    )
+    const file = await evaluate(
+      panel,
+      `browser.downloads.search({ orderBy: ['-startTime'], limit: 1 }).then(([d]) =>
+         d.state === 'complete' ? d.filename : 'state ' + d.state)`,
+    )
+    const zip = readFileSync(file)
+    const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+    const names = []
+    for (let i = 0, at = zip.readUInt32LE(end + 16); i < zip.readUInt16LE(end + 10); i++) {
+      const length = zip.readUInt16LE(at + 28)
+      names.push(zip.subarray(at + 46, at + 46 + length).toString('utf8'))
+      at += 46 + length
+    }
+    for (const name of ['archive.sqlite', 'BACKUP.json']) {
+      if (!names.includes(name)) throw new Error(`${name} missing from ${names.join(', ')}`)
+    }
+    if (names.filter((name) => name.startsWith('blobs/')).length < 3) {
+      throw new Error(`media missing: ${names.join(', ')}`)
+    }
   })
 } finally {
   ws.close()

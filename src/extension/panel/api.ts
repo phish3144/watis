@@ -80,13 +80,13 @@ export async function fetchMedia(mediaId: string): Promise<void> {
   unwrap(await toArchive({ kind: 'fetch-media', mediaId }))
 }
 
-/** Exports the database and hands it to the browser's downloads, into a folder the user picks. */
-export async function downloadBackup(): Promise<string> {
+/**
+ * A consistent copy of the database as an OPFS file, for a backup to take along. The caller
+ * removes it afterwards ({@link removeOpfs}); it is as large as the database.
+ */
+export async function exportDatabaseFile(): Promise<{ file: File; path: string }> {
   const { path } = unwrap(await toArchive({ kind: 'export-database' })) as { path: string }
-  const file = await readOpfs(path)
-  const name = `WatIs/Sicherung/archiv-${dateStamp(new Date())}.sqlite`
-  await saveBlob(file, name, true)
-  return name
+  return { file: await readOpfs(path), path }
 }
 
 // --- the bridge --------------------------------------------------------------------------------
@@ -216,6 +216,19 @@ export async function readOpfs(path: string): Promise<File> {
   let dir = await navigator.storage.getDirectory()
   for (const part of parts) dir = await dir.getDirectoryHandle(part)
   return (await dir.getFileHandle(name)).getFile()
+}
+
+export async function removeOpfs(path: string): Promise<void> {
+  const parts = path.split('/')
+  const name = parts.pop()
+  if (!name) return
+  try {
+    let dir = await navigator.storage.getDirectory()
+    for (const part of parts) dir = await dir.getDirectoryHandle(part)
+    await dir.removeEntry(name)
+  } catch {
+    // Already gone.
+  }
 }
 
 const urls = new Map<string, string>()

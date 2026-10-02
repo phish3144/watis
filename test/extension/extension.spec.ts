@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -23,6 +24,12 @@ const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
 const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
 const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
 const VOICE = 'c3ByYWNobmFjaHJpY2h0'
+/** Where the invoice picture lands in the media store: its SHA-256, sharded. */
+const OPFS_IMAGE_PATH = (() => {
+  const sha = createHash('sha256').update(Buffer.from(fixture('ocr-rechnung.png'), 'base64'))
+  const hex = sha.digest('hex')
+  return `blobs/${hex.slice(0, 2)}/${hex.slice(2, 4)}/${hex}.png`
+})()
 /**
  * A real speech model for the transcription test. It is not in the repository (tens of megabytes);
  * `npm run models:fetch base` puts it here, CI caches it, and without it that one test is skipped.
@@ -304,4 +311,79 @@ test('a voice message is transcribed on a click and becomes searchable', async (
   const transcript = panel.getByRole('figure').filter({ hasText: 'Transkript' })
   await expect(transcript).toContainText(/kitchen/i, { timeout: 180_000 })
   expect(await hitMedia('kitchen source:transcript')).toContain(VOICE)
+})
+
+test('a backup into a folder writes the desktop layout, and the next one only what is new', async () => {
+  await panel.reload()
+  // The folder picker is a native dialog no test can click; an OPFS folder stands in for the
+  // chosen one — the same FileSystemDirectoryHandle interface, permission already granted.
+  await panel.evaluate(() => {
+    ;(window as unknown as { showDirectoryPicker: () => Promise<unknown> }).showDirectoryPicker =
+      async () =>
+        (await navigator.storage.getDirectory()).getDirectoryHandle('test-backup', {
+          create: true,
+        })
+  })
+  await panel
+    .getByRole('button', { name: /Einstellungen|Mehr/ })
+    .first()
+    .click()
+  await panel.getByRole('button', { name: 'Ordner wählen …' }).click()
+  await expect(panel.getByText('„test-backup“ · noch nie gesichert')).toBeVisible()
+  await panel.getByRole('button', { name: 'Jetzt sichern' }).click()
+  await expect(panel.getByText(/Gesichert: [3-9] neue Dateien, 0 waren schon da/)).toBeVisible({
+    timeout: 60_000,
+  })
+
+  const written = await panel.evaluate(async (image) => {
+    const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('test-backup')
+    const read = async (path: string): Promise<File> => {
+      const parts = path.split('/')
+      const name = parts.pop() ?? ''
+      let dir = root
+      for (const part of parts) dir = await dir.getDirectoryHandle(part)
+      return (await dir.getFileHandle(name)).getFile()
+    }
+    const database = await (await read('archive.sqlite')).slice(0, 15).text()
+    const report = JSON.parse(await (await read('BACKUP.json')).text()) as { kind: string }
+    return { database, kind: report.kind, image: (await read(image)).size }
+  }, OPFS_IMAGE_PATH)
+  expect(written).toEqual({
+    database: 'SQLite format 3',
+    kind: 'folder',
+    image: Buffer.from(files[0]?.base64 ?? '', 'base64').length,
+  })
+
+  await panel.getByRole('button', { name: 'Jetzt sichern' }).click()
+  await expect(panel.getByText(/Gesichert: 0 neue Dateien, [3-9] waren schon da/)).toBeVisible({
+    timeout: 60_000,
+  })
+})
+
+test('a ZIP backup lands in the downloads, and the next one carries only new media', async () => {
+  await panel.getByRole('button', { name: 'Als ZIP herunterladen' }).click()
+  await expect(
+    panel.getByText(/Im Download-Ordner: watis-sicherung-[\d-]+\.zip · [3-9] Medien/),
+  ).toBeVisible({ timeout: 60_000 })
+
+  const item = await inExtension(async () => {
+    const [download] = await chrome.downloads.search({ orderBy: ['-startTime'], limit: 1 })
+    return { state: download?.state, file: download?.filename ?? '' }
+  })
+  expect(item.state).toBe('complete')
+  // Read back from disk through its central directory, as an unzip tool would.
+  const zip = readFileSync(item.file)
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+  const names: string[] = []
+  for (let i = 0, at = zip.readUInt32LE(end + 16); i < zip.readUInt16LE(end + 10); i++) {
+    const length = zip.readUInt16LE(at + 28)
+    names.push(zip.subarray(at + 46, at + 46 + length).toString('utf8'))
+    at += 46 + length
+  }
+  expect(names).toEqual(expect.arrayContaining(['archive.sqlite', OPFS_IMAGE_PATH, 'BACKUP.json']))
+
+  await panel.getByRole('button', { name: 'Als ZIP herunterladen' }).click()
+  await expect(
+    panel.getByText(/Im Download-Ordner: watis-sicherung-[\d-]+\.zip · 0 Medien/),
+  ).toBeVisible({ timeout: 60_000 })
 })

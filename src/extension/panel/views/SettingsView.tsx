@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react'
 import type { Settings, SettingsPatch } from '@shared/settings'
-import { downloadBackup, version } from '../api'
+import { version } from '../api'
+import {
+  backupAsZip,
+  backupState,
+  backupToFolder,
+  chooseFolder,
+  folderBackupSupported,
+  savedFolder,
+  type BackupProgress,
+  type BackupState,
+} from '../backup'
 import type { PanelStatus } from '../hooks'
-import { bytes, count } from '../format'
+import { bytes, count, when } from '../format'
 import { DownloadIcon } from '../icons'
 import { t } from '../strings'
 import { Button, Card, Segmented, SettingRow, Spinner, Toggle } from '../ui'
@@ -316,29 +326,12 @@ function ArchiveCard({
   status: PanelStatus
 }): React.JSX.Element {
   const [usage, setUsage] = useState<number | undefined>(undefined)
-  const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     void navigator.storage.estimate().then((estimate) => {
       setUsage(estimate.usage)
     })
   }, [status.stats?.messages])
-
-  const backup = (): void => {
-    setBusy(true)
-    setResult(undefined)
-    downloadBackup()
-      .then((name) => {
-        setResult(t('settings.backup.done', { name }))
-      })
-      .catch((e: unknown) => {
-        setResult(t('common.error', { error: e instanceof Error ? e.message : String(e) }))
-      })
-      .finally(() => {
-        setBusy(false)
-      })
-  }
 
   const stats = status.stats
   return (
@@ -382,13 +375,131 @@ function ArchiveCard({
           </select>
         }
       />
-      <div className="flex flex-wrap items-center gap-2 pt-3">
-        <Button variant="primary" onClick={backup} disabled={busy}>
-          {busy ? <Spinner /> : <DownloadIcon className="h-4 w-4" />}
-          {t('settings.backup')}
-        </Button>
-        {result && <span className="text-xs text-wa-muted">{result}</span>}
-      </div>
+      <BackupRows />
     </Card>
+  )
+}
+
+/**
+ * Getting the archive out of the browser profile (ADR 0011): into a folder of the user's choosing
+ * where the browser allows it, as ZIP downloads everywhere.
+ */
+function BackupRows(): React.JSX.Element {
+  const folderSupported = folderBackupSupported()
+  const [state, setState] = useState<BackupState>({})
+  const [folderName, setFolderName] = useState<string | undefined>(undefined)
+  const [progress, setProgress] = useState<BackupProgress | undefined>(undefined)
+  const [result, setResult] = useState<string | undefined>(undefined)
+  const busy = progress !== undefined
+
+  const refresh = (): void => {
+    void backupState().then(setState)
+    void savedFolder().then((handle) => {
+      setFolderName(handle?.name)
+    })
+  }
+  useEffect(refresh, [])
+
+  const run = (job: () => Promise<string | undefined>): void => {
+    setResult(undefined)
+    setProgress({ files: 0, bytes: 0 })
+    job()
+      .then(setResult)
+      .catch((e: unknown) => {
+        // Closing the folder picker is not an error worth a red line.
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        setResult(t('common.error', { error: e instanceof Error ? e.message : String(e) }))
+      })
+      .finally(() => {
+        setProgress(undefined)
+        refresh()
+      })
+  }
+
+  const choose = (): void => {
+    run(async () => {
+      setFolderName(await chooseFolder())
+      return undefined
+    })
+  }
+  const toFolder = (): void => {
+    run(async () => {
+      const done = await backupToFolder(setProgress)
+      return t('backup.done.folder', { copied: count(done.copied), kept: count(done.kept) })
+    })
+  }
+  const asZip = (full: boolean): void => {
+    run(async () => {
+      const done = await backupAsZip(setProgress, { full })
+      return t('backup.done.zip', {
+        parts: done.parts.map((part) => part.split('/').pop()).join(', '),
+        copied: count(done.copied),
+      })
+    })
+  }
+
+  const last = (at: number): string => when(Math.floor(at / 1000))
+  return (
+    <>
+      {folderSupported && (
+        <SettingRow
+          label={t('backup.folder')}
+          hint={
+            folderName
+              ? state.folder?.name === folderName
+                ? t('backup.folder.last', { name: folderName, when: last(state.folder.at) })
+                : t('backup.folder.never', { name: folderName })
+              : t('backup.folder.none')
+          }
+          control={
+            <Button variant="ghost" onClick={choose} disabled={busy}>
+              {folderName ? t('backup.folder.change') : t('backup.folder.choose')}
+            </Button>
+          }
+        />
+      )}
+      <div className="space-y-2 pt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {folderSupported && (
+            <Button variant="primary" onClick={toFolder} disabled={busy || !folderName}>
+              {busy ? <Spinner /> : <DownloadIcon className="h-4 w-4" />}
+              {t('backup.now')}
+            </Button>
+          )}
+          <Button
+            variant={folderSupported ? 'secondary' : 'primary'}
+            onClick={() => {
+              asZip(false)
+            }}
+            disabled={busy}
+          >
+            {!folderSupported && busy ? <Spinner /> : null}
+            {t('backup.zip')}
+          </Button>
+        </div>
+        <p className="text-xs leading-snug text-wa-muted">
+          {progress
+            ? t('backup.running', { files: count(progress.files), bytes: bytes(progress.bytes) })
+            : (result ??
+              (state.zip
+                ? t('backup.zip.since', { when: last(state.zip.at) })
+                : t('backup.zip.first')))}
+          {!progress && !result && state.zip && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="text-wa-accent hover:underline"
+                onClick={() => {
+                  asZip(true)
+                }}
+              >
+                {t('backup.zip.full')}
+              </button>
+            </>
+          )}
+        </p>
+      </div>
+    </>
   )
 }

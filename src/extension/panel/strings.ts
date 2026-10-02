@@ -115,8 +115,27 @@ const de = {
   'settings.archive': 'Archiv und Sicherung',
   'settings.archive.hint':
     'Das Archiv liegt nur in diesem Browserprofil. Wird die Erweiterung entfernt, ist es weg – eine Sicherung als Datei überlebt das.',
-  'settings.backup': 'Sicherung herunterladen',
-  'settings.backup.done': 'Gesichert: {name}',
+  'backup.folder': 'Sicherungsordner',
+  'backup.folder.none':
+    'Noch keiner gewählt. Gut geeignet: ein Ordner, den OneDrive, Nextcloud oder ein Laufwerk der Firma abgleicht.',
+  'backup.folder.never': '„{name}“ · noch nie gesichert',
+  'backup.folder.last': '„{name}“ · zuletzt {when}',
+  'backup.folder.choose': 'Ordner wählen …',
+  'backup.folder.change': 'Ändern …',
+  'backup.now': 'Jetzt sichern',
+  'backup.zip': 'Als ZIP herunterladen',
+  'backup.zip.first': 'Die ZIP-Sicherung enthält das Archiv und alle Medien.',
+  'backup.zip.since':
+    'Die ZIP-Sicherung enthält das Archiv und die Medien seit der letzten ZIP-Sicherung ({when}).',
+  'backup.zip.full': 'Alle Medien neu',
+  'backup.running': 'Wird gesichert … {files} Dateien, {bytes}',
+  'backup.done.folder': 'Gesichert: {copied} neue Dateien, {kept} waren schon da.',
+  'backup.done.zip': 'Im Download-Ordner: {parts} · {copied} Medien',
+  'backup.error.noFolderAccess':
+    'Dieser Browser erlaubt Erweiterungen keinen Ordnerzugriff – bitte als ZIP sichern.',
+  'backup.error.noFolder': 'Erst einen Sicherungsordner wählen.',
+  'backup.error.permission': 'Ohne Schreibrecht für den Ordner geht es nicht.',
+  'backup.error.download': 'Download abgebrochen: {error}',
   'settings.storage': 'Belegt: {used} von {limit}',
   'settings.quota': 'Speichergrenze',
 
@@ -195,7 +214,7 @@ const de = {
 
   'settings.about': 'Über WatIs?',
   'settings.about.local':
-    'Alles läuft lokal. Keine Telemetrie, keine Cloud, kein Konto. Das Archiv verlässt diesen Rechner nur, wenn du eine Sicherung herunterlädst.',
+    'Alles läuft lokal. Keine Telemetrie, keine Cloud, kein Konto. Das Archiv verlässt diesen Rechner nur über eine Sicherung, die du selbst anstößt – wohin, bestimmst du.',
   'settings.about.notOfficial':
     'Kein offizielles WhatsApp-Produkt, keine Verbindung zu Meta. WhatsApp ist eine Marke von Meta Platforms, Inc.',
   'settings.about.version': 'Version {version}',
