@@ -155,6 +155,15 @@ cpSync(
   join(root, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
   join(ocr, 'pdf.worker.min.mjs'),
 )
+
+// 6. Transcription: whisper.cpp as WASM, its Emscripten glue kept as a file of its own — its threads
+//    start workers from their own URL, which a bundled copy would not have. The model is not in
+//    the package; it is downloaded on a click (src/extension/panel/transcribe.ts).
+mkdirSync(join(stage, 'whisper'), { recursive: true })
+cpSync(
+  join(root, 'node_modules', '@transcribe', 'shout', 'src', 'shout', 'shout.wasm.js'),
+  join(stage, 'whisper', 'shout.wasm.js'),
+)
 writeFileSync(
   join(stage, 'THIRD_PARTY_NOTICES.txt'),
   [
@@ -163,6 +172,7 @@ writeFileSync(
     'SQLite (public domain) and @sqlite.org/sqlite-wasm (Apache-2.0)',
     'tesseract.js and tesseract.js-core (Apache-2.0); Tesseract OCR and its language data (Apache-2.0)',
     'PDF.js / pdfjs-dist (Apache-2.0)',
+    'whisper.cpp (MIT), @transcribe/shout and @transcribe/transcriber (MIT)',
     'React and react-dom (MIT), zod (MIT)',
     '',
     'The Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0',
@@ -170,7 +180,7 @@ writeFileSync(
   ].join('\n'),
 )
 
-// 6. One manifest per browser. Firefox gets a copy of the same files.
+// 7. One manifest per browser. Firefox gets a copy of the same files.
 const { buildManifest } = await importTs('src/extension/manifest.ts')
 const firefox = join(out, 'firefox')
 cpSync(stage, firefox, { recursive: true })
@@ -184,7 +194,7 @@ for (const [browser, dir] of [
   )
 }
 
-// 7. Archives for the stores. No question mark in a file name, ever (CLAUDE.md).
+// 8. Archives for the stores. No question mark in a file name, ever (CLAUDE.md).
 if (pack) {
   zipDirectory(stage, join(out, `watis-${pkg.version}-chromium.zip`))
   zipDirectory(firefox, join(out, `watis-${pkg.version}-firefox.zip`))

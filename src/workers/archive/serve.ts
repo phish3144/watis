@@ -60,6 +60,21 @@ function answer(repo: ArchiveRepository, request: ArchiveRequest): unknown {
       return { names: repo.findChatsAndContacts(request.query, request.limit) }
     case 'chats':
       return { chats: repo.chats(request.limit) }
+    case 'storeTranscript': {
+      // A transcript is a finished job: the queue's own transcript job, if one was waiting for an
+      // engine the queue does not have, is closed with it.
+      repo.storeExtraction(request.mediaId, {
+        source: 'transcript',
+        text: request.text,
+        lines: request.lines,
+        engine: request.engine,
+        engineVersion: request.engineVersion,
+        lang: request.lang,
+      })
+      return { ok: true }
+    }
+    case 'transcript':
+      return { transcript: repo.transcript(request.mediaId) ?? null }
     case 'messages':
       return { messages: repo.messagesByIds(request.ids) }
     case 'senderNames':

@@ -36,6 +36,7 @@ const fixture = (name) => readFileSync(join(root, 'test', 'fixtures', name)).toS
 const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
 const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
 const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
+const VOICE = 'c3ByYWNobmFjaHJpY2h0'
 const page = fake.fakeWhatsAppPage([
   {
     hash: IMAGE,
@@ -54,6 +55,11 @@ const page = fake.fakeWhatsAppPage([
     mime: 'application/pdf',
     filename: 'Scan.pdf',
     base64: fixture('angebot-scan.pdf'),
+  },
+  {
+    hash: VOICE,
+    mime: 'audio/ogg; codecs=opus',
+    base64: fixture('sprachnachricht.ogg'),
   },
 ])
 const headers = Object.entries(fake.fakeWhatsAppHeaders()).map(([name, value]) => ({
@@ -229,7 +235,7 @@ try {
   await check('the snapshot mirrors what WhatsApp holds into SQLite on OPFS', async () => {
     await poll(
       () => archive({ op: 'stats' }),
-      (v) => v?.messages === 5 && v?.chats === 2,
+      (v) => v?.messages === 6 && v?.chats === 2,
     )
   })
   await check('search finds a word in either German spelling', async () => {
@@ -279,6 +285,16 @@ try {
       150_000,
     )
   })
+  // whisper.cpp's threads need SharedArrayBuffer, which only a cross-origin isolated page has, and
+  // Firefox does not isolate extension pages (it ignores the manifest keys Chromium honours). The
+  // panel says so instead of offering a button that cannot work (ADR 0012). The day Firefox
+  // changes this, this line says so, and the transcription test belongs here too.
+  const isolated = await evaluate(panel, 'globalThis.crossOriginIsolated === true')
+  console.log(
+    isolated
+      ? 'note  Firefox now isolates extension pages: transcription could be offered here'
+      : 'note  no transcription in Firefox: extension pages are not cross-origin isolated',
+  )
   await check('the unread count reaches the toolbar badge', async () => {
     await poll(
       () => evaluate(panel, 'browser.action.getBadgeText({})'),

@@ -127,6 +127,28 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('chats'), limit: z.number().int().min(1).max(1000).default(200) }),
   z.object({ op: z.literal('senderNames'), jids: z.array(z.string().min(1)).max(500) }),
   z.object({ op: z.literal('messages'), ids: z.array(z.string().min(1)).max(200) }),
+  /**
+   * A transcript made on demand (ADR 0001 §4) — in the browser by Whisper in the panel, which
+   * then hands the text to the archive. Stored like any extraction, so it is searchable at once.
+   */
+  z.object({
+    op: z.literal('storeTranscript'),
+    mediaId: z.string().min(1),
+    text: z.string().max(1_000_000),
+    lines: z
+      .array(
+        z.object({
+          text: z.string(),
+          startSeconds: z.number().optional(),
+          endSeconds: z.number().optional(),
+        }),
+      )
+      .max(10_000),
+    engine: z.string().min(1).max(100),
+    engineVersion: z.string().max(100),
+    lang: z.string().max(20).optional(),
+  }),
+  z.object({ op: z.literal('transcript'), mediaId: z.string().min(1) }),
   z.object({ op: z.literal('stats') }),
   z.object({
     op: z.literal('saveSyncState'),

@@ -45,7 +45,8 @@
     "build:extension": "node scripts/build-extension.mjs",
     "pack:extension": "node scripts/build-extension.mjs --pack",
     "test:extension": "npm run build:extension && playwright test -c playwright.extension.config.ts",
-    "test:extension:firefox": "npm run build:extension && node scripts/e2e-firefox-extension.mjs"
+    "test:extension:firefox": "npm run build:extension && node scripts/e2e-firefox-extension.mjs",
+    "models:fetch": "node scripts/mirror-whisper-models.mjs"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.4-build2",

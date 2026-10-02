@@ -2,6 +2,8 @@ import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
 import { indexForm } from '@shared/search/normalise'
 import { INDEX_FORM_FUNCTION } from './schema'
 import type { SqlDatabase } from './sql'
+import { storeExtraction } from '../content-index/store'
+import type { Extraction } from '../content-index/engine'
 import type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow } from '@shared/model/rows'
 
 // Re-exported because most of this file's callers reach for the row types through the repository,
@@ -881,6 +883,37 @@ export class ArchiveRepository {
         lastTs: null,
       })),
     ]
+  }
+
+  /** Stores an extraction made outside the index queue — today, a transcript made on demand. */
+  storeExtraction(mediaId: string, extraction: Extraction): void {
+    const now = Math.floor(Date.now() / 1000)
+    storeExtraction(this.#db, mediaId, extraction, now)
+    this.#db
+      .prepare(
+        `UPDATE index_jobs SET status = 'done', last_error = NULL, updated_ts = ?
+         WHERE media_id = ? AND kind = ?`,
+      )
+      .run(now, mediaId, extraction.source)
+  }
+
+  /** The stored transcript of a voice message, with its timed lines, or undefined. */
+  transcript(
+    mediaId: string,
+  ): { text: string; lines: { text: string; startSeconds?: number }[] } | undefined {
+    const row = this.#db
+      .prepare(
+        `SELECT text, detail_json FROM content_text WHERE media_id = ? AND source = 'transcript'`,
+      )
+      .get(mediaId) as { text: string; detail_json: string | null } | undefined
+    if (!row) return undefined
+    let lines: { text: string; startSeconds?: number }[] = []
+    try {
+      lines = (JSON.parse(row.detail_json ?? '{}') as { lines?: typeof lines }).lines ?? []
+    } catch {
+      // A detail that does not parse still leaves the text.
+    }
+    return { text: row.text, lines }
   }
 
   /**

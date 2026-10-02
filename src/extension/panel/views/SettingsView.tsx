@@ -103,7 +103,7 @@ export function SettingsView({
               />
             }
           />
-          <TranscriptionSettings />
+          <TranscriptionSettings settings={settings} patch={patch} />
         </Card>
 
         <Card title={t('settings.notifications')}>

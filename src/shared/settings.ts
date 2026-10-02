@@ -7,6 +7,21 @@ import { z } from 'zod'
  * against this schema in main. An invalid patch is dropped and logged rather than applied.
  */
 
+/** whisper.cpp's language codes, the ones a German-speaking user is likeliest to receive. */
+export const TRANSCRIPTION_LANGUAGES = [
+  'de',
+  'auto',
+  'en',
+  'tr',
+  'pl',
+  'ru',
+  'uk',
+  'ar',
+  'it',
+  'es',
+  'fr',
+] as const
+
 export const settingsSchema = z.object({
   // --- Fenster und Tray -------------------------------------------------
   closeToTray: z.boolean(),
@@ -111,6 +126,14 @@ export const settingsSchema = z.object({
   archiveVoice: z.boolean(),
   /** Videos up to this size are fetched automatically; 0 keeps them on request only. */
   archiveVideoMaxMb: z.number().int().min(0).max(100),
+
+  // --- Transkription (ADR 0001 §4, ADR 0012) --------------------------------
+  /**
+   * The language voice messages are in. German by default, because naming it halves the work:
+   * "auto" makes whisper.cpp run its encoder once to guess the language and once more to
+   * transcribe, and the encoder is nearly all of the time a short message takes.
+   */
+  transcriptionLanguage: z.enum(TRANSCRIPTION_LANGUAGES),
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -167,6 +190,8 @@ export const defaultSettings: Settings = {
   archiveDocuments: true,
   archiveVoice: false,
   archiveVideoMaxMb: 0,
+
+  transcriptionLanguage: 'de',
 }
 
 /** Merges a stored object with the defaults, dropping anything that does not validate. */

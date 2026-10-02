@@ -13,6 +13,16 @@ export type Browser = 'chromium' | 'firefox'
 
 const WHATSAPP = 'https://web.whatsapp.com/*'
 
+/**
+ * Asked for only when somebody clicks to download a speech model, which a GitHub release serves
+ * from these hosts after a redirect (CLAUDE.md: model downloads only after an explicit action).
+ */
+export const MODEL_DOWNLOAD_ORIGINS = [
+  'https://github.com/*',
+  'https://objects.githubusercontent.com/*',
+  'https://release-assets.githubusercontent.com/*',
+]
+
 /** Firefox add-on id. A stable id is what keeps OPFS, settings and the archive across updates. */
 export const GECKO_ID = 'watis@phish3144.github.io'
 
@@ -42,6 +52,7 @@ export function buildManifest(browser: Browser, version: string): Record<string,
       ...(browser === 'chromium' ? ['sidePanel'] : []),
     ],
     host_permissions: [WHATSAPP],
+    optional_host_permissions: MODEL_DOWNLOAD_ORIGINS,
     content_scripts: [
       {
         // Before WhatsApp's bundle runs: it captures window.Notification while it evaluates.

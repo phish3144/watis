@@ -1,5 +1,6 @@
 import type { SqlDatabase } from '../archive/sql'
 import { classify, type Engine, type Extraction, type ExtractionHint } from './engine'
+import { storeExtraction } from './store'
 import type { IndexQueue, Job } from './queue'
 
 /**
@@ -152,48 +153,7 @@ export class IndexRunner {
     )
   }
 
-  /**
-   * Writes the extraction, replacing any previous result for this media and source. Replacing is
-   * what makes "re-index with the newer engine" leave the other sources alone (§5.4).
-   */
   #store(job: Job, extraction: Extraction, now: number): void {
-    const msgId = (
-      this.#deps.db.prepare('SELECT msg_id FROM media WHERE id = ?').get(job.mediaId) as
-        { msg_id: string | null } | undefined
-    )?.msg_id
-
-    this.#deps.db.transaction(() => {
-      this.#deps.db
-        .prepare('DELETE FROM content_text WHERE media_id = ? AND source = ?')
-        .run(job.mediaId, extraction.source)
-
-      // An extraction with no text is still a result: it records that the file was looked at, with
-      // which engine, so a re-index with a better one can be told apart from never having tried.
-      this.#deps.db
-        .prepare(
-          `INSERT INTO content_text
-             (msg_id, media_id, source, text, detail_json, engine, engine_version, lang, confidence, created_ts)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          msgId ?? null,
-          job.mediaId,
-          extraction.source,
-          extraction.text,
-          // scannedPages goes in beside the lines: the chained OCR job reads it back to learn
-          // which pages to render, rather than every engine going to the database for itself.
-          JSON.stringify({
-            lines: extraction.lines,
-            ...('scannedPages' in extraction
-              ? { scannedPages: (extraction as { scannedPages?: number[] }).scannedPages }
-              : {}),
-          }),
-          extraction.engine,
-          extraction.engineVersion,
-          extraction.lang ?? null,
-          extraction.confidence ?? null,
-          now,
-        )
-    })()
+    storeExtraction(this.#deps.db, job.mediaId, extraction, now)
   }
 }

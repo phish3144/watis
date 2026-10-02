@@ -64,7 +64,7 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
     ...files.map((file, i) => ({
       id: key('F' + i, '4915550000001@c.us'),
       t: now - 600 + i,
-      type: file.mime.startsWith('image/') ? 'image' : 'document',
+      type: file.mime.startsWith('image/') ? 'image' : file.mime.startsWith('audio/') ? 'ptt' : 'document',
       caption: file.caption,
       filename: file.filename,
       filehash: file.hash,

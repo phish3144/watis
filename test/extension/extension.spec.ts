@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
@@ -22,6 +22,13 @@ const fixture = (name: string): string =>
 const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
 const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
 const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
+const VOICE = 'c3ByYWNobmFjaHJpY2h0'
+/**
+ * A real speech model for the transcription test. It is not in the repository (tens of megabytes);
+ * `npm run models:fetch base` puts it here, CI caches it, and without it that one test is skipped.
+ */
+const WHISPER_MODEL =
+  process.env.WATIS_WHISPER_MODEL ?? join(root, '.cache', 'whisper', 'ggml-base-q5_1.bin')
 const files: FakeFile[] = [
   {
     hash: IMAGE,
@@ -40,6 +47,12 @@ const files: FakeFile[] = [
     mime: 'application/pdf',
     filename: 'Scan.pdf',
     base64: fixture('angebot-scan.pdf'),
+  },
+  {
+    // Synthesised speech saying invented sentences (scripts/make-voice-fixture.mjs).
+    hash: VOICE,
+    mime: 'audio/ogg; codecs=opus',
+    base64: fixture('sprachnachricht.ogg'),
   },
 ]
 
@@ -124,7 +137,7 @@ test('the archive opens inside the WhatsApp tab, despite its COEP', async () => 
 test('the snapshot mirrors what WhatsApp holds into SQLite on OPFS', async () => {
   await expect
     .poll(() => archive<{ messages: number; chats: number }>({ op: 'stats' }), { timeout: 30_000 })
-    .toMatchObject({ messages: 5, chats: 2 })
+    .toMatchObject({ messages: 6, chats: 2 })
 })
 
 test('search finds a word in either German spelling', async () => {
@@ -263,4 +276,32 @@ test('a scanned PDF page is rendered and recognised', async () => {
   await expect
     .poll(() => hitMedia('Gescanntes source:ocr'), { timeout: 120_000 })
     .toContain(SCANNED_PDF)
+})
+
+test('a voice message is transcribed on a click and becomes searchable', async () => {
+  test.skip(!existsSync(WHISPER_MODEL), `no speech model at ${WHISPER_MODEL}`)
+  test.setTimeout(240_000)
+
+  // The model comes from a file here — the path for networks where GitHub is blocked. It is held
+  // to the same checksum a download is.
+  await panel.reload()
+  await panel
+    .getByRole('button', { name: /Einstellungen|Mehr/ })
+    .first()
+    .click()
+  await panel.getByLabel('Modell aus einer Datei').setInputFiles(WHISPER_MODEL)
+  await expect(panel.getByText('Modell übernommen.')).toBeVisible({ timeout: 60_000 })
+  await expect(panel.getByText('Bereit', { exact: true })).toBeVisible()
+  // The fixture speaks English; German is the default.
+  await panel.getByLabel('Sprache der Sprachnachrichten').selectOption('en')
+
+  // Voice messages are not fetched automatically by default; this one is fetched by hand.
+  await panel.getByRole('button', { name: 'Medien', exact: true }).first().click()
+  await panel.getByRole('tab', { name: 'Sprache' }).click()
+  await panel.getByRole('button', { name: 'Laden', exact: true }).first().click()
+  await panel.getByRole('button', { name: 'Transkribieren' }).click()
+
+  const transcript = panel.getByRole('figure').filter({ hasText: 'Transkript' })
+  await expect(transcript).toContainText(/kitchen/i, { timeout: 180_000 })
+  expect(await hitMedia('kitchen source:transcript')).toContain(VOICE)
 })

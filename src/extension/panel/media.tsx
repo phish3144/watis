@@ -5,6 +5,7 @@ import { archive, blobUrl, fetchMedia, saveMedia } from './api'
 import { bytes } from './format'
 import { DownloadIcon, FileIcon, ImageIcon, MicIcon, VideoIcon } from './icons'
 import { t } from './strings'
+import { transcribe, transcriptionSupported } from './transcribe'
 import { Spinner } from './ui'
 
 /**
@@ -119,10 +120,11 @@ export function Attachment({
       </div>
     )
   }
-  if (url && kind === 'audio') {
+  if (url && kind === 'audio' && path) {
     return (
-      <div ref={ref}>
+      <div ref={ref} className="space-y-1.5">
         <audio src={url} controls className="w-full" preload="metadata" />
+        <Transcript mediaId={mediaId} path={path} />
       </div>
     )
   }
@@ -169,6 +171,83 @@ export function Attachment({
           {fetching ? t('media.fetching') : t('media.fetch')}
         </button>
       )}
+    </div>
+  )
+}
+
+/**
+ * What was said in a voice message: the stored transcript, or the button that makes one. The text
+ * goes into the archive, so the search finds it from then on (`source:transcript`).
+ */
+function Transcript({
+  mediaId,
+  path,
+}: {
+  mediaId: string
+  path: string
+}): React.JSX.Element | null {
+  const [text, setText] = useState<string | null | undefined>(undefined)
+  const [percent, setPercent] = useState<number | undefined>(undefined)
+  const [error, setError] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    let alive = true
+    archive<{ transcript: { text: string } | null }>({ op: 'transcript', mediaId }).then(
+      (r) => {
+        if (alive) setText(r.transcript?.text ?? null)
+      },
+      () => {
+        if (alive) setText(null)
+      },
+    )
+    return () => {
+      alive = false
+    }
+  }, [mediaId])
+
+  const start = (): void => {
+    setError(undefined)
+    setPercent(0)
+    transcribe(mediaId, path, setPercent)
+      .then(setText)
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => {
+        setPercent(undefined)
+      })
+  }
+
+  if (text !== undefined && text !== null) {
+    return (
+      <figure className="rounded-xl bg-wa-raised/70 px-3 py-2">
+        <figcaption className="text-[11px] font-medium text-wa-muted">
+          {t('media.transcript')}
+        </figcaption>
+        <p className="mt-0.5 whitespace-pre-line text-[13px] leading-snug">
+          {text === '' ? t('media.transcript.empty') : text}
+        </p>
+      </figure>
+    )
+  }
+  if (text === undefined || !transcriptionSupported()) return null
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={start}
+        disabled={percent !== undefined}
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-wa-accent hover:bg-wa-accent-soft disabled:opacity-60"
+      >
+        {percent !== undefined ? <Spinner /> : <MicIcon className="h-4 w-4" />}
+        {percent === undefined
+          ? t('media.transcribe')
+          : // A short message is one segment: whisper.cpp reports 0 and then 100, nothing between.
+            percent > 0
+            ? t('media.transcribing.percent', { percent: Math.round(percent) })
+            : t('media.transcribing')}
+      </button>
+      {error && <span className="text-[11px] text-wa-danger">{error}</span>}
     </div>
   )
 }
