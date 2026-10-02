@@ -9,6 +9,7 @@ import type { BridgeCommand } from '../../bridge/protocol'
 import { ext, sendToTab, whatsappTabs } from '../ext'
 import { ArchiveHost } from '../host/archive-host'
 import { SETTINGS_KEY, STATUS, type ExtensionStatus, type Reply } from '../protocol'
+import { t } from './strings'
 
 /**
  * The panel's only door to everything else (ADR 0010).
@@ -78,6 +79,17 @@ export async function archive<T>(request: Record<string, unknown>): Promise<T> {
 
 export async function fetchMedia(mediaId: string): Promise<void> {
   unwrap(await toArchive({ kind: 'fetch-media', mediaId }))
+}
+
+/**
+ * Transcribes a voice message in the WhatsApp tab (Firefox, ADR 0012). The tab has to be open: it
+ * holds the only page Firefox lets whisper.cpp run in.
+ */
+export async function transcribeInTab(mediaId: string, path: string): Promise<string> {
+  const [tab] = await whatsappTabs()
+  if (tab?.id === undefined) throw new Error(t('transcription.needTab'))
+  const reply = await sendToTab<Reply>(tab.id, { kind: 'transcribe', mediaId, path })
+  return unwrap(reply ?? { ok: false, error: 'Der WhatsApp-Tab antwortet nicht.' }) as string
 }
 
 /**

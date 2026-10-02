@@ -24,6 +24,7 @@ export type ToFrame =
   | { id: number; kind: 'archive'; request: unknown }
   | { id: number; kind: 'fetch-media'; mediaId: string }
   | { id: number; kind: 'export-database' }
+  | { id: number; kind: 'transcribe'; mediaId: string; path: string }
   | { kind: 'bridge-state'; ok: boolean }
   /** The answer to a bridge command the frame asked for. */
   | { id: number; kind: 'reply'; reply: Reply }

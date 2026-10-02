@@ -260,6 +260,14 @@ ext.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
       return respond(askFrame((id) => ({ id, kind: 'fetch-media', mediaId: message.mediaId })))
     case 'export-database':
       return respond(askFrame((id) => ({ id, kind: 'export-database' }), 300_000))
+    case 'transcribe':
+      // A long voice message on a slow machine takes minutes; the frame answers when it is done.
+      return respond(
+        askFrame(
+          (id) => ({ id, kind: 'transcribe', mediaId: message.mediaId, path: message.path }),
+          30 * 60_000,
+        ),
+      )
     case 'notify-event':
       document.dispatchEvent(
         new CustomEvent('watis:notify-event', {

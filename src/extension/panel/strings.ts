@@ -157,7 +157,7 @@ const de = {
   'settings.index.transcription.hint':
     'Auf Klick an einer Sprachnachricht. Braucht einmalig ein Sprachmodell, das du hier herunterlädst.',
   'transcription.unsupported':
-    'Geht in diesem Browser noch nicht: Firefox gibt Erweiterungen den geteilten Speicher nicht frei, den Whisper braucht. In Chrome und Edge geht es.',
+    'Geht in diesem Browser nicht: Whisper braucht geteilten Speicher, den er Erweiterungen nicht gibt. In Chrome, Edge und Firefox geht es.',
   'transcription.model.base': 'Schnell',
   'transcription.model.base.hint': 'Für klare Aufnahmen · {size}',
   'transcription.model.small': 'Genau',
@@ -186,6 +186,8 @@ const de = {
     'Falls GitHub im Firmennetz gesperrt ist: dieselbe Datei von woanders, geprüft gegen dieselbe Prüfsumme.',
   'transcription.imported': 'Modell übernommen.',
   'transcription.needModel': 'Erst unter Einstellungen ein Sprachmodell laden.',
+  'transcription.needTab': 'In Firefox transkribiert der WhatsApp-Tab – bitte WhatsApp Web öffnen.',
+  'transcription.firefox': 'In Firefox rechnet der WhatsApp-Tab – er muss dafür offen sein.',
   'transcription.error.permission': 'Ohne Erlaubnis für den Download von GitHub geht es nicht.',
   'transcription.error.download': 'Download fehlgeschlagen ({status}).',
   'transcription.error.storage': 'Kein Speicherplatz für das Modell verfügbar.',

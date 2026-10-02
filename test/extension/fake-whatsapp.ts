@@ -2,8 +2,8 @@
  * A stand-in for web.whatsapp.com, for testing the browser extension without an account.
  *
  * It is served at the real URL (Playwright routes the request), with the real page's security
- * headers — the nonce CSP and `Cross-Origin-Embedder-Policy: require-corp` — because those are the
- * two things that decide whether the extension works at all (docs/extension-spike.md). Behind
+ * headers — the nonce CSP and the isolation headers, per browser as WhatsApp sends them — because
+ * those decide whether the extension works at all (docs/extension-spike.md). Behind
  * `window.require` sit Backbone-like collections shaped the way the bridge's signatures expect.
  *
  * Every name, number and message here is invented (CLAUDE.md: no real data in the repository).
@@ -11,13 +11,27 @@
 
 export const NONCE = 'watisE2E'
 
-export function fakeWhatsAppHeaders(): Record<string, string> {
+/**
+ * The headers web.whatsapp.com answers with, which differ by browser — measured on 2026-10-02 with
+ * a real Chromium 141 and a real Firefox 157 (a plain `curl` with either user agent gets neither
+ * set). They decide where the extension can run what: Firefox gets `same-origin` and so a
+ * cross-origin isolated page and archive frame, which is where whisper.cpp runs there (ADR 0012);
+ * Chromium gets `same-origin-allow-popups` and a Document-Isolation-Policy instead.
+ */
+export function fakeWhatsAppHeaders(
+  browser: 'chromium' | 'firefox' = 'chromium',
+): Record<string, string> {
   return {
     'content-type': 'text/html; charset=utf-8',
     'content-security-policy': `default-src 'self' blob: 'wasm-unsafe-eval'; script-src blob: 'self' 'nonce-${NONCE}' 'wasm-unsafe-eval'; style-src data: blob: 'self' 'unsafe-inline'; img-src data: blob: 'self'; frame-ancestors https://*.whatsapp.com`,
     'cross-origin-embedder-policy': 'require-corp',
-    'cross-origin-opener-policy': 'same-origin-allow-popups',
     'cross-origin-resource-policy': 'cross-origin',
+    ...(browser === 'firefox'
+      ? { 'cross-origin-opener-policy': 'same-origin' }
+      : {
+          'cross-origin-opener-policy': 'same-origin-allow-popups',
+          'document-isolation-policy': 'isolate-and-require-corp',
+        }),
   }
 }
 

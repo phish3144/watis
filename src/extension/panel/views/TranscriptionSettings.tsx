@@ -8,6 +8,7 @@ import {
   importModel,
   installedModels,
   MODELS,
+  transcriptionNeedsTab,
   transcriptionSupported,
   type ModelKey,
 } from '../transcribe'
@@ -80,7 +81,13 @@ export function TranscriptionSettings({
     <>
       <SettingRow
         label={t('settings.index.transcription')}
-        hint={supported ? t('settings.index.transcription.hint') : t('transcription.unsupported')}
+        hint={
+          !supported
+            ? t('transcription.unsupported')
+            : transcriptionNeedsTab()
+              ? `${t('settings.index.transcription.hint')} ${t('transcription.firefox')}`
+              : t('settings.index.transcription.hint')
+        }
         control={null}
       />
       {supported &&

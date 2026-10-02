@@ -12,13 +12,17 @@
 // sets it.
 
 import { spawn } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
-import { join, resolve, dirname } from 'node:path'
+import { basename, join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+// The same model the Chromium test uses; `npm run models:fetch base` puts it there.
+const whisperModel =
+  process.env.WATIS_WHISPER_MODEL ?? join(root, '.cache', 'whisper', 'ggml-base-q5_1.bin')
 const firefoxBinary = process.env.FIREFOX
 if (!firefoxBinary) {
   console.log('skip  FIREFOX is not set; the Firefox extension check did not run')
@@ -62,7 +66,7 @@ const page = fake.fakeWhatsAppPage([
     base64: fixture('sprachnachricht.ogg'),
   },
 ])
-const headers = Object.entries(fake.fakeWhatsAppHeaders()).map(([name, value]) => ({
+const headers = Object.entries(fake.fakeWhatsAppHeaders('firefox')).map(([name, value]) => ({
   name,
   value: { type: 'string', value },
 }))
@@ -290,16 +294,6 @@ try {
       150_000,
     )
   })
-  // whisper.cpp's threads need SharedArrayBuffer, which only a cross-origin isolated page has, and
-  // Firefox does not isolate extension pages (it ignores the manifest keys Chromium honours). The
-  // panel says so instead of offering a button that cannot work (ADR 0012). The day Firefox
-  // changes this, this line says so, and the transcription test belongs here too.
-  const isolated = await evaluate(panel, 'globalThis.crossOriginIsolated === true')
-  console.log(
-    isolated
-      ? 'note  Firefox now isolates extension pages: transcription could be offered here'
-      : 'note  no transcription in Firefox: extension pages are not cross-origin isolated',
-  )
   await check('the unread count reaches the toolbar badge', async () => {
     await poll(
       () => evaluate(panel, 'browser.action.getBadgeText({})'),
@@ -364,6 +358,67 @@ try {
       throw new Error(`media missing: ${names.join(', ')}`)
     }
   })
+  // whisper.cpp needs a cross-origin isolated page. Firefox does not isolate its extension pages,
+  // but it does isolate the archive frame in the WhatsApp tab, so that is where it runs (ADR 0012).
+  if (existsSync(whisperModel)) {
+    await check(
+      'a voice message is transcribed in the WhatsApp tab and becomes searchable',
+      async () => {
+        // Firefox refuses `input.setFiles` in extension pages, so the file input cannot be driven
+        // from here (Chromium's test covers it). The model is served from a local server instead and
+        // put where an import would put it.
+        const server = createServer((request, response) => {
+          response.writeHead(200, {
+            'content-type': 'application/octet-stream',
+            'access-control-allow-origin': '*',
+          })
+          createReadStream(whisperModel).pipe(response)
+        })
+        await new Promise((ready) => server.listen(0, '127.0.0.1', ready))
+        try {
+          const url = `http://127.0.0.1:${String(server.address().port)}/model.bin`
+          await evaluate(
+            panel,
+            `fetch(${JSON.stringify(url)}).then((r) => r.blob()).then(async (blob) => {
+             const root = await navigator.storage.getDirectory()
+             const dir = await root.getDirectoryHandle('models', { create: true })
+             const file = await dir.getFileHandle(${JSON.stringify(basename(whisperModel))}, { create: true })
+             const out = await file.createWritable()
+             await out.write(blob)
+             await out.close()
+             return blob.size
+           })`,
+          )
+        } finally {
+          server.close()
+        }
+        // The fixture speaks English; German is the default.
+        await evaluate(
+          panel,
+          `browser.storage.local.get('watis:settings').then((s) =>
+           browser.storage.local.set({ 'watis:settings': { ...s['watis:settings'], transcriptionLanguage: 'en' } }))`,
+        )
+        const toTab = (message) =>
+          evaluate(
+            panel,
+            `browser.tabs.query({ url: 'https://web.whatsapp.com/*' }).then(([tab]) =>
+             browser.tabs.sendMessage(tab.id, ${JSON.stringify(message)})
+           ).then((reply) => {
+             if (!reply.ok) throw new Error(reply.error)
+             return reply.value
+           })`,
+          )
+        await toTab({ kind: 'fetch-media', mediaId: VOICE })
+        const { path } = await archive({ op: 'blobPath', mediaId: VOICE })
+        const text = await toTab({ kind: 'transcribe', mediaId: VOICE, path })
+        if (!/kitchen/i.test(text)) throw new Error(`transcript: ${JSON.stringify(text)}`)
+        const hits = await hitMedia('kitchen source:transcript')
+        if (!hits.includes(VOICE)) throw new Error('the transcript is not searchable')
+      },
+    )
+  } else {
+    console.log(`skip  no speech model at ${whisperModel}; the transcription check did not run`)
+  }
 } finally {
   ws.close()
   firefox.kill()

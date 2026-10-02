@@ -2,6 +2,7 @@ import type { BridgeCommand } from '../../bridge/protocol'
 import { ext } from '../ext'
 import type { Reply } from '../protocol'
 import { ArchiveHost } from './archive-host'
+import { transcribeHere } from '../whisper'
 import { CONNECT, frameTokenKey, type FromFrame, type ToFrame } from './frame-link'
 
 /**
@@ -42,6 +43,28 @@ const host = new ArchiveHost({
   },
 })
 
+/**
+ * whisper.cpp, run here for Firefox: its extension pages are not cross-origin isolated, this frame
+ * is, and whisper.cpp's threads need that (ADR 0012). The result goes straight into the archive
+ * this frame holds.
+ */
+async function transcribe(mediaId: string, path: string): Promise<Reply> {
+  try {
+    const text = await transcribeHere(
+      mediaId,
+      path,
+      () => undefined,
+      async (transcript) => {
+        const stored = await host.request(transcript)
+        if (!stored.ok) throw new Error(stored.error)
+      },
+    )
+    return { ok: true, value: text }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
 async function answer(message: ToFrame): Promise<void> {
   switch (message.kind) {
     case 'archive':
@@ -52,6 +75,13 @@ async function answer(message: ToFrame): Promise<void> {
       return
     case 'export-database':
       send({ id: message.id, kind: 'reply', reply: await host.exportDatabase() })
+      return
+    case 'transcribe':
+      send({
+        id: message.id,
+        kind: 'reply',
+        reply: await transcribe(message.mediaId, message.path),
+      })
       return
     case 'bridge-state':
       host.setBridgeReady(message.ok)
