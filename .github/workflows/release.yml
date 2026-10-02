@@ -112,6 +112,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The browser extension rides along on every release, under names that never change, so the
+      # landing page can link /releases/latest/download/ to it (ADR 0010). The stores take the same
+      # files once there are listings.
+      - name: Attach the browser extension
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm run pack:extension
+          version="$(node -p 'require("./package.json").version')"
+          cp "out/extension/watis-$version-chromium.zip" WatIs-Browser-Chrome-Edge.zip
+          cp "out/extension/watis-$version-firefox.zip" WatIs-Browser-Firefox.zip
+          gh release upload "v$version" --clobber WatIs-Browser-Chrome-Edge.zip WatIs-Browser-Firefox.zip
+
       # latest-linux.yml is what an installed AppImage reads to decide whether to update. A release
       # without it updates nobody, silently — the same failure the Windows gate exists for.
       - name: Verify the Linux release carries what a user actually needs
@@ -125,7 +140,7 @@ jobs:
           have="$(gh release view "$tag" --json assets --jq '.assets[].name' | sort)"
           echo "$have"
           missing=""
-          for want in WatIs-x86_64.AppImage latest-linux.yml; do
+          for want in WatIs-x86_64.AppImage latest-linux.yml WatIs-Browser-Chrome-Edge.zip WatIs-Browser-Firefox.zip; do
             grep -qx "$want" <<<"$have" || missing="$missing $want"
           done
           if [ -n "$missing" ]; then
@@ -138,7 +153,7 @@ jobs:
             echo "::error::latest-linux.yml on $tag says $got, expected $version"
             exit 1
           fi
-          echo "ok: $tag carries the AppImage and latest-linux.yml says $version"
+          echo "ok: $tag carries the AppImage, the browser extension, and latest-linux.yml says $version"
 
   release-windows:
     name: Publish Windows release (unsigned)

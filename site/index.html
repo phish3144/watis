@@ -193,6 +193,26 @@
     }
   }
 
+  /* The browser card sits under the two programs, across the full width: it is a third way in,
+     not a third operating system. */
+  .platform.platform-wide {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .platform-wide .download-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
+
+  @media (max-width: 46rem) {
+    .platform-wide .download-meta {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .platform-name {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.75rem;
@@ -466,7 +486,9 @@
     font-size: 0.875rem;
   }
 
-  footer a {
+  footer a,
+  .spec-value a,
+  .steps a {
     color: var(--teal-ink);
   }
 
@@ -505,7 +527,7 @@
       </span>
       <div>
         <div class="wordmark">WatIs?</div>
-        <div class="eyebrow">Desktop-Client für WhatsApp Web · Windows und Linux</div>
+        <div class="eyebrow">Für WhatsApp Web · Windows, Linux und im Browser</div>
       </div>
     </div>
 
@@ -516,6 +538,11 @@
       Start mitschreibt und auch Text in Bildern und PDFs findet. Dazu Tray mit echtem Zähler,
       Benachrichtigungen, die den richtigen Chat öffnen, Dateien ohne Dialog im richtigen Ordner.
       Installation ohne Adminrechte. Alles bleibt auf deinem Rechner.
+    </p>
+    <p class="standfirst">
+      <strong>Neu: auch als Erweiterung für Chrome, Edge und Firefox</strong> — für alle, die auf
+      ihrem Rechner nichts installieren dürfen oder ohnehin nur im Browser arbeiten. Dasselbe Archiv,
+      dieselbe Suche, dazu Texterkennung und Sprachnachrichten zum Nachlesen.
     </p>
   </div>
 </header>
@@ -623,6 +650,45 @@
         </div>
       </dl>
     </div>
+
+    <div class="platform platform-wide" id="browser">
+      <div class="platform-name">Im Browser · Chrome, Edge, Firefox</div>
+      <div class="download-action">
+        <a class="btn" href="#im-browser">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+          </svg>
+          So kommt es in den Browser
+        </a>
+      </div>
+      <dl class="download-meta">
+        <div class="meta-row">
+          <dt>Läuft in</dt>
+          <dd>web.whatsapp.com, als Erweiterung daneben</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Deine Daten</dt>
+          <dd>im Browserprofil, privater Speicher der Erweiterung</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Adminrechte</dt>
+          <dd>keine, nichts wird auf dem Rechner installiert</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Stores</dt>
+          <dd>noch nicht — vorerst von Hand geladen</dd>
+        </div>
+      </dl>
+    </div>
   </div>
 
   <p class="download-foot">
@@ -663,7 +729,18 @@
         <div class="spec-value">
           Texterkennung und PDF-Text laufen mit und werden mitdurchsucht, sodass auch der
           abfotografierte Zettel und die angehängte Rechnung auffindbar sind. Beides
-          <strong>lokal</strong>, nur im Leerlauf und am Netzstrom, über den Tray pausierbar.
+          <strong>lokal</strong>, nur im Leerlauf und am Netzstrom, über den Tray pausierbar. Im
+          Browser genauso, auch für eingescannte PDFs.
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Sprachnachrichten</div>
+        <div class="spec-value">
+          <strong>Im Browser</strong> wird eine Sprachnachricht auf Klick zu Text, mit whisper.cpp
+          auf deinem Rechner, und ist danach durchsuchbar wie jede andere Nachricht. Das Sprachmodell
+          wird einmalig geladen (57 oder 181 MB), nur wenn du es willst, und vor dem ersten Einsatz
+          gegen eine Prüfsumme geprüft. Ist GitHub im Firmennetz gesperrt, geht dieselbe Datei auch
+          von der Platte. In der Desktop-App gibt es das noch nicht.
         </div>
       </div>
       <div class="spec-row">
@@ -720,7 +797,10 @@
         <div class="spec-value">
           Jeder Chat als JSON, HTML oder TXT. Eine Sicherung nimmt Datenbank und Medien mit und legt
           einen <strong>Bericht dazu, was nicht drin ist</strong> — zeitgesteuert in einen Ordner,
-          den restic oder rsync abholen kann.
+          den restic oder rsync abholen kann. Im Browser geht die Sicherung in einen Ordner deiner
+          Wahl (Chrome, Edge) oder als ZIP, im selben Format, und jedes Mal kommt nur Neues dazu.
+          Der Ordner darf einer sein, den OneDrive oder Nextcloud abgleicht; WatIs? selbst spricht
+          mit keiner Cloud.
         </div>
       </div>
       <div class="spec-row">
@@ -771,9 +851,10 @@
         <div class="spec-row">
           <div class="spec-label">Was nicht durchsuchbar wird</div>
           <div class="spec-value">
-            Sprachnachrichten werden <strong>noch nicht transkribiert</strong> und sind darum auch
-            nicht durchsuchbar. Word-Dateien ebenso wenig.
-            Die Aufträge dafür entstehen und werden übersprungen; welche Engine es wird, steht in
+            In der <strong>Desktop-App</strong> werden Sprachnachrichten noch nicht transkribiert
+            und sind darum dort nicht durchsuchbar; in der Browser-Erweiterung schon, auf Klick.
+            Word-Dateien werden nirgends durchsucht. Die Aufträge dafür entstehen und werden
+            übersprungen; warum, steht in
             <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0008-ocr-und-pdf-engines.md"
               >ADR 0008</a
             >. Text in Bildern und PDFs wird dagegen erkannt.
@@ -876,10 +957,23 @@
         <div class="spec-row">
           <div class="spec-label">Wenn WhatsApp sich ändert</div>
           <div class="spec-value">
-            Der Client hängt an internen Strukturen von WhatsApp Web. Das Medienholen hängt an einer
-            Signatur, die als einzige im Projekt nicht gegen ein laufendes Bundle geprüft ist: löst
-            sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft weiter. Kaputt heißt
+            Der Client hängt an internen Strukturen von WhatsApp Web. Das Medienholen hängt an den
+            beiden einzigen Stellen im Projekt, die nicht gegen ein laufendes Bundle geprüft sind:
+            löst eine davon nicht auf, schaltet sich das Medienholen ab und der Rest läuft weiter. Kaputt heißt
             hier also nicht „alles weg", sondern „ein Teil fehlt, bis es nachgezogen ist".
+          </div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-label">Im Browser</div>
+          <div class="spec-value">
+            Das Archiv gehört dort zum <strong>Browserprofil</strong>: Abmelden, Cache leeren und
+            Updates übersteht es, das Entfernen der Erweiterung oder ein zurückgesetztes Firmenprofil
+            nicht — darum die Sicherung. Kein Tray, kein Autostart, keine Direktantwort, kein
+            Nachladen älterer Nachrichten, kein Export als JSON/HTML/TXT. In Firefox geht keine
+            Sicherung in einen Ordner, nur als ZIP, und zum Transkribieren muss der WhatsApp-Tab
+            offen sein. In den Stores steht die Erweiterung noch nicht; in Firefox lässt sie sich
+            bis dahin nur bis zum nächsten Neustart laden. Wie lange eine Transkription auf einem
+            normalen Arbeitsplatzrechner dauert, ist noch nicht gemessen.
           </div>
         </div>
         <div class="spec-row">
@@ -888,7 +982,8 @@
             AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden, und unter
             Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Und ein lokales
             Archiv privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur
-            — „läuft lokal" heißt dort nicht „nur du kommst dran".
+            — „läuft lokal" heißt dort nicht „nur du kommst dran". Erweiterungen kann die IT ebenso
+            sperren oder nur freigegebene zulassen.
           </div>
         </div>
       </div>
@@ -966,6 +1061,43 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
         </div>
       </li>
     </ol>
+
+    <h3 class="platform-heading" id="im-browser">Im Browser</h3>
+    <ol class="steps">
+      <li>
+        <div>
+          <strong>Die Erweiterung holen.</strong> Sie liegt jedem Release ab dem nächsten bei:
+          <a
+            href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
+            >WatIs-Browser-Chrome-Edge.zip</a
+          >
+          und
+          <a
+            href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Firefox.zip"
+            >WatIs-Browser-Firefox.zip</a
+          >. Bis dahin aus dem Quelltext: <code>npm ci &amp;&amp; npm run build:extension</code>.
+          Einträge im Chrome Web Store, bei Edge und auf addons.mozilla.org folgen.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Chrome oder Edge:</strong> die ZIP entpacken, <code>chrome://extensions</code>
+          bzw. <code>edge://extensions</code> öffnen, <em>Entwicklermodus</em> einschalten,
+          <em>Entpackte Erweiterung laden</em> und den entpackten Ordner wählen.
+          <strong>Firefox:</strong> <code>about:debugging#/runtime/this-firefox</code> öffnen,
+          <em>Temporäres Add-on laden</em> und die ZIP wählen. Temporär heißt: bis zum nächsten
+          Neustart von Firefox, solange die Erweiterung dort nicht signiert ist.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>WhatsApp Web öffnen</strong> und wie gewohnt anmelden. Das Symbol in der
+          Symbolleiste öffnet das Panel neben WhatsApp, daraus geht es auch als großes Fenster in
+          einem eigenen Tab. Ab jetzt schreibt das Archiv mit. Unter <em>Einstellungen</em> liegen
+          die Sicherung und, wenn du willst, das Sprachmodell für die Transkription.
+        </div>
+      </li>
+    </ol>
   </section>
 
   <section>
@@ -975,7 +1107,9 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
         <div class="spec-label">Unterbau</div>
         <div class="spec-value">
           Electron 44 · Chromium 152 · Node 24 · SQLite mit FTS5 · Windows 10/11 und Linux, je 64
-          Bit
+          Bit. Im Browser: Manifest V3 · SQLite als WebAssembly im privaten Speicher der Erweiterung
+          (OPFS) · tesseract.js, pdf.js und whisper.cpp als WebAssembly · Chrome und Edge ab 116,
+          Firefox ab 128
         </div>
       </div>
       <div class="spec-row">
@@ -984,7 +1118,8 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
           Windows: <code>%LOCALAPPDATA%\watis\</code> — nie im Roaming-Profil, damit ein
           Domänen-Konto keine Gigabytes synchronisiert. Linux: <code>~/.local/share/watis/</code>.
           Darunter jeweils <code>session/</code>, <code>archive/</code>, <code>blobs/</code> und
-          <code>logs/</code>.
+          <code>logs/</code>. Im Browser liegt das Archiv im Profil, im privaten Speicher der
+          Erweiterung, getrennt von WhatsApps eigenem Speicher.
         </div>
       </div>
       <div class="spec-row">
@@ -1011,7 +1146,8 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
           <code>~/.local/share/icons/hicolor/512x512/apps/watis.png</code>, den
           Zwischenspeicher des Updaters unter <code>~/.cache/watis-updater/</code> und, falls
           Autostart an war, <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen liegen,
-          bis du es selbst entfernst.
+          bis du es selbst entfernst. <strong>Im Browser ist das anders:</strong> Wer die
+          Erweiterung entfernt, entfernt ihr Archiv mit. Vorher sichern.
         </div>
       </div>
       <div class="spec-row">
