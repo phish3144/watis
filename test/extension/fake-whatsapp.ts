@@ -86,11 +86,17 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
       size: Math.floor((file.base64.length * 3) / 4),
       directPath: '/fake/' + i,
       mediaKey: 'ZmFrZQ==',
+      encFilehash: 'ZW5jcnlwdGVk',
       mediaKeyTimestamp: now,
       from: { _serialized: '4915550000001@c.us' },
     })),
   ])
 
+  const allowed = {
+    image: ['image/jpeg', 'image/png', 'image/webp'],
+    video: ['video/mp4', 'video/3gpp'],
+    ptt: ['audio/ogg; codecs=opus', 'audio/mp4', 'audio/mpeg', 'audio/aac', 'audio/amr'],
+  }
   const bytes = Object.fromEntries(
     files.map((file) => [file.hash, Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0))]),
   )
@@ -98,13 +104,28 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
     WAWebChatCollection: { ChatCollection: chats },
     WAWebMsgCollection: { MsgCollection: messages },
     WAWebContactCollection: { ContactCollection: contacts },
+    // The downloader's contract as WA Web 2.3000.1049110567 has it (docs/bridge-map.md): the first
+    // thing it does is call addAnnotations on downloadQpl, and it checks the mimetype against an
+    // exact allowlist for every type but documents. Both failures are the real ones' messages.
     WAWebDownloadManager: {
       downloadManager: {
-        downloadAndMaybeDecrypt: async (options) => {
+        async downloadAndMaybeDecrypt(options) {
+          if (this !== modules.WAWebDownloadManager.downloadManager) throw new Error('called without this')
+          options.downloadQpl.addAnnotations({})
+          if (options.type !== 'document' && !(allowed[options.type] || []).includes(options.mimetype)) {
+            const error = new Error('Unexpected mimetype ' + options.mimetype + ' for media type ' + options.type)
+            error.name = 'InvalidMediaFileType'
+            throw error
+          }
           const message = messages.getModelsArray().find((m) => m.directPath === options.directPath)
           return bytes[message.filehash].buffer.slice(0)
         },
       },
+    },
+    WAWebMmsMediaTypes: {
+      getMsgMediaType: (msg) => msg.type,
+      mediaTypeToMsgTypeSupportedByAllowlist: (type) => (type === 'document' ? null : type),
+      getValidMimeTypes: (type) => new Set(allowed[type] || []),
     },
   }
   window.require = (name) => {

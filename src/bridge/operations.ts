@@ -1,5 +1,15 @@
 import { isFailure, resolveModule, type PageGlobals } from './modules'
-import { CMD, HISTORY_SYNC, LOAD_MESSAGES, MEDIA_DOWNLOAD, MSG_COLLECTION } from './signatures'
+import {
+  CMD,
+  HISTORY_SYNC,
+  LOAD_MESSAGES,
+  MEDIA_CACHE,
+  MEDIA_DOWNLOAD,
+  MEDIA_ORIGIN,
+  MEDIA_QPL,
+  MEDIA_TYPES,
+  MSG_COLLECTION,
+} from './signatures'
 
 /**
  * The only operations the bridge is allowed to perform.
@@ -268,49 +278,253 @@ export interface DownloadedMedia {
   size: number
 }
 
+/** A file the bridge did not fetch on purpose, and why — recorded on the row, never retried blindly. */
+export interface SkippedMedia {
+  skipped: string
+}
+
+/**
+ * The tracing object WhatsApp's downloader insists on (`downloadQpl`), as a stand-in that does
+ * nothing. All nine members, because WhatsApp hands it to its decryption worker when that is
+ * switched on, and that path asks for `getQPLAttrs` and `isActive` and clones the result — a stub
+ * with only `addAnnotations` fails there. A plain frozen object: the downloader copies its argument
+ * shallowly, and only plain own properties survive that.
+ */
+const NOOP_QPL = Object.freeze({
+  addAnnotations: () => undefined,
+  addPoint: () => undefined,
+  start: () => undefined,
+  isActive: () => false,
+  getQPLAttrs: () => ({ markerId: 0, instanceKey: 0 }),
+  endSuccess: () => undefined,
+  endFail: () => undefined,
+  endFailWithError: () => undefined,
+  endCancel: () => undefined,
+})
+const QPL_MEMBERS = [
+  'addAnnotations',
+  'addPoint',
+  'getQPLAttrs',
+  'isActive',
+  'endSuccess',
+  'endFailWithError',
+  'endCancel',
+] as const
+type Qpl = Record<(typeof QPL_MEMBERS)[number], Fn>
+
+/** A download WhatsApp itself would give up on long before this; it only bounds a hung request. */
+const DOWNLOAD_TIMEOUT_MS = 120_000
+
+interface MediaTypes {
+  getMsgMediaType: (msg: unknown) => unknown
+  getValidMimeTypes: (type: unknown) => { has?: (mime: unknown) => boolean } | undefined
+  mediaTypeToMsgTypeSupportedByAllowlist: (type: string) => unknown
+}
+
+function optionalModule(globals: PageGlobals, signature: typeof MEDIA_CACHE): unknown {
+  const result = resolveModule(globals, signature)
+  return isFailure(result) ? undefined : result.value
+}
+
 /**
  * Fetches one message's attachment through WhatsApp's own downloader.
  *
  * This reads: it asks for bytes the user's client already references and decrypts them with the key
- * already in the message model. It sends nothing, marks nothing, and touches no other message.
+ * already in the message model. It sends nothing, marks nothing, and touches no other message. The
+ * paths that could send something — WhatsApp's "re-upload this media" request, the message model's
+ * own `downloadMedia` with `downloadEvenIfExpensive` — are never used (docs/bridge-map.md).
  *
- * `MEDIA_DOWNLOAD` is the one signature in this project that has not been checked against a live
- * bundle, so this returns undefined rather than throwing when the module is not what we expect —
- * media fetching switches off and the rest of the archive keeps working.
+ * In order, stopping at the first that works:
+ * 1. WhatsApp's in-memory cache of media this tab already decrypted — no network.
+ * 2. The message's own decrypted blob, if WhatsApp attached one — no network.
+ * 3. `downloadAndMaybeDecrypt`, called the way WhatsApp calls it since 2.3000.1049110567: with a
+ *    `downloadQpl` tracing object (its own, or the stand-in), the media type WhatsApp computes, and
+ *    the message's mimetype verbatim. Without `downloadQpl` it fails at once with "Cannot read
+ *    properties of undefined (reading 'addAnnotations')"; without the mimetype, every type but
+ *    documents fails WhatsApp's allowlist.
+ *
+ * Before 3, the bridge checks what the downloader would check and skips what it would refuse:
+ * view-once media, a mimetype the allowlist does not hold, SVG documents, missing keys. The
+ * downloader reports such failures to WhatsApp; the bridge never gives it the occasion.
+ *
+ * Returns undefined when the modules are not what we expect: media fetching switches off and the
+ * rest of the archive keeps working.
  */
 export async function downloadMedia(
   globals: PageGlobals,
   msgId: string,
-): Promise<DownloadedMedia | undefined> {
+  manual = false,
+): Promise<DownloadedMedia | SkippedMedia | undefined> {
   const msgResult = resolveModule(globals, MSG_COLLECTION)
   if (isFailure(msgResult)) return undefined
   const collection = (msgResult.value as { get?: (id: string) => unknown } | null) ?? null
   const message = collection?.get?.(msgId) as Record<string, unknown> | undefined
   if (!message) return undefined
 
-  const result = resolveModule(globals, MEDIA_DOWNLOAD)
-  if (isFailure(result)) return undefined
-  const download = (result.value as Record<string, unknown>).downloadAndMaybeDecrypt
-  if (typeof download !== 'function') return undefined
+  // Deliberately not archived (docs/recon.md): the sender chose "view once".
+  if (message.isViewOnce === true) return { skipped: 'view-once media is not archived' }
+  if (typeof message.filehash !== 'string') return { skipped: 'the message has no attachment' }
 
-  const blob = await Promise.resolve(
-    (download as Fn)({
-      directPath: message.directPath,
-      encFilehash: message.encFilehash,
-      filehash: message.filehash,
-      mediaKey: message.mediaKey,
-      mediaKeyTimestamp: message.mediaKeyTimestamp,
-      type: message.type,
-      signal: undefined,
-    }),
-  )
+  const managerResult = resolveModule(globals, MEDIA_DOWNLOAD)
+  const typesResult = resolveModule(globals, MEDIA_TYPES)
+  if (isFailure(managerResult) || isFailure(typesResult)) return undefined
+  const manager = managerResult.value as { downloadAndMaybeDecrypt: Fn }
+  const types = typesResult.value as MediaTypes
 
-  const bytes = await toBytes(blob)
-  if (!bytes) return undefined
+  let type: string
+  try {
+    type = String(types.getMsgMediaType(message))
+  } catch {
+    return { skipped: 'WhatsApp does not treat this message as media' }
+  }
+  const mimetype = typeof message.mimetype === 'string' ? message.mimetype : undefined
 
+  const cached = cachedBlob(globals, message.filehash, message)
+  if (cached) return finished(await toBytes(cached), mimetype, message)
+
+  const refusal = refusalFor(types, type, mimetype, message)
+  if (refusal) return { skipped: refusal }
+
+  let downloadOrigin: unknown
+  try {
+    const origin = optionalModule(globals, MEDIA_ORIGIN)
+    downloadOrigin = typeof origin === 'function' ? (origin as Fn)(message) : undefined
+  } catch {
+    downloadOrigin = undefined
+  }
+
+  const qpl = startQpl(globals)
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort()
+  }, DOWNLOAD_TIMEOUT_MS)
+  try {
+    // A method call, with the manager as `this` — WhatsApp's code may rely on it.
+    const plain = await Promise.resolve(
+      manager.downloadAndMaybeDecrypt.call(manager, {
+        directPath: message.directPath,
+        staticUrl: message.staticUrl,
+        encFilehash: message.encFilehash,
+        filehash: message.filehash,
+        mediaKey: message.mediaKey,
+        mediaKeyTimestamp: message.mediaKeyTimestamp,
+        type,
+        mimetype,
+        downloadQpl: qpl,
+        downloadOrigin,
+        // Goes into the media URL; WhatsApp's own automatic downloads say "auto".
+        mode: manual ? 'manual' : 'auto',
+        userDownloadAttemptCount: 0,
+        isViewOnce: false,
+        signal: controller.signal,
+      }),
+    )
+    try {
+      qpl.endSuccess()
+    } catch {
+      // Tracing is WhatsApp's business; a failure there is not ours.
+    }
+    return finished(await toBytes(plain), mimetype, message)
+  } catch (error: unknown) {
+    try {
+      if (controller.signal.aborted) qpl.endCancel('watis_timeout')
+      else qpl.endFailWithError('download_failed', (error as { name?: unknown } | null)?.name)
+    } catch {
+      // as above
+    }
+    const name = (error as { name?: unknown } | null)?.name
+    // 404/410: gone from WhatsApp's servers. Asking for a re-upload would be a request to the
+    // server, which the bridge does not make; the phone may still have it.
+    if (name === 'MediaNotFoundError') return { skipped: "no longer on WhatsApp's servers" }
+    if (name === 'InvalidMediaFileType') return { skipped: 'WhatsApp refuses this file' }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Tiers 1 and 2: what this tab has already decrypted. Pure reads. */
+function cachedBlob(
+  globals: PageGlobals,
+  filehash: string,
+  message: Record<string, unknown>,
+): unknown {
+  try {
+    const cache = optionalModule(globals, MEDIA_CACHE) as { get?: Fn } | undefined
+    const blob = cache?.get?.(filehash)
+    if (blob) return blob
+  } catch {
+    // Not there; go on.
+  }
+  try {
+    // getBlob, not forceToBlob: the latter converts WhatsApp's object in place and throws once it
+    // has been released.
+    const media = message.mediaData as { mediaBlob?: { getBlob?: Fn } | null } | undefined
+    const blob = media?.mediaBlob?.getBlob?.()
+    if (blob) return blob
+  } catch {
+    // as above
+  }
+  return undefined
+}
+
+/** What WhatsApp's downloader would refuse, checked the same way before it is asked. */
+function refusalFor(
+  types: MediaTypes,
+  type: string,
+  mimetype: string | undefined,
+  message: Record<string, unknown>,
+): string | undefined {
+  try {
+    const allowlistType = types.mediaTypeToMsgTypeSupportedByAllowlist(type)
+    if (allowlistType !== null && allowlistType !== undefined) {
+      // Exact and case-sensitive, as WhatsApp checks it. Normalising the mimetype would get a file
+      // past a gate WhatsApp put there on purpose.
+      const allowed = types.getValidMimeTypes(allowlistType)
+      if (!allowed?.has?.(mimetype))
+        return `WhatsApp does not accept ${mimetype ?? 'an unknown type'} as ${type}`
+    } else if ((mimetype ?? '').toLowerCase() === 'image/svg+xml') {
+      return 'WhatsApp blocks SVG documents'
+    }
+  } catch {
+    return "WhatsApp's media types could not be read"
+  }
+  // Channel media is not encrypted; everything else needs its key.
+  const encrypted = !type.startsWith('newsletter-')
+  if (
+    encrypted &&
+    (typeof message.mediaKey !== 'string' || typeof message.encFilehash !== 'string')
+  ) {
+    return 'the message carries no key for its attachment'
+  }
+  if (!message.directPath && !message.staticUrl) return 'the message has no download path'
+  return undefined
+}
+
+/** WhatsApp's own tracing object where it can be had in the shape we know, else the stand-in. */
+function startQpl(globals: PageGlobals): Qpl {
+  try {
+    const factory = optionalModule(globals, MEDIA_QPL) as { startMediaDownloadQpl?: Fn } | undefined
+    const qpl = factory?.startMediaDownloadQpl?.({ entryPoint: 'MediaDownload' }) as
+      Record<string, unknown> | undefined
+    if (qpl && QPL_MEMBERS.every((member) => typeof qpl[member] === 'function')) {
+      return qpl as unknown as Qpl
+    }
+  } catch {
+    // Fall through to the stand-in.
+  }
+  return NOOP_QPL
+}
+
+function finished(
+  bytes: Uint8Array | undefined,
+  mimetype: string | undefined,
+  message: Record<string, unknown>,
+): DownloadedMedia | SkippedMedia {
+  if (!bytes) return { skipped: 'WhatsApp did not hand over the file' }
   return {
     data: base64(bytes),
-    mime: typeof message.mimetype === 'string' ? message.mimetype : undefined,
+    mime: mimetype,
     filename: typeof message.filename === 'string' ? message.filename : undefined,
     size: bytes.length,
   }

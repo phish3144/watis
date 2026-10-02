@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LATEST_VERSION } from '../../src/workers/archive/schema'
+import { LATEST_VERSION, MIGRATIONS } from '../../src/workers/archive/schema'
 import { migrate, registerFunctions } from '../../src/workers/archive/migrate'
 import type { SqlDatabase } from '../../src/workers/archive/sql'
 import { openArchiveMemory, openMemory } from '../helpers/sql'
@@ -35,6 +35,43 @@ describe('migrations', () => {
   it('is idempotent', () => {
     const db = fresh()
     expect(migrate(db)).toBe(LATEST_VERSION)
+  })
+
+  it('gives media that failed against the changed downloader one more try, once', () => {
+    // An archive as it was before version 3, with the rows the broken downloader left behind.
+    const db = openMemory()
+    registerFunctions(db)
+    for (const migration of MIGRATIONS.filter((m) => m.version <= 2)) db.exec(migration.sql)
+    db.pragma('user_version = 2')
+    const insert = db.prepare('INSERT INTO media (id, status) VALUES (?, ?)')
+    for (const [id, status] of [
+      ['failed-1', 'failed'],
+      ['done-1', 'done'],
+      ['skipped-1', 'skipped'],
+      ['pending-1', 'pending'],
+    ]) {
+      insert.run(id, status)
+    }
+
+    migrate(db)
+    const statuses = Object.fromEntries(
+      (db.prepare('SELECT id, status FROM media').all() as { id: string; status: string }[]).map(
+        (r) => [r.id, r.status],
+      ),
+    )
+    expect(statuses).toEqual({
+      'failed-1': 'pending',
+      'done-1': 'done',
+      'skipped-1': 'skipped',
+      'pending-1': 'pending',
+    })
+
+    // A failure after the migration stays a failure: it runs once per archive, not on every start.
+    db.prepare("UPDATE media SET status = 'failed' WHERE id = 'failed-1'").run()
+    migrate(db)
+    expect(db.prepare("SELECT status FROM media WHERE id = 'failed-1'").get()).toEqual({
+      status: 'failed',
+    })
   })
 
   it('refuses a database written by a newer build', () => {

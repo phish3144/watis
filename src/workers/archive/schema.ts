@@ -262,9 +262,27 @@ CREATE TABLE reminders (
 CREATE INDEX reminders_due ON reminders (done_ts, due_ts);
 `
 
+/**
+ * Another try for media that failed against WhatsApp's changed downloader.
+ *
+ * From WA Web 2.3000.1049110567 (at the latest) the downloader wanted a `downloadQpl` argument the
+ * bridge did not pass, and every fetch failed with "Cannot read properties of undefined (reading
+ * 'addAnnotations')" — in the desktop app and the browser alike. Failed rows are not retried on
+ * their own, so without this every attachment that arrived in that window would stay missing.
+ * Once per archive, as a migration is.
+ */
+const RETRY_FAILED_MEDIA = `
+UPDATE media SET status = 'pending' WHERE status = 'failed';
+`
+
 export const MIGRATIONS: readonly Migration[] = [
   { version: 1, name: 'initial schema', sql: INITIAL },
   { version: 2, name: 'local reminders', sql: REMINDERS },
+  {
+    version: 3,
+    name: 'retry media that failed against the changed downloader',
+    sql: RETRY_FAILED_MEDIA,
+  },
 ]
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0)

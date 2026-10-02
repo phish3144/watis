@@ -128,7 +128,7 @@ export function install(): { stop: () => void } {
         return earliestReachableTs(globals)
       case 'downloadMedia': {
         if (typeof args.msgId !== 'string') throw new Error('msgId is required')
-        return downloadMedia(globals, args.msgId)
+        return downloadMedia(globals, args.msgId, args.manual === true)
       }
       default:
         throw new Error(`unknown bridge op`)

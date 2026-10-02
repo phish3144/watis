@@ -957,10 +957,12 @@
         <div class="spec-row">
           <div class="spec-label">Wenn WhatsApp sich ändert</div>
           <div class="spec-value">
-            Der Client hängt an internen Strukturen von WhatsApp Web. Das Medienholen hängt an den
-            beiden einzigen Stellen im Projekt, die nicht gegen ein laufendes Bundle geprüft sind:
-            löst eine davon nicht auf, schaltet sich das Medienholen ab und der Rest läuft weiter. Kaputt heißt
-            hier also nicht „alles weg", sondern „ein Teil fehlt, bis es nachgezogen ist".
+            Der Client hängt an internen Strukturen von WhatsApp Web, und die ändern sich. Im Oktober
+            2026 hat WhatsApp zum Beispiel geändert, wie sein Downloader aufgerufen werden will, und
+            Medien kamen nicht mehr ins Archiv, bis die Bridge nachgezogen war. Nachrichten und Suche
+            liefen dabei weiter, und was in der Zeit fehlschlug, holt das Archiv danach von selbst
+            nach. Kaputt heißt hier also nicht „alles weg", sondern „ein Teil fehlt, bis es
+            nachgezogen ist".
           </div>
         </div>
         <div class="spec-row">

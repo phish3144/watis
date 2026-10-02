@@ -20,15 +20,17 @@ describe('MediaFetcher', () => {
   let requests: { op: string; [key: string]: unknown }[]
   let download: (msgId: string) => unknown
   let bridgeReady: boolean
+  let asked: Record<string, unknown>[]
 
   const bridge = {
     get ready(): boolean {
       return bridgeReady
     },
-    send: (op: string, args?: Record<string, unknown>): Promise<unknown> =>
-      op === 'downloadMedia'
-        ? Promise.resolve(download(String(args?.msgId)))
-        : Promise.resolve(undefined),
+    send: (op: string, args?: Record<string, unknown>): Promise<unknown> => {
+      if (op !== 'downloadMedia') return Promise.resolve(undefined)
+      asked.push(args ?? {})
+      return Promise.resolve(download(String(args?.msgId)))
+    },
   }
 
   const archive = (request: unknown): Promise<unknown> => {
@@ -46,6 +48,7 @@ describe('MediaFetcher', () => {
     pending = []
     requests = []
     bridgeReady = true
+    asked = []
     download = () => ({ data: Buffer.from('pdf').toString('base64'), mime: 'application/pdf' })
   })
 
@@ -126,6 +129,46 @@ describe('MediaFetcher', () => {
     await fetcher.pass()
     expect(requests.find((r) => r.op === 'markMedia')).toMatchObject({ status: 'failed' })
     expect(fetcher.stats().failed).toBe(1)
+  })
+
+  it('records a failure by its message, without stacking "Error:" in front of it', async () => {
+    download = () => {
+      throw new Error('TypeError: Cannot read properties of undefined')
+    }
+    pending = [{ id: 'm1', msgId: 'msg1', mime: 'application/pdf' }]
+    const fetcher = build()
+    await fetcher.pass()
+    expect(fetcher.stats().lastReason).toBe('TypeError: Cannot read properties of undefined')
+  })
+
+  it('skips, with the reason, a file the bridge declines — it is not a failure to retry', async () => {
+    download = () => ({ skipped: "no longer on WhatsApp's servers" })
+    pending = [{ id: 'm1', msgId: 'msg1', mime: 'application/pdf' }]
+    const fetcher = build()
+    await fetcher.pass()
+    expect(requests.find((r) => r.op === 'markMedia')).toMatchObject({ status: 'skipped' })
+    expect(requests.some((r) => r.op === 'storeBlob')).toBe(false)
+    expect(fetcher.stats()).toMatchObject({
+      skipped: 1,
+      failed: 0,
+      lastReason: "no longer on WhatsApp's servers",
+    })
+  })
+
+  it('tells the bridge whether a download was asked for by a click', async () => {
+    pending = [{ id: 'm1', msgId: 'msg1', mime: 'application/pdf' }]
+    const fetcher = build()
+    await fetcher.pass()
+    await fetcher.fetchNow({
+      id: 'm2',
+      msgId: 'msg2',
+      mime: 'video/mp4',
+      size: 99_000_000,
+    })
+    expect(asked).toEqual([
+      { msgId: 'msg1', manual: false },
+      { msgId: 'msg2', manual: true },
+    ])
   })
 
   it('skips a row with no message behind it', async () => {

@@ -117,7 +117,17 @@ export class MediaFetcher {
     try {
       const media = (await this.#options.bridge.send('downloadMedia', {
         msgId: candidate.msgId,
-      })) as { data?: string; mime?: string; filename?: string } | undefined
+        manual,
+      })) as { data?: string; mime?: string; filename?: string; skipped?: string } | undefined
+
+      if (media?.skipped) {
+        // The bridge declined on purpose — a file WhatsApp would refuse, or one no longer on its
+        // servers — and says why. Not a failure: retrying would only ask the same question again.
+        this.#stats.skipped++
+        this.#stats.lastReason = media.skipped
+        await this.#mark(candidate.id, 'skipped')
+        return false
+      }
 
       if (!media?.data) {
         // The module is not there or gave nothing back. Skipped rather than failed: retrying a
