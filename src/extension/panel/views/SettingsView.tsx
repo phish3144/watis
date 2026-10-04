@@ -40,7 +40,7 @@ export function SettingsView({
       <div className="mx-auto max-w-5xl gap-3 space-y-3 min-[860px]:columns-2 min-[860px]:space-y-0 [&>*]:mb-3 [&>*]:break-inside-avoid">
         <ArchiveCard settings={settings} patch={patch} status={status} />
 
-        <Card title={t('settings.media')} hint={t('settings.media.hint')}>
+        <Card title={t('settings.media')} hint={t('settings.media.hint')} help="medien">
           <SettingRow
             label={t('settings.media.images')}
             control={
@@ -99,7 +99,7 @@ export function SettingsView({
           />
         </Card>
 
-        <Card title={t('settings.index')}>
+        <Card title={t('settings.index')} help="texterkennung">
           <SettingRow
             label={t('settings.index.ocr')}
             hint={t('settings.index.ocr.hint')}
@@ -294,7 +294,7 @@ export function SettingsView({
           </div>
         </Card>
 
-        <Card title={t('settings.about')}>
+        <Card title={t('settings.about')} help="datenschutz">
           <div className="space-y-2 text-xs leading-relaxed text-wa-muted">
             <p>{t('settings.about.local')}</p>
             <p>{t('settings.about.notOfficial')}</p>
@@ -335,7 +335,7 @@ function ArchiveCard({
 
   const stats = status.stats
   return (
-    <Card title={t('settings.archive')} hint={t('settings.archive.hint')}>
+    <Card title={t('settings.archive')} hint={t('settings.archive.hint')} help="sicherung">
       {stats && (
         <div className="grid grid-cols-3 gap-2 pb-3 text-center">
           {[

@@ -14,11 +14,28 @@ const de = {
   'nav.media': 'Medien',
   'nav.settings': 'Mehr',
   'nav.settings.long': 'Einstellungen',
+  'nav.help': 'Hilfe',
+
+  'help.title': 'Hilfe',
+  'help.intro':
+    'Kurz erklärt, was WatIs? macht und wie du es bedienst. Alles hier funktioniert auch ohne Internet.',
+  'help.back': 'Alle Themen',
+  'help.related': 'Passt dazu',
+  'help.more': 'Mehr dazu',
+  'help.open': 'Hilfe: {topic}',
+  'help.howto': 'So geht’s',
 
   'status.archiving': 'Archiv läuft',
   'status.noTab': 'WhatsApp ist nicht offen',
   'status.waiting': 'Wartet auf WhatsApp',
   'status.problem': 'Störung',
+  'status.archiving.explain': 'Alles in Ordnung: Neue Nachrichten kommen ins Archiv.',
+  'status.noTab.explain':
+    'WhatsApp Web in einem Tab öffnen, damit mitgeschrieben wird. Suchen geht trotzdem.',
+  'status.waiting.explain':
+    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten.',
+  'status.problem.explain':
+    'Etwas hakt – unten steht, was. Hilft das nicht, den WhatsApp-Tab neu laden.',
   'status.title': 'Zustand',
   'status.bridge': 'Verbindung zu WhatsApp Web',
   'status.bridge.ok': 'verbunden',
@@ -49,11 +66,6 @@ const de = {
   'search.empty.body':
     'Durchsucht wird alles, was seit der Installation mitgeschrieben wurde – Nachrichten, Dateinamen und erkannter Text aus Bildern und PDFs.',
   'search.tips': 'Suchtipps',
-  'search.tip.phrase': '"genauer Satz" – findet die Wörter in dieser Reihenfolge',
-  'search.tip.from': 'von:Anna – nur Nachrichten von Anna',
-  'search.tip.in': 'in:Familie – nur in diesem Chat',
-  'search.tip.date': 'nach:2026-01-01 vor:2026-02-01 – Zeitraum',
-  'search.tip.has': 'hat:image, hat:file, hat:link – nur mit Anhang',
   'search.none': 'Nichts gefunden.',
   'search.none.hint': 'Umlaute dürfen fehlen: „Muenchen" findet „München".',
   'search.names': 'Chats und Kontakte',
@@ -99,7 +111,9 @@ const de = {
   'media.documents': 'Dokumente',
   'media.audio': 'Sprache',
   'media.links': 'Links',
-  'media.empty': 'Hier ist noch nichts.',
+  'media.empty':
+    'Hier erscheinen Bilder, Videos, Dokumente und Sprachnachrichten, sobald sie in einem Chat ankommen.',
+  'media.problem.details': 'Technische Angabe: {raw}',
   'media.fetch': 'Laden',
   'media.fetching': 'Wird geladen …',
   'media.notFetched': 'Noch nicht im Archiv',
@@ -230,6 +244,7 @@ const de = {
   'welcome.permission': 'Firefox braucht noch deine Erlaubnis für web.whatsapp.com.',
   'welcome.grant': 'Erlauben',
   'welcome.dismiss': 'Verstanden',
+  'welcome.guide': 'Kurze Einführung lesen',
 
   'common.error': 'Das hat nicht geklappt: {error}',
   'common.loading': 'Lädt …',
@@ -238,6 +253,9 @@ const de = {
 } as const
 
 export type StringKey = keyof typeof de
+
+/** Every label, for checking that the help names only labels that exist (test/unit/help.test.ts). */
+export const LABELS: readonly string[] = Object.values(de)
 
 export function t(key: StringKey, vars?: Record<string, string | number>): string {
   let text: string = de[key]

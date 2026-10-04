@@ -1,5 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { initials } from './format'
+import type { HelpTopic } from './help'
+import { HelpButton } from './helpui'
 import { CloseIcon } from './icons'
 
 /**
@@ -121,15 +123,21 @@ export function Toggle({
 export function Card({
   title,
   hint,
+  help,
   children,
 }: {
   title: string
   hint?: string | undefined
+  /** Where the help explains this card in full (help.ts); shown as a "?" beside the title. */
+  help?: HelpTopic | undefined
   children: ReactNode
 }): React.JSX.Element {
   return (
     <section className="rounded-2xl bg-wa-surface p-4 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <h2 className="text-[13px] font-semibold text-wa-text">{title}</h2>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="text-[13px] font-semibold text-wa-text">{title}</h2>
+        {help && <HelpButton topic={help} />}
+      </div>
       {hint && <p className="mt-1 text-xs leading-relaxed text-wa-muted">{hint}</p>}
       <div className="mt-3 divide-y divide-wa-hairline">{children}</div>
     </section>
@@ -142,7 +150,7 @@ export function SettingRow({
   control,
 }: {
   label: string
-  hint?: string | undefined
+  hint?: ReactNode
   control: ReactNode
 }): React.JSX.Element {
   return (

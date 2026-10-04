@@ -4,6 +4,8 @@ import { OpfsBlobStore } from '../host/opfs-blobs'
 import { archive, blobUrl, fetchMedia, saveMedia } from './api'
 import { bytes } from './format'
 import { DownloadIcon, FileIcon, ImageIcon, MicIcon, VideoIcon } from './icons'
+import { HelpLink } from './helpui'
+import { explainMediaProblem } from './problems'
 import { t } from './strings'
 import { transcribe, transcriptionSupported } from './transcribe'
 import { Spinner } from './ui'
@@ -147,8 +149,8 @@ export function Attachment({
           {[bytes(media?.size), path ? undefined : t('media.notFetched')]
             .filter(Boolean)
             .join(' · ')}
-          {error && <span className="text-wa-danger"> · {error}</span>}
         </div>
+        {error && <MediaProblemNote raw={error} />}
       </div>
       {path ? (
         <button
@@ -247,7 +249,30 @@ function Transcript({
             ? t('media.transcribing.percent', { percent: Math.round(percent) })
             : t('media.transcribing')}
       </button>
-      {error && <span className="text-[11px] text-wa-danger">{error}</span>}
+      {error && (
+        <span className="text-[11px] text-wa-danger">
+          {error} <HelpLink topic="sprachnachrichten" />
+        </span>
+      )}
     </div>
+  )
+}
+
+/**
+ * Why a file did not come, said so somebody can act on it (problems.ts): what happened, what to do,
+ * and the way to the help. The reason as it came stays available as a tooltip for a bug report.
+ */
+export function MediaProblemNote({ raw }: { raw: string }): React.JSX.Element {
+  const problem = explainMediaProblem(raw)
+  return (
+    <p
+      className="mt-0.5 text-[11px] leading-snug text-wa-danger"
+      title={t('media.problem.details', { raw: problem.raw })}
+    >
+      {problem.text}
+      {problem.advice && <span className="text-wa-muted"> {problem.advice}</span>}
+      {!problem.known && <span className="text-wa-muted"> ({problem.raw})</span>}{' '}
+      <HelpLink topic={problem.help} />
+    </p>
   )
 }

@@ -41,6 +41,8 @@ export interface FakeFile {
   mime: string
   filename?: string
   caption?: string
+  /** "View once" media, which the bridge deliberately does not archive. */
+  viewOnce?: boolean
   base64: string
 }
 
@@ -82,6 +84,7 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
       caption: file.caption,
       filename: file.filename,
       filehash: file.hash,
+      isViewOnce: file.viewOnce === true,
       mimetype: file.mime,
       size: Math.floor((file.base64.length * 3) / 4),
       directPath: '/fake/' + i,

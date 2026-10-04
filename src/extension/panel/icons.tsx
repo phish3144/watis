@@ -110,3 +110,11 @@ export const ExpandIcon = (p: IconProps): React.JSX.Element => (
     <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
   </Svg>
 )
+
+export const HelpIcon = (p: IconProps): React.JSX.Element => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6" />
+    <path d="M12 17h.01" />
+  </Svg>
+)

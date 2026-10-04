@@ -24,6 +24,7 @@ const IMAGE = 'ZmFrZS1yZWNobnVuZw=='
 const TEXT_PDF = 'YW5nZWJvdC10ZXh0'
 const SCANNED_PDF = 'YW5nZWJvdC1zY2Fu'
 const VOICE = 'c3ByYWNobmFjaHJpY2h0'
+const VIEW_ONCE = 'ZWlubWFsLWFuc2VoZW4='
 /** Where the invoice picture lands in the media store: its SHA-256, sharded. */
 const OPFS_IMAGE_PATH = (() => {
   const sha = createHash('sha256').update(Buffer.from(fixture('ocr-rechnung.png'), 'base64'))
@@ -54,6 +55,13 @@ const files: FakeFile[] = [
     mime: 'application/pdf',
     filename: 'Scan.pdf',
     base64: fixture('angebot-scan.pdf'),
+  },
+  {
+    // The same recording sent as "view once": the bridge must decline it, and say why in German.
+    hash: VIEW_ONCE,
+    mime: 'audio/ogg; codecs=opus',
+    viewOnce: true,
+    base64: fixture('sprachnachricht.ogg'),
   },
   {
     // Synthesised speech saying invented sentences (scripts/make-voice-fixture.mjs).
@@ -144,7 +152,7 @@ test('the archive opens inside the WhatsApp tab, despite its COEP', async () => 
 test('the snapshot mirrors what WhatsApp holds into SQLite on OPFS', async () => {
   await expect
     .poll(() => archive<{ messages: number; chats: number }>({ op: 'stats' }), { timeout: 30_000 })
-    .toMatchObject({ messages: 6, chats: 2 })
+    .toMatchObject({ messages: 7, chats: 2 })
 })
 
 test('search finds a word in either German spelling', async () => {
@@ -386,4 +394,34 @@ test('a ZIP backup lands in the downloads, and the next one carries only new med
   await expect(
     panel.getByText(/Im Download-Ordner: watis-sicherung-[\d-]+\.zip · 0 Medien/),
   ).toBeVisible({ timeout: 60_000 })
+})
+
+test('a file WhatsApp will not hand over says why, in plain German, with a way to the help', async () => {
+  await panel.reload()
+  await panel.getByRole('button', { name: 'Medien', exact: true }).first().click()
+  await panel.getByRole('tab', { name: 'Sprache' }).click()
+  // Newest first: the view-once message is older than the other voice message, so it is last.
+  await panel.getByRole('button', { name: 'Laden', exact: true }).last().click()
+  await expect(
+    panel.getByText('„Einmal ansehen“-Medien archiviert WatIs? bewusst nicht.'),
+  ).toBeVisible({
+    timeout: 30_000,
+  })
+  await panel.getByRole('button', { name: 'Mehr dazu' }).first().click()
+  await expect(
+    panel.getByRole('heading', { name: 'Bilder, Videos und Sprachnachrichten' }),
+  ).toBeVisible()
+})
+
+test('the help opens from the navigation and from the "?" beside a setting', async () => {
+  await panel.getByRole('button', { name: 'Hilfe', exact: true }).click()
+  await expect(panel.getByRole('button', { name: /Erste Schritte/ })).toBeVisible()
+  await panel.getByRole('button', { name: /Suchen/ }).click()
+  // The syntax table is rendered from the same list the search tips use.
+  await expect(panel.getByText('von:Anna', { exact: true })).toBeVisible()
+
+  await panel.getByRole('button', { name: 'Einstellungen', exact: true }).click()
+  await panel.getByRole('button', { name: 'Hilfe: Sicherung' }).click()
+  await expect(panel.getByRole('heading', { name: 'Sicherung', exact: true })).toBeVisible()
+  await expect(panel.getByText('Jetzt sichern').first()).toBeVisible()
 })

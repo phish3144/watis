@@ -4,7 +4,7 @@ import { archive, fetchMedia, saveMedia } from '../api'
 import { useChats } from '../hooks'
 import { exactly, jidLabel, when } from '../format'
 import { DownloadIcon, ImageIcon, LinkIcon } from '../icons'
-import { Attachment, pathOf, useBlobUrl } from '../media'
+import { Attachment, MediaProblemNote, pathOf, useBlobUrl } from '../media'
 import { t } from '../strings'
 import { EmptyState, Segmented, Spinner } from '../ui'
 
@@ -152,6 +152,7 @@ export function MediaView({
 function ImageTile({ item, chatName }: { item: GalleryItem; chatName: string }): React.JSX.Element {
   const [fetching, setFetching] = useState(false)
   const [fetched, setFetched] = useState(false)
+  const [problem, setProblem] = useState<string | undefined>(undefined)
   const path = pathOf(item)
   const url = useBlobUrl(path)
 
@@ -189,9 +190,13 @@ function ImageTile({ item, chatName }: { item: GalleryItem; chatName: string }):
           onClick={() => {
             if (!item.mediaId) return
             setFetching(true)
+            setProblem(undefined)
             void fetchMedia(item.mediaId)
               .then(() => {
                 setFetched(true)
+              })
+              .catch((e: unknown) => {
+                setProblem(e instanceof Error ? e.message : String(e))
               })
               .finally(() => {
                 setFetching(false)
@@ -204,6 +209,7 @@ function ImageTile({ item, chatName }: { item: GalleryItem; chatName: string }):
       ) : (
         <span className="text-[10px] text-wa-muted">{t('media.notFetched')}</span>
       )}
+      {problem && <MediaProblemNote raw={problem} />}
     </li>
   )
 }

@@ -12,6 +12,7 @@ import {
   transcriptionSupported,
   type ModelKey,
 } from '../transcribe'
+import { HelpLink } from '../helpui'
 import { Button, SettingRow, Spinner } from '../ui'
 
 /**
@@ -82,11 +83,14 @@ export function TranscriptionSettings({
       <SettingRow
         label={t('settings.index.transcription')}
         hint={
-          !supported
-            ? t('transcription.unsupported')
-            : transcriptionNeedsTab()
-              ? `${t('settings.index.transcription.hint')} ${t('transcription.firefox')}`
-              : t('settings.index.transcription.hint')
+          <>
+            {!supported
+              ? t('transcription.unsupported')
+              : transcriptionNeedsTab()
+                ? `${t('settings.index.transcription.hint')} ${t('transcription.firefox')}`
+                : t('settings.index.transcription.hint')}{' '}
+            <HelpLink topic="sprachnachrichten" />
+          </>
         }
         control={null}
       />

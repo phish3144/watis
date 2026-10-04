@@ -8,10 +8,13 @@ import {
 } from './api'
 import { usePanelStatus, useSettings, type PanelStatus } from './hooks'
 import { count } from './format'
-import { ChatIcon, ExpandIcon, ImageIcon, MoreIcon, SearchIcon } from './icons'
+import type { HelpTopic } from './help'
+import { HelpLink, HelpProvider } from './helpui'
+import { ChatIcon, ExpandIcon, HelpIcon, ImageIcon, MoreIcon, SearchIcon } from './icons'
 import { t, type StringKey } from './strings'
 import { Button, IconButton, Sheet } from './ui'
 import { ChatsView } from './views/ChatsView'
+import { HelpView } from './views/HelpView'
 import { MediaView } from './views/MediaView'
 import { SearchView } from './views/SearchView'
 import { SettingsView } from './views/SettingsView'
@@ -26,7 +29,7 @@ import { SettingsView } from './views/SettingsView'
  * when somebody wants them.
  */
 
-type View = 'search' | 'chats' | 'media' | 'settings'
+type View = 'search' | 'chats' | 'media' | 'settings' | 'help'
 
 const NAV: readonly {
   view: View
@@ -45,6 +48,7 @@ export function PanelApp(): React.JSX.Element {
     { chatId: string; anchor?: { ts: number; id: string } | undefined } | undefined
   >(undefined)
   const [showStatus, setShowStatus] = useState(false)
+  const [helpTopic, setHelpTopic] = useState<HelpTopic | undefined>(undefined)
   const [welcome, setWelcome] = useState(location.hash === '#willkommen')
   const [settings, patch] = useSettings()
   const status = usePanelStatus()
@@ -65,6 +69,13 @@ export function PanelApp(): React.JSX.Element {
       media.removeEventListener('change', apply)
     }
   }, [settings?.theme])
+
+  // Every "?" and "Mehr dazu" in the panel ends here (helpui.tsx).
+  const openHelp = useCallback((topic: HelpTopic) => {
+    setHelpTopic(topic)
+    setShowStatus(false)
+    setView('help')
+  }, [])
 
   const showChat = useCallback((chatId: string, anchor?: { ts: number; id: string }) => {
     setOpenChat({ chatId, anchor })
@@ -90,11 +101,13 @@ export function PanelApp(): React.JSX.Element {
       {view === 'settings' && settings && (
         <SettingsView settings={settings} patch={patch} status={status} />
       )}
+      {view === 'help' && <HelpView topic={helpTopic} onTopic={setHelpTopic} />}
     </main>
   )
 
   const go = (target: View): void => {
     if (target === 'chats' && view === 'chats' && !wide) setOpenChat(undefined)
+    if (target === 'help') setHelpTopic(undefined)
     setView(target)
   }
 
@@ -119,89 +132,120 @@ export function PanelApp(): React.JSX.Element {
   if (wide) {
     // The browser-tab layout: navigation down the left, the view across the rest.
     return (
-      <div className="flex h-screen bg-wa-panel text-wa-text">
-        <aside className="flex w-56 shrink-0 flex-col border-r border-wa-hairline bg-wa-surface px-3 py-4">
-          <h1 className="px-3 pb-5 text-lg font-semibold tracking-tight">{t('app.name')}</h1>
-          <nav className="space-y-1" aria-label="Bereiche">
-            {NAV.map(({ view: target, label, Icon }) => (
+      <HelpProvider value={openHelp}>
+        <div className="flex h-screen bg-wa-panel text-wa-text">
+          <aside className="flex w-56 shrink-0 flex-col border-r border-wa-hairline bg-wa-surface px-3 py-4">
+            <h1 className="px-3 pb-5 text-lg font-semibold tracking-tight">{t('app.name')}</h1>
+            <nav className="space-y-1" aria-label="Bereiche">
+              {NAV.map(({ view: target, label, Icon }) => (
+                <button
+                  key={target}
+                  type="button"
+                  aria-current={view === target ? 'page' : undefined}
+                  onClick={() => {
+                    go(target)
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                    view === target
+                      ? 'bg-wa-accent-soft font-semibold text-wa-accent'
+                      : 'text-wa-muted hover:bg-wa-raised hover:text-wa-text'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {t(label === 'nav.settings' ? 'nav.settings.long' : label)}
+                </button>
+              ))}
+            </nav>
+            <nav className="mt-4 border-t border-wa-hairline pt-4" aria-label={t('nav.help')}>
               <button
-                key={target}
                 type="button"
-                aria-current={view === target ? 'page' : undefined}
+                aria-current={view === 'help' ? 'page' : undefined}
                 onClick={() => {
-                  go(target)
+                  go('help')
                 }}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
-                  view === target
+                  view === 'help'
                     ? 'bg-wa-accent-soft font-semibold text-wa-accent'
                     : 'text-wa-muted hover:bg-wa-raised hover:text-wa-text'
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                {t(label === 'nav.settings' ? 'nav.settings.long' : label)}
+                <HelpIcon className="h-5 w-5" />
+                {t('nav.help')}
               </button>
-            ))}
-          </nav>
-          <div className="mt-auto">
+            </nav>
+            <div className="mt-auto">
+              <StatusPill
+                status={status}
+                onClick={() => {
+                  setShowStatus(true)
+                }}
+              />
+            </div>
+          </aside>
+          <div className="flex min-w-0 flex-1 flex-col pt-4">
+            {welcomeCard}
+            {views}
+          </div>
+          {sheet}
+        </div>
+      </HelpProvider>
+    )
+  }
+
+  // The side-panel layout, next to WhatsApp Web: everything stacked, navigation at the bottom.
+  return (
+    <HelpProvider value={openHelp}>
+      <div className="flex h-screen flex-col bg-wa-panel text-wa-text">
+        <header className="flex items-center justify-between gap-2 px-4 pb-2 pt-3">
+          <h1 className="text-[15px] font-semibold tracking-tight">{t('app.name')}</h1>
+          <div className="flex min-w-0 items-center gap-1">
             <StatusPill
               status={status}
               onClick={() => {
                 setShowStatus(true)
               }}
             />
+            <IconButton
+              label={t('nav.help')}
+              onClick={() => {
+                go('help')
+              }}
+            >
+              <HelpIcon className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t('app.openLarge')} onClick={() => void openLarge()}>
+              <ExpandIcon className="h-4 w-4" />
+            </IconButton>
           </div>
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col pt-4">
-          {welcomeCard}
-          {views}
-        </div>
+        </header>
+        {welcomeCard}
+        {views}
+        <nav
+          className="grid grid-cols-4 border-t border-wa-hairline bg-wa-surface"
+          aria-label="Bereiche"
+        >
+          {NAV.map(({ view: target, label, Icon }) => (
+            <button
+              key={target}
+              type="button"
+              aria-current={view === target ? 'page' : undefined}
+              onClick={() => {
+                go(target)
+              }}
+              className={`flex flex-col items-center gap-0.5 py-2 text-[11px] transition ${
+                view === target
+                  ? 'font-semibold text-wa-accent'
+                  : 'text-wa-muted hover:text-wa-text'
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              {t(label)}
+            </button>
+          ))}
+        </nav>
         {sheet}
       </div>
-    )
-  }
-
-  // The side-panel layout, next to WhatsApp Web: everything stacked, navigation at the bottom.
-  return (
-    <div className="flex h-screen flex-col bg-wa-panel text-wa-text">
-      <header className="flex items-center justify-between gap-2 px-4 pb-2 pt-3">
-        <h1 className="text-[15px] font-semibold tracking-tight">{t('app.name')}</h1>
-        <div className="flex min-w-0 items-center gap-1">
-          <StatusPill
-            status={status}
-            onClick={() => {
-              setShowStatus(true)
-            }}
-          />
-          <IconButton label={t('app.openLarge')} onClick={() => void openLarge()}>
-            <ExpandIcon className="h-4 w-4" />
-          </IconButton>
-        </div>
-      </header>
-      {welcomeCard}
-      {views}
-      <nav
-        className="grid grid-cols-4 border-t border-wa-hairline bg-wa-surface"
-        aria-label="Bereiche"
-      >
-        {NAV.map(({ view: target, label, Icon }) => (
-          <button
-            key={target}
-            type="button"
-            aria-current={view === target ? 'page' : undefined}
-            onClick={() => {
-              go(target)
-            }}
-            className={`flex flex-col items-center gap-0.5 py-2 text-[11px] transition ${
-              view === target ? 'font-semibold text-wa-accent' : 'text-wa-muted hover:text-wa-text'
-            }`}
-          >
-            <Icon className="h-5 w-5" />
-            {t(label)}
-          </button>
-        ))}
-      </nav>
-      {sheet}
-    </div>
+    </HelpProvider>
   )
 }
 
@@ -227,11 +271,14 @@ function useWide(): boolean {
 
 type Tone = 'ok' | 'wait' | 'bad'
 
-function summarise(status: PanelStatus): { tone: Tone; text: string } {
-  if (status.host?.error) return { tone: 'bad', text: t('status.problem') }
-  if (!status.whatsappOpen) return { tone: 'wait', text: t('status.noTab') }
-  if (!status.bridge?.ok) return { tone: 'wait', text: t('status.waiting') }
-  return { tone: 'ok', text: t('status.archiving') }
+function summarise(status: PanelStatus): { tone: Tone; text: string; explain: string } {
+  if (status.host?.error)
+    return { tone: 'bad', text: t('status.problem'), explain: t('status.problem.explain') }
+  if (!status.whatsappOpen)
+    return { tone: 'wait', text: t('status.noTab'), explain: t('status.noTab.explain') }
+  if (!status.bridge?.ok)
+    return { tone: 'wait', text: t('status.waiting'), explain: t('status.waiting.explain') }
+  return { tone: 'ok', text: t('status.archiving'), explain: t('status.archiving.explain') }
 }
 
 const TONE: Record<Tone, string> = {
@@ -312,8 +359,12 @@ function StatusSheet({
       }),
     ])
   }
+  const { text, explain } = summarise(status)
   return (
     <Sheet title={t('status.title')} onClose={onClose}>
+      <p className="mb-3 text-[13px] leading-relaxed">
+        <strong>{text}.</strong> {explain} <HelpLink topic="probleme" />
+      </p>
       <dl className="divide-y divide-wa-hairline rounded-2xl bg-wa-surface px-4">
         {rows.map(([label, value], i) => (
           <div key={i} className="flex justify-between gap-3 py-2.5 text-[13px]">
@@ -368,6 +419,9 @@ function Welcome({ onDone }: { onDone: () => void }): React.JSX.Element {
           {t('welcome.dismiss')}
         </Button>
       </div>
+      <p className="mt-2 text-xs">
+        <HelpLink topic="erste-schritte">{t('welcome.guide')}</HelpLink>
+      </p>
     </section>
   )
 }

@@ -6,6 +6,8 @@ import { ChatView } from './ChatsView'
 import { useChats, useSenderNames, type ChatInfo } from '../hooks'
 import { jidLabel, seconds, when, exactly } from '../format'
 import { CloseIcon, ExternalIcon, SearchIcon } from '../icons'
+import { SEARCH_SYNTAX } from '../help'
+import { HelpLink } from '../helpui'
 import { t, type StringKey } from '../strings'
 import { Avatar, Chip, EmptyState, Highlight, IconButton, Spinner } from '../ui'
 
@@ -331,24 +333,18 @@ function SearchHelp(): React.JSX.Element {
       </EmptyState>
       <details className="rounded-2xl bg-wa-surface px-4 py-3 text-xs text-wa-muted">
         <summary className="cursor-pointer font-medium text-wa-text">{t('search.tips')}</summary>
+        {/* The same list the help article shows (help.ts), so the two cannot disagree. */}
         <ul className="mt-2 space-y-1.5 leading-relaxed">
-          {(
-            [
-              'search.tip.phrase',
-              'search.tip.from',
-              'search.tip.in',
-              'search.tip.date',
-              'search.tip.has',
-            ] as const
-          ).map((key) => (
-            <li key={key}>
-              <code className="rounded bg-wa-raised px-1 py-0.5 text-wa-text">
-                {t(key).split(' – ')[0]}
-              </code>{' '}
-              – {t(key).split(' – ')[1]}
+          {SEARCH_SYNTAX.filter((entry) => entry.tip).map((entry) => (
+            <li key={entry.example}>
+              <code className="rounded bg-wa-raised px-1 py-0.5 text-wa-text">{entry.example}</code>{' '}
+              – {entry.meaning}
             </li>
           ))}
         </ul>
+        <p className="mt-2">
+          <HelpLink topic="suchen" />
+        </p>
       </details>
     </div>
   )

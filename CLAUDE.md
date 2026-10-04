@@ -99,6 +99,13 @@ Bedingungen zugleich erfüllt sind:
   Ein Branch/PR pro Phase.
 - Checkbox in `PLAN.md` im selben Commit abhaken, in dem der Task fertig wird.
 - Architekturentscheidungen als kurzes ADR unter `docs/decisions/`, fortlaufend nummeriert.
+- **Hilfe aktuell halten.** Jede Änderung, die man in der Oberfläche sieht oder anders bedient,
+  aktualisiert **im selben Commit** die Hilfe in `src/extension/panel/help.ts` – und, wo betroffen,
+  die Landing Page (`site/index.html`) und das README. Beschriftungen der eigenen Oberfläche stehen
+  in der Hilfe als `[[…]]`; `test/unit/help.test.ts` prüft sie gegen `strings.ts`, die Suchbeispiele
+  gegen den Parser und jeden Grund, warum eine Datei nicht kommt, gegen eine deutsche Erklärung in
+  `problems.ts`. Ein PR, der sichtbares Verhalten ändert und die Hilfe nicht, ist falsch – auch dann,
+  wenn die Tests grün sind.
 - Bridge-Code wird zusätzlich in `docs/bridge-map.md` dokumentiert: aufgelöstes Modul, Feldnamen, und die
   WA-Web-Version, gegen die es verifiziert wurde.
 - **Neue Dependencies mit nativen Modulen oder > 1 MB nur nach Rückfrage.** Lizenz prüfen – das Projekt ist

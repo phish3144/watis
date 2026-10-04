@@ -205,11 +205,13 @@ Wie das Ganze aufgebaut ist: [`docs/architecture.md`](docs/architecture.md).
   [`docs/backfill-findings.md`](docs/backfill-findings.md).
 - Das Archiv liegt **unverschlüsselt** auf der Platte. Der Schutz kommt von der Laufwerksverschlüsselung
   des Betriebssystems (BitLocker, FileVault). Wer das nicht hat, sollte es einschalten.
-- Das Archiv enthält Nachrichten anderer Leute, auch gelöschte und **auch verschwindende**, sobald sie
-  einmal gespiegelt wurden. Bei einer verschwindenden Nachricht war die Befristung von Anfang an die
-  Bedingung, unter der sie geschickt wurde – dieses Archiv hält sie trotzdem. Das ist eine bewusste
-  Entscheidung und je nach Umfeld und Rechtslage eine, die man treffen muss, nicht eine, die einem
-  passiert.
+- Das Archiv enthält Nachrichten anderer Leute, auch solche, die du nur für dich gelöscht hast, und
+  **auch verschwindende**, sobald sie einmal gespiegelt wurden. Bei einer verschwindenden Nachricht war
+  die Befristung von Anfang an die Bedingung, unter der sie geschickt wurde – dieses Archiv hält sie
+  trotzdem. Das ist eine bewusste Entscheidung und je nach Umfeld und Rechtslage eine, die man treffen
+  muss, nicht eine, die einem passiert. Zieht jemand eine Nachricht _für alle_ zurück, zeigt das Archiv
+  sie dagegen nur noch als gelöscht: Was ein Absender zurückgenommen hat, macht WatIs? nicht wieder
+  sichtbar ([ADR 0005](docs/decisions/0005-backfill-medien-transkription.md) B).
 - Läuft die App auf einem **verwalteten Firmengerät**, liegt das Archiv auf fremder Infrastruktur.
   Backup, Endpoint-Software und Roaming-Profile des Arbeitgebers können darauf zugreifen. „Alles läuft
   lokal" heißt hier nicht „nur du kommst dran".
