@@ -188,6 +188,30 @@ test('a message that arrives later is mirrored live', async () => {
     .toBe(1)
 })
 
+test('a message deleted for everyone stays in the archive, marked, and is still found', async () => {
+  await whatsapp.evaluate(() => {
+    ;(window as unknown as { __fakeWa: { revoke(id: string): void } }).__fakeWa.revoke('LIVE1')
+  })
+  await expect
+    .poll(
+      async () =>
+        (
+          await archive<{ messages: { body: string | null; revoked: boolean }[] }>({
+            op: 'messages',
+            ids: ['false_fam@g.us_LIVE1'],
+          })
+        ).messages[0],
+      { timeout: 15_000 },
+    )
+    .toMatchObject({ body: 'Der Schlüssel liegt unter der Fußmatte', revoked: true })
+  const found = await archive<{ hits: { msgId: string }[] }>({
+    op: 'search',
+    query: 'Fussmatte',
+    limit: 5,
+  })
+  expect(found.hits.map((h) => h.msgId)).toEqual(['false_fam@g.us_LIVE1'])
+})
+
 test('an image is fetched through WhatsApp’s downloader into the OPFS media store', async () => {
   await expect
     .poll(
@@ -243,6 +267,8 @@ test('the panel finds a message and says which chat it came from', async () => {
   const hit = panel.getByRole('listitem').filter({ hasText: 'Fußmatte' })
   await expect(hit).toContainText('Familie Beispiel')
   await expect(hit).toContainText('Anna Beispiel')
+  // Deleted for everyone after it was mirrored: still found, and says so.
+  await expect(hit).toContainText('für alle gelöscht')
 })
 
 test('the panel opens a chat from the archive, with sender names instead of numbers', async () => {
@@ -254,6 +280,8 @@ test('the panel opens a chat from the archive, with sender names instead of numb
   await expect(panel.getByText('Treffen am Samstag in München?')).toBeVisible()
   await expect(panel.getByText('Anna Beispiel').first()).toBeVisible()
   await expect(panel.getByText('Gerne, Grüße an alle!')).toBeVisible()
+  await expect(panel.getByText('Der Schlüssel liegt unter der Fußmatte')).toBeVisible()
+  await expect(panel.getByText('für alle gelöscht ·')).toBeVisible()
 })
 
 test('a setting changed in the panel reaches WhatsApp’s page', async () => {

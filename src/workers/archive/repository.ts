@@ -99,8 +99,17 @@ export class ArchiveRepository {
         (@id, @chatId, @senderJid, @ts, @kind, @body, @quotedId, @mediaId, @edited, @revoked, @fromMe, @rawJson)
       ON CONFLICT(id) DO UPDATE SET
         chat_id = excluded.chat_id, sender_jid = excluded.sender_jid, ts = excluded.ts,
-        kind = excluded.kind, body = excluded.body, quoted_id = excluded.quoted_id,
-        media_id = excluded.media_id, edited = excluded.edited, revoked = excluded.revoked,
+        -- A message deleted for everyone arrives with its text, its type and its attachment gone.
+        -- The archive keeps what it already had and only marks it (ADR 0013).
+        kind = CASE WHEN excluded.revoked = 1 AND messages.kind IS NOT NULL
+                    THEN messages.kind ELSE excluded.kind END,
+        body = CASE WHEN excluded.revoked = 1
+                    THEN COALESCE(NULLIF(excluded.body, ''), messages.body) ELSE excluded.body END,
+        media_id = CASE WHEN excluded.revoked = 1
+                        THEN COALESCE(excluded.media_id, messages.media_id) ELSE excluded.media_id END,
+        quoted_id = excluded.quoted_id, edited = excluded.edited,
+        -- Once deleted, always deleted: an older copy from a backfill must not undo it (ADR 0005 B).
+        revoked = MAX(messages.revoked, excluded.revoked),
         from_me = excluded.from_me, raw_json = excluded.raw_json
     `)
     return this.#runBatch(rows, (r) =>

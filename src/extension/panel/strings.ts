@@ -101,6 +101,7 @@ const de = {
   'chat.you': 'Du',
   'chat.edited': 'bearbeitet',
   'chat.revoked': 'Diese Nachricht wurde gelöscht.',
+  'chat.revoked.label': 'für alle gelöscht',
   'chat.attachment.image': 'Bild',
   'chat.attachment.video': 'Video',
   'chat.attachment.audio': 'Sprachnachricht',

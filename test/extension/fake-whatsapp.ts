@@ -62,6 +62,7 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
       on: (event, handler) => handlers.set(event, [...(handlers.get(event) || []), handler]),
       off: (event, handler) => handlers.set(event, (handlers.get(event) || []).filter((h) => h !== handler)),
       add: (model) => { models.push(model); for (const h of handlers.get('add') || []) h(model) },
+      emit: (event, model) => { for (const h of handlers.get(event) || []) h(model) },
     }
   }
   const key = (id, remote, fromMe = false) => ({ _serialized: (fromMe ? 'true' : 'false') + '_' + remote + '_' + id, id, remote, fromMe })
@@ -140,6 +141,14 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
   window.__fakeWa = {
     receive(id, body) {
       messages.add({ id: key(id, 'fam@g.us'), t: Math.floor(Date.now() / 1000), type: 'chat', body, from: { _serialized: '4915550000001@c.us' } })
+    },
+    // What WhatsApp does when the sender deletes a message for everyone: same id, type "revoked",
+    // text gone.
+    revoke(id) {
+      const message = messages.getModelsArray().find((m) => m.id.id === id)
+      message.type = 'revoked'
+      delete message.body
+      messages.emit('change', message)
     },
     notify(title, body) {
       return new Notification(title, { body, tag: title })

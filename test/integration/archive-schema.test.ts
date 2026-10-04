@@ -120,16 +120,28 @@ describe('search index', () => {
     expect(search(db, '"Angebot"').map((r) => r.msg_id)).toEqual(['m1'])
   })
 
-  it('drops the text from the index when a message is revoked', () => {
-    // The row stays — the plan keeps revoked messages and marks them — but the text must not
-    // remain findable.
+  it('keeps a message deleted for everyone in the index (ADR 0013)', () => {
     const db = fresh()
     insertChat(db)
     insertMessage(db, 'm1', 'Geheim')
     db.prepare("UPDATE messages SET revoked = 1 WHERE id = 'm1'").run()
 
+    expect(search(db, '"Geheim"').map((r) => r.msg_id)).toEqual(['m1'])
+  })
+
+  it('indexes, once, the deleted messages an older archive left out of the index', () => {
+    // An archive at version 3, where a revoke took the text out of the index.
+    const db = openMemory()
+    registerFunctions(db)
+    for (const migration of MIGRATIONS.filter((m) => m.version <= 3)) db.exec(migration.sql)
+    db.pragma('user_version = 3')
+    insertChat(db)
+    insertMessage(db, 'm1', 'Geheim')
+    db.prepare("UPDATE messages SET revoked = 1 WHERE id = 'm1'").run()
     expect(search(db, '"Geheim"')).toEqual([])
-    expect(db.prepare("SELECT count(*) AS n FROM messages WHERE id = 'm1'").get()).toEqual({ n: 1 })
+
+    migrate(db)
+    expect(search(db, '"Geheim"').map((r) => r.msg_id)).toEqual(['m1'])
   })
 
   it('indexes media filenames as their own source', () => {

@@ -366,21 +366,24 @@ function Bubble({
         {group && !mine && sender && (
           <div className="mb-0.5 text-[12px] font-semibold text-wa-accent">{sender}</div>
         )}
-        {message.mediaId && !message.revoked && (
+        {/* Deleted for everyone: kept in the archive as it was, and marked (ADR 0013). */}
+        {message.mediaId && (
           <div className="mb-1">
             <Attachment mediaId={message.mediaId} chatName={chatName} ts={message.ts} />
           </div>
         )}
-        {message.revoked ? (
-          <p className="text-[13px] italic text-wa-muted">{t('chat.revoked')}</p>
+        {message.body ? (
+          <p className="whitespace-pre-wrap break-words text-[13px] leading-snug">{message.body}</p>
         ) : (
-          message.body && (
-            <p className="whitespace-pre-wrap break-words text-[13px] leading-snug">
-              {message.body}
-            </p>
+          message.revoked &&
+          !message.mediaId && (
+            <p className="text-[13px] italic text-wa-muted">{t('chat.revoked')}</p>
           )
         )}
         <div className="mt-0.5 text-right text-[10px] text-wa-muted" title={exactly(message.ts)}>
+          {message.revoked && (message.body || message.mediaId) ? (
+            <span className="font-medium text-wa-danger">{`${t('chat.revoked.label')} · `}</span>
+          ) : null}
           {message.edited ? `${t('chat.edited')} · ` : ''}
           {new Date(message.ts * 1000).toLocaleTimeString('de-DE', {
             hour: '2-digit',

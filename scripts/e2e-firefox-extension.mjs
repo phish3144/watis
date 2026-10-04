@@ -264,6 +264,15 @@ try {
       (v) => v?.hits?.length === 1,
     )
   })
+  await check('a message deleted for everyone stays, marked, and is still found', async () => {
+    await evaluate(tab, `(window.__fakeWa.revoke('LIVE1'), true)`)
+    await poll(
+      () => archive({ op: 'messages', ids: ['false_fam@g.us_LIVE1'] }),
+      (v) => v?.messages?.[0]?.revoked === true && v.messages[0].body?.includes('Fußmatte'),
+    )
+    const found = await archive({ op: 'search', query: 'Fussmatte', limit: 5 })
+    if (found.hits.length !== 1) throw new Error(`${String(found.hits.length)} hits`)
+  })
   await check('an image is fetched into the OPFS media store', async () => {
     await poll(
       () => archive({ op: 'blobPath', mediaId: IMAGE }),

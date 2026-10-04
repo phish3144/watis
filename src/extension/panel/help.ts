@@ -73,7 +73,7 @@ export const HELP: readonly HelpArticle[] = [
     summary: 'Was WatIs? macht und wie das Archiv sich füllt.',
     body: [
       {
-        p: 'WatIs? schreibt mit, was in WhatsApp Web ankommt, und legt es in einem **durchsuchbaren Archiv auf deinem Rechner** ab. Verschwindet eine Nachricht danach in WhatsApp oder löschst du sie nur für dich, behält dein Archiv sie.',
+        p: 'WatIs? schreibt mit, was in WhatsApp Web ankommt, und legt es in einem **durchsuchbaren Archiv auf deinem Rechner** ab. Wird eine Nachricht danach in WhatsApp gelöscht – von dir, vom Absender oder weil sie verschwindet –, behält dein Archiv sie.',
       },
       {
         steps: [
@@ -119,13 +119,13 @@ export const HELP: readonly HelpArticle[] = [
     summary: 'Ältere Nachrichten lesen, zu einem Datum springen.',
     body: [
       {
-        p: 'Unter [[Chats]] liegen alle Chats, die WatIs? mitgeschrieben hat, mit ihren Nachrichten und Anhängen – auch solchen, die du in WhatsApp nur für dich gelöscht hast oder die von selbst verschwunden sind.',
+        p: 'Unter [[Chats]] liegen alle Chats, die WatIs? mitgeschrieben hat, mit ihren Nachrichten und Anhängen – auch solchen, die in WhatsApp inzwischen gelöscht oder verschwunden sind.',
       },
       {
         list: [
           '[[Ältere laden]] zeigt weiter zurückliegende Nachrichten aus dem Archiv.',
           '[[Zu Datum springen]] öffnet den Chat an einem bestimmten Tag.',
-          'Hat jemand eine Nachricht **für alle** gelöscht, steht dort „Diese Nachricht wurde gelöscht.“ Was ein Absender zurückgenommen hat, macht WatIs? bewusst nicht wieder sichtbar.',
+          'Hat jemand eine Nachricht **für alle** gelöscht, bleibt sie im Archiv mit Text und Anhang stehen und ist mit „für alle gelöscht“ markiert. Die Suche findet sie weiterhin. Das gilt für Nachrichten, die WatIs? vor dem Löschen schon mitgeschrieben hatte.',
         ],
       },
       {
@@ -287,7 +287,7 @@ export const HELP: readonly HelpArticle[] = [
         ],
       },
       {
-        note: 'Das Archiv ist nicht verschlüsselt. Auf einem Firmenrechner kann die IT darauf zugreifen. Und es enthält Nachrichten anderer Leute – auch „verschwindende“ und solche, die du nur für dich gelöscht hast, sobald sie einmal angekommen sind.',
+        note: 'Das Archiv ist nicht verschlüsselt. Auf einem Firmenrechner kann die IT darauf zugreifen. Und es enthält Nachrichten anderer Leute – auch gelöschte und „verschwindende“, sobald sie einmal angekommen sind.',
       },
     ],
     related: ['sicherung', 'grenzen'],

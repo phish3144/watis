@@ -415,6 +415,11 @@ function HitCard({
             {label}
           </span>
         )}
+        {message?.revoked && (
+          <span className="ml-1 mt-2 inline-block rounded-full bg-wa-raised px-2 py-0.5 text-[11px] font-medium text-wa-danger">
+            {t('chat.revoked.label')}
+          </span>
+        )}
       </button>
       {hit.chatId && (
         <div className="absolute right-1.5 top-1.5 opacity-60 group-hover:opacity-100">

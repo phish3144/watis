@@ -26,8 +26,17 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
   ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
+### Geändert
+
+- **Für alle gelöschte Nachrichten bleiben im Archiv**, mit Text und Anhang, als „für alle gelöscht"
+  markiert und weiter in der Suche. Das gilt für Nachrichten, die WatIs? vor dem Löschen schon
+  mitgeschrieben hatte, auch im Export
+  ([ADR 0013](docs/decisions/0013-geloeschte-nachrichten-bleiben.md)).
+
 ### Behoben
 
+- **Ein Backfill konnte eine gelöschte Nachricht als nicht gelöscht zurückschreiben**, wenn er eine
+  ältere Fassung nachlieferte. Die Markierung bleibt jetzt in jedem Fall.
 - **Anhänge wurden nie ins Archiv geholt.** Die Bridge legte für Anhänge keine Medienzeile an, und
   der Medienabruf fand deshalb nie etwas zu tun, im Desktop wie im Browser. Jetzt entsteht für jede
   Nachricht mit Anhang eine Zeile, live wie beim Übernehmen.
