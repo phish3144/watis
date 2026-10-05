@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { HelpButton } from '../help/help-ui'
 
 /**
  * What the content index is doing, per kind of extraction.
@@ -75,7 +76,9 @@ export function IndexStatus(): React.JSX.Element | null {
   return (
     <section className="rounded-lg border border-wa-hairline bg-wa-surface px-3 py-2 text-xs">
       <header className="mb-1.5 flex items-baseline justify-between gap-2">
-        <h2 className="text-xs font-semibold">Texterkennung</h2>
+        <h2 className="flex items-center gap-1 text-xs font-semibold">
+          Texterkennung <HelpButton topic="texterkennung" />
+        </h2>
         <span className="text-[11px] text-wa-muted">
           {status.working ? 'arbeitet gerade' : 'im Leerlauf'}
         </span>

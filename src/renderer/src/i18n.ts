@@ -7,6 +7,16 @@ const de = {
   'app.title': 'WatIs?',
   'app.subtitle': 'Einstellungen und Status',
 
+  'nav.archive': 'Archiv',
+  'nav.settings': 'Einstellungen',
+  'nav.help': 'Hilfe',
+
+  'help.title': 'Hilfe',
+  'help.intro':
+    'Kurz erklärt, was WatIs? kann und was zu tun ist, wenn etwas nicht klappt. Das „?“ neben einer Einstellung führt direkt zum passenden Thema.',
+  'help.back': 'Alle Themen',
+  'help.related': 'Siehe auch',
+
   'section.window': 'Fenster und Tray',
   'section.notifications': 'Benachrichtigungen',
   'section.appearance': 'Darstellung',

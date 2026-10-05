@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../api'
+import { HelpLink } from '../help/help-ui'
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
 import { BackfillPanel } from '../components/BackfillPanel'
 import type { HitPreview, NameHit } from '../../../workers/archive/repository'
@@ -909,6 +910,9 @@ export function ArchivePanel(): React.JSX.Element {
                 </button>
               )
             })}
+            <span className="ml-auto self-center">
+              <HelpLink topic="suchen">Suchtipps</HelpLink>
+            </span>
             {(query.includes('hat:') || query.includes('quelle:')) && (
               <button
                 type="button"

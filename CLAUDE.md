@@ -100,12 +100,15 @@ Bedingungen zugleich erfüllt sind:
 - Checkbox in `PLAN.md` im selben Commit abhaken, in dem der Task fertig wird.
 - Architekturentscheidungen als kurzes ADR unter `docs/decisions/`, fortlaufend nummeriert.
 - **Hilfe aktuell halten.** Jede Änderung, die man in der Oberfläche sieht oder anders bedient,
-  aktualisiert **im selben Commit** die Hilfe in `src/extension/panel/help.ts` – und, wo betroffen,
-  die Landing Page (`site/index.html`) und das README. Beschriftungen der eigenen Oberfläche stehen
-  in der Hilfe als `[[…]]`; `test/unit/help.test.ts` prüft sie gegen `strings.ts`, die Suchbeispiele
-  gegen den Parser und jeden Grund, warum eine Datei nicht kommt, gegen eine deutsche Erklärung in
-  `problems.ts`. Ein PR, der sichtbares Verhalten ändert und die Hilfe nicht, ist falsch – auch dann,
-  wenn die Tests grün sind.
+  aktualisiert **im selben Commit** die Hilfe – in der Desktop-App `src/renderer/src/help/articles.ts`,
+  in der Browser-Erweiterung `src/extension/panel/help.ts` – und, wo betroffen, die Landing Page
+  (`site/index.html`) und das README. Beschriftungen der eigenen Oberfläche stehen in der Hilfe als
+  `[[…]]`; `test/unit/help.test.ts` prüft sie gegen die Oberfläche (Desktop: Renderer und
+  Tray-Menü, Browser: `strings.ts`), die Suchbeispiele gegen den Parser, jeden Grund, warum eine
+  Datei nicht kommt, gegen eine deutsche Erklärung in `problems.ts`, und dass jeder Abschnitt der
+  Desktop-Einstellungen ein „?“ hat. Statuszeilen und Fehlermeldungen des Desktops stehen in
+  `src/renderer/src/status-texts.ts`, damit Panel und Hilfe dieselben Sätze zeigen. Ein PR, der
+  sichtbares Verhalten ändert und die Hilfe nicht, ist falsch – auch dann, wenn die Tests grün sind.
 - Bridge-Code wird zusätzlich in `docs/bridge-map.md` dokumentiert: aufgelöstes Modul, Feldnamen, und die
   WA-Web-Version, gegen die es verifiziert wurde.
 - **Neue Dependencies mit nativen Modulen oder > 1 MB nur nach Rückfrage.** Lizenz prüfen – das Projekt ist

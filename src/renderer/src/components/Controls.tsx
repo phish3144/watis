@@ -1,17 +1,25 @@
 import type { ReactNode } from 'react'
+import type { HelpTopic } from '../help/articles'
+import { HelpButton } from '../help/help-ui'
 
 export function Section({
   title,
+  help,
   children,
 }: {
   title: string
+  /** The help article on this section, opened by a "?" beside the heading. */
+  help?: HelpTopic | undefined
   children: ReactNode
 }): React.JSX.Element {
   return (
     <section className="mb-6">
-      <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-wa-muted">
-        {title}
-      </h2>
+      <div className="mb-2 flex items-center gap-1">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-wa-muted">
+          {title}
+        </h2>
+        {help && <HelpButton topic={help} />}
+      </div>
       <div className="space-y-1 rounded-lg bg-wa-surface p-3">{children}</div>
     </section>
   )

@@ -96,6 +96,9 @@ sich den Zustand.
   das Archiv von selbst weiter.
 - Die Suche greift auf alles zu, was einmal gespiegelt wurde – Text, Dateinamen, erkannten Text aus
   Bildern und PDFs.
+- **Hilfe** ist eingebaut: der Reiter **Hilfe** im Panel, ein **?** neben jedem Abschnitt der
+  Einstellungen und ein **Mehr dazu** an den Statuszeilen. Sie funktioniert ohne Netz, in der
+  Desktop-App wie in der Browser-Erweiterung.
 
 Rückwirkend gibt es wenig zu holen; warum, steht unter [Ehrliche Hinweise](#ehrliche-hinweise).
 

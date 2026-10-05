@@ -129,3 +129,48 @@ test('renders the messages of the selected chat, scrolled to the newest', async 
     })
     .toBe(true)
 })
+
+/**
+ * Clicks the first button in the panel whose label or first line of text matches, as a person
+ * would. A topic in the help list carries its summary on a second line.
+ */
+async function clickInPanel(name: string): Promise<boolean> {
+  return (await app.evaluate(async ({ webContents }, wanted) => {
+    const panel = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().includes('index.html'))
+    return (await panel?.executeJavaScript(`(() => {
+      const wanted = ${JSON.stringify(wanted)}
+      const button = [...document.querySelectorAll('button')].find(
+        (b) => b.getAttribute('aria-label') === wanted || b.innerText.split('\\n')[0].trim() === wanted,
+      )
+      button?.click()
+      return Boolean(button)
+    })()`)) as unknown
+  }, name)) as boolean
+}
+
+test('the help opens from its tab and from the "?" beside a settings section', async () => {
+  test.setTimeout(60_000)
+
+  // The tab: a list of topics, readable without any network.
+  expect(await clickInPanel('Hilfe')).toBe(true)
+  await expect.poll(() => panelText(), { timeout: 15_000 }).toContain('Wenn etwas nicht geht')
+  expect(await clickInPanel('Erste Schritte')).toBe(true)
+  await expect.poll(() => panelText(), { timeout: 15_000 }).toContain('QR-Code')
+
+  // The "?" beside a section opens the article for that section, from anywhere in the settings.
+  expect(await clickInPanel('Einstellungen')).toBe(true)
+  await expect.poll(() => panelText(), { timeout: 15_000 }).toContain('Nach Inaktivität sperren')
+  expect(await clickInPanel('Hilfe: App-Sperre')).toBe(true)
+  await expect
+    .poll(() => panelText(), { timeout: 15_000 })
+    .toContain('Sichtschutz, keine Verschlüsselung')
+
+  // The status line explains itself in the same words the panel uses.
+  expect(await clickInPanel('Alle Themen')).toBe(true)
+  expect(await clickInPanel('Wenn etwas nicht geht')).toBe(true)
+  await expect.poll(() => panelText(), { timeout: 15_000 }).toContain('Schreibt gerade nicht mit')
+
+  expect(await clickInPanel('Archiv')).toBe(true)
+})

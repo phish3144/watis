@@ -8,7 +8,7 @@ import {
   type Versions,
   type WorkerHealth,
 } from './api'
-import { t } from './i18n'
+import { t, type MessageKey } from './i18n'
 import { NumberField, Row, Section, TextField, TimeField, Toggle } from './components/Controls'
 import { ArchivePanel } from './archive/ArchivePanel'
 import { HealthBanner } from './components/HealthBanner'
@@ -22,6 +22,9 @@ import { AccountSettings, AccountTabs } from './components/AccountTabs'
 import { PanelRail } from './components/PanelRail'
 import { UpdateBanner, UpdateSettings } from './components/UpdatePanel'
 import type { HealthState } from '@shared/health/degraded'
+import type { HelpTopic } from './help/articles'
+import { HelpProvider } from './help/help-ui'
+import { HelpView } from './help/HelpView'
 
 function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   return (
@@ -32,10 +35,17 @@ function HealthDot({ ok }: { ok: boolean }): React.JSX.Element {
   )
 }
 
-type Tab = 'archive' | 'settings'
+type Tab = 'archive' | 'settings' | 'help'
+
+const TABS: readonly [Tab, MessageKey][] = [
+  ['archive', 'nav.archive'],
+  ['settings', 'nav.settings'],
+  ['help', 'nav.help'],
+]
 
 export function App(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>('archive')
+  const [helpTopic, setHelpTopic] = useState<HelpTopic | undefined>(undefined)
   const [settings, setSettings] = useState<Settings | undefined>(undefined)
   const [versions, setVersions] = useState<Versions | undefined>(undefined)
   const [health, setHealth] = useState<WorkerHealth | undefined>(undefined)
@@ -108,6 +118,12 @@ export function App(): React.JSX.Element {
     }
   }, [])
 
+  /** "?" and "Mehr dazu" anywhere in the panel lead here: the help tab, at that article. */
+  const openHelp = useCallback((topic: HelpTopic) => {
+    setHelpTopic(topic)
+    setTab('help')
+  }, [])
+
   const patch = useCallback((next: SettingsPatch) => {
     // Optimistic, then corrected by whatever main actually stored — main is the authority,
     // because it validates the patch against the schema and may reject it.
@@ -135,7 +151,7 @@ export function App(): React.JSX.Element {
     ? `${settings.downloadDir}/<Chat>/2026-08-30_Angebot.pdf`
     : `${settings.downloadDir}/2026-08-30_Angebot.pdf`
 
-  return (
+  const panel = (
     <div className="relative flex h-screen flex-col overflow-hidden bg-wa-panel px-4 py-3 text-sm text-wa-text">
       <LockScreen state={lock} />
       <header className="mb-3 flex items-center justify-between gap-3">
@@ -166,12 +182,14 @@ export function App(): React.JSX.Element {
           <h1 className="truncate text-sm font-semibold">{t('app.title')}</h1>
         </div>
         <nav className="flex gap-1" aria-label="Ansicht">
-          {(['archive', 'settings'] as const).map((value) => (
+          {TABS.map(([value, label]) => (
             <button
               key={value}
               type="button"
               aria-current={tab === value ? 'page' : undefined}
               onClick={() => {
+                // The tab itself always opens on the list of topics; a "?" opens an article.
+                if (value === 'help') setHelpTopic(undefined)
                 setTab(value)
               }}
               className={`rounded-md px-3 py-1 text-xs transition-colors ${
@@ -180,7 +198,7 @@ export function App(): React.JSX.Element {
                   : 'text-wa-muted hover:bg-wa-raised hover:text-wa-text'
               }`}
             >
-              {value === 'archive' ? 'Archiv' : 'Einstellungen'}
+              {t(label)}
             </button>
           ))}
         </nav>
@@ -197,6 +215,8 @@ export function App(): React.JSX.Element {
             <ArchivePanel />
           </div>
         </div>
+      ) : tab === 'help' ? (
+        <HelpView topic={helpTopic} onTopic={setHelpTopic} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mb-5 flex items-center gap-3 rounded-lg bg-wa-surface px-3 py-2">
@@ -213,7 +233,7 @@ export function App(): React.JSX.Element {
             </div>
           </div>
 
-          <Section title={t('section.window')}>
+          <Section title={t('section.window')} help="fenster">
             <Row
               label={t('window.closeToTray')}
               hint={t('window.closeToTray.hint')}
@@ -267,7 +287,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.notifications')}>
+          <Section title={t('section.notifications')} help="benachrichtigungen">
             <Row
               label={t('notify.enabled')}
               control={
@@ -358,7 +378,7 @@ export function App(): React.JSX.Element {
             )}
           </Section>
 
-          <Section title={t('section.appearance')}>
+          <Section title={t('section.appearance')} help="darstellung">
             <Row
               label="Erscheinungsbild"
               hint={
@@ -437,7 +457,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.declutter')}>
+          <Section title={t('section.declutter')} help="darstellung">
             <Row
               label={t('declutter.channels')}
               control={
@@ -477,7 +497,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.input')}>
+          <Section title={t('section.input')} help="darstellung">
             <Row
               label={t('input.enterNewline')}
               hint={t('input.enterNewline.hint')}
@@ -493,7 +513,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.media')}>
+          <Section title={t('section.media')} help="darstellung">
             <Row
               label={t('input.spellcheck')}
               hint={t('input.spellcheck.hint')}
@@ -530,15 +550,15 @@ export function App(): React.JSX.Element {
             <p className="pt-1 text-[11px] text-wa-muted">{t('media.zoom.hint')}</p>
           </Section>
 
-          <Section title={t('section.accounts')}>
+          <Section title={t('section.accounts')} help="konten">
             <AccountSettings />
           </Section>
 
-          <Section title={t('section.lock')}>
+          <Section title={t('section.lock')} help="sperre">
             <LockSettings state={lock} onChange={setLock} />
           </Section>
 
-          <Section title={t('section.number')}>
+          <Section title={t('section.number')} help="nummer">
             <NumberDialog />
             <Row
               label={t('links.handle')}
@@ -555,7 +575,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.files')}>
+          <Section title={t('section.files')} help="dateien">
             <Row
               label={t('files.downloadDir')}
               control={
@@ -599,7 +619,7 @@ export function App(): React.JSX.Element {
             </div>
           </Section>
 
-          <Section title={t('section.index')}>
+          <Section title={t('section.index')} help="texterkennung">
             <Row
               label={t('index.paused')}
               hint={t('index.paused.hint')}
@@ -659,7 +679,7 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.backup')}>
+          <Section title={t('section.backup')} help="sicherung">
             <Row
               label={t('backup.enabled')}
               hint={t('backup.enabled.hint')}
@@ -704,7 +724,7 @@ export function App(): React.JSX.Element {
             <p className="pt-1 text-[11px] text-wa-muted">{t('backup.restore.hint')}</p>
           </Section>
 
-          <Section title={t('section.updates')}>
+          <Section title={t('section.updates')} help="updates">
             <UpdateSettings
               state={update}
               autoUpdate={settings.autoUpdate}
@@ -714,11 +734,11 @@ export function App(): React.JSX.Element {
             />
           </Section>
 
-          <Section title={t('section.storage')}>
+          <Section title={t('section.storage')} help="speicher">
             <StoragePanel />
           </Section>
 
-          <Section title={t('section.status')}>
+          <Section title={t('section.status')} help="probleme">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <HealthDot ok={health?.archive ?? false} />
@@ -766,4 +786,6 @@ export function App(): React.JSX.Element {
       )}
     </div>
   )
+
+  return <HelpProvider value={openHelp}>{panel}</HelpProvider>
 }

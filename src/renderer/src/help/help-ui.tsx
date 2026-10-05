@@ -1,15 +1,11 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { tokenizeHelp } from '@shared/help/content'
-import { bytes } from './format'
-import { helpArticle, type HelpTopic } from './help'
-import { HelpIcon } from './icons'
-import { t } from './strings'
-import { MODELS } from '../whisper'
+import { helpArticle, type HelpTopic } from './articles'
 
 /**
- * The way from any place in the panel to the help: a "?" beside a heading, a "Mehr dazu" after a
- * sentence. Both open the article for that place, so the one sentence the interface shows can stay
- * one sentence (help.ts).
+ * The way from any place in the panel to the help: a "?" beside a section heading, a "Mehr dazu"
+ * after a sentence. Both open the article for that place in the "Hilfe" tab, so the one sentence
+ * the panel shows can stay one sentence.
  */
 
 const OpenHelp = createContext<(topic: HelpTopic) => void>(() => undefined)
@@ -20,10 +16,26 @@ export function useOpenHelp(): (topic: HelpTopic) => void {
   return useContext(OpenHelp)
 }
 
+export function HelpIcon({ className }: { className?: string }): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M9.6 9.4a2.5 2.5 0 0 1 4.9.8c0 1.7-2.5 2.2-2.5 3.8M12 17h.01"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /** A small "?" that opens the article on what sits beside it. */
 export function HelpButton({ topic }: { topic: HelpTopic }): React.JSX.Element {
   const open = useOpenHelp()
-  const label = t('help.open', { topic: helpArticle(topic).title })
+  const label = `Hilfe: ${helpArticle(topic).title}`
   return (
     <button
       type="button"
@@ -32,9 +44,9 @@ export function HelpButton({ topic }: { topic: HelpTopic }): React.JSX.Element {
       }}
       aria-label={label}
       title={label}
-      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-wa-muted transition hover:bg-wa-raised hover:text-wa-accent"
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-wa-muted hover:bg-wa-raised hover:text-wa-accent"
     >
-      <HelpIcon className="h-4 w-4" />
+      <HelpIcon className="h-3.5 w-3.5" />
     </button>
   )
 }
@@ -56,27 +68,16 @@ export function HelpLink({
       }}
       className="font-medium text-wa-accent hover:underline"
     >
-      {children ?? t('help.more')}
+      {children ?? 'Mehr dazu'}
     </button>
   )
 }
 
-/** Model sizes come from the model list, so the help never quotes a size the download does not have. */
-function resolve(text: string): string {
-  return text.replace(/\{size:(\w+)\}/g, (_, key: string) => {
-    const model = (MODELS as Record<string, { bytes: number } | undefined>)[key]
-    return model ? bytes(model.bytes) : `{size:${key}}`
-  })
-}
-
-/**
- * The help's inline markup (src/shared/help/content.ts): `**bold**`, `[[label of this interface]]`
- * (shown bold) and `` `typed text` ``. Everything else is text — no HTML is ever interpreted.
- */
+/** The help's inline markup (src/shared/help/content.ts). No HTML is ever interpreted. */
 export function RichText({ text }: { text: string }): React.JSX.Element {
   return (
     <>
-      {tokenizeHelp(resolve(text)).map((token, i) => {
+      {tokenizeHelp(text).map((token, i) => {
         if (token.kind === 'bold') return <strong key={i}>{token.text}</strong>
         if (token.kind === 'label')
           return (

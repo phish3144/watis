@@ -18,6 +18,12 @@
  * Labels of the browser's own pages (Neu laden, Entfernen …) are plain bold: not ours to check.
  */
 
+import {
+  SEARCH_SYNTAX,
+  type HelpArticle as SharedHelpArticle,
+  type HelpBlock as SharedHelpBlock,
+} from '@shared/help/content'
+
 export type HelpTopic =
   | 'erste-schritte'
   | 'suchen'
@@ -31,40 +37,14 @@ export type HelpTopic =
   | 'probleme'
   | 'grenzen'
 
-export type HelpBlock =
-  | { p: string }
-  | { h: string }
-  | { list: string[] }
-  | { steps: string[] }
-  | { table: [string, string][] }
-  | { note: string }
-  | { generated: 'search-syntax' | 'media-problems' | 'status' }
+export type HelpBlock = SharedHelpBlock<'search-syntax' | 'media-problems' | 'status'>
 
-export interface HelpArticle {
-  id: HelpTopic
-  title: string
-  /** One line for the list of topics. */
-  summary: string
-  body: HelpBlock[]
-  related?: HelpTopic[]
-}
+export type HelpArticle = SharedHelpArticle<
+  HelpTopic,
+  'search-syntax' | 'media-problems' | 'status'
+>
 
-/**
- * The search syntax, once: the search view's tips and the help article both render this, and the
- * help test runs every example through the real parser.
- */
-export const SEARCH_SYNTAX: readonly { example: string; meaning: string; tip?: boolean }[] = [
-  { example: '"genauer Satz"', meaning: 'die Wörter genau in dieser Reihenfolge', tip: true },
-  { example: 'von:Anna', meaning: 'nur Nachrichten von Anna', tip: true },
-  { example: 'in:Familie', meaning: 'nur im Chat „Familie“', tip: true },
-  { example: 'nach:2026-01-01', meaning: 'ab diesem Tag', tip: true },
-  { example: 'vor:2026-02-01', meaning: 'vor diesem Tag' },
-  { example: 'hat:image', meaning: 'nur mit Bild – ebenso file, audio, video, link', tip: true },
-  {
-    example: 'quelle:ocr',
-    meaning: 'nur Text aus Bildern – ebenso body, pdf, transcript, filename',
-  },
-]
+export { SEARCH_SYNTAX }
 
 export const HELP: readonly HelpArticle[] = [
   {

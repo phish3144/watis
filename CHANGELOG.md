@@ -26,6 +26,11 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
   ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
+- **Hilfe eingebaut**, in der Desktop-App und in der Browser-Erweiterung: ein Reiter **Hilfe** mit
+  kurzen Artikeln, die ohne Netz funktionieren, ein **?** neben jedem Abschnitt der Einstellungen
+  und **Mehr dazu** an den Statuszeilen. Die Meldung oben im Panel sagt jetzt auch, was zu tun ist.
+  Im Browser erklärt das Panel außerdem auf Deutsch, warum eine Datei nicht ins Archiv kam.
+
 ### Geändert
 
 - **Für alle gelöschte Nachrichten bleiben im Archiv**, mit Text und Anhang, als „für alle gelöscht"
