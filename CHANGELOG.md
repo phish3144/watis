@@ -16,10 +16,13 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   WhatsApp, breit als eigener Tab. Treffer nennen Chat und Absender statt Telefonnummern.
 - **Texterkennung und PDF-Text im Browser**, auch für eingescannte PDFs. Alles im Paket, nichts aus
   dem Netz.
-- **Sprachnachrichten transkribieren**, auf Klick, mit whisper.cpp lokal im Browser. Das Transkript
-  ist sofort durchsuchbar. Die Sprache ist einstellbar, Deutsch voreingestellt. Das Modell (57 MB
-  oder 181 MB) wird einmalig auf Klick geladen und geprüft, oder von der Platte genommen, wenn GitHub
-  gesperrt ist ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
+- **Sprachnachrichten transkribieren**, mit einem Klick auf „Transkribieren“ unter der
+  Sprachnachricht, mit whisper.cpp lokal im Browser. Eine Sprachnachricht, die noch nicht im Archiv
+  ist, wird dabei geholt. Beim ersten Mal bietet der Knopf das Sprachmodell an (57 MB, „Genau“ mit
+  181 MB in den Einstellungen) und lädt es erst nach einem zweiten Klick, geprüft gegen eine
+  Prüfsumme, oder von der Platte, wenn GitHub gesperrt ist. Das Transkript ist sofort durchsuchbar.
+  Die Sprache ist einstellbar, Deutsch voreingestellt
+  ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
 - **Medien dauerhaft sichern**: Abrufregeln für Bilder, Dokumente, Sprachnachrichten und Videos als
   Einstellung. Die Sicherung des Browser-Archivs geht in einen gewählten Ordner (Chrome, Edge), der
   auch ein OneDrive- oder Nextcloud-Ordner sein darf, oder als ZIP. Sie hat dasselbe Format wie die

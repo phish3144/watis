@@ -325,13 +325,29 @@ test('a scanned PDF page is rendered and recognised', async () => {
     .toContain(SCANNED_PDF)
 })
 
-test('a voice message is transcribed on a click and becomes searchable', async () => {
+test('a voice message is transcribed with one click and becomes searchable', async () => {
   test.skip(!existsSync(WHISPER_MODEL), `no speech model at ${WHISPER_MODEL}`)
   test.setTimeout(240_000)
 
-  // The model comes from a file here — the path for networks where GitHub is blocked. It is held
-  // to the same checksum a download is.
+  const voiceMessages = async (): Promise<void> => {
+    await panel.getByRole('button', { name: 'Medien', exact: true }).first().click()
+    await panel.getByRole('tab', { name: 'Sprache' }).click()
+  }
+
+  // Without a model, the button under the voice message offers one, says how large it is, and
+  // downloads nothing until that offer is accepted.
   await panel.reload()
+  await voiceMessages()
+  await panel.getByRole('button', { name: 'Transkribieren' }).first().click()
+  const offer = panel.getByText(/einmalig ein Sprachmodell \(57 MB, von GitHub\)/)
+  await expect(offer).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Laden und transkribieren' })).toBeVisible()
+  await panel.getByRole('button', { name: 'Abbrechen' }).click()
+  await expect(offer).toBeHidden()
+
+  // The model comes from a file here — the path for networks where GitHub is blocked. It is held
+  // to the same checksum a download is. (The download itself would ask the browser for
+  // permission, which a headless browser cannot grant.)
   await panel
     .getByRole('button', { name: /Einstellungen|Mehr/ })
     .first()
@@ -342,11 +358,10 @@ test('a voice message is transcribed on a click and becomes searchable', async (
   // The fixture speaks English; German is the default.
   await panel.getByLabel('Sprache der Sprachnachrichten').selectOption('en')
 
-  // Voice messages are not fetched automatically by default; this one is fetched by hand.
-  await panel.getByRole('button', { name: 'Medien', exact: true }).first().click()
-  await panel.getByRole('tab', { name: 'Sprache' }).click()
-  await panel.getByRole('button', { name: 'Laden', exact: true }).first().click()
-  await panel.getByRole('button', { name: 'Transkribieren' }).click()
+  // Voice messages are not fetched automatically by default. One click on "Transkribieren" fetches
+  // this one and transcribes it — no "Laden" first.
+  await voiceMessages()
+  await panel.getByRole('button', { name: 'Transkribieren' }).first().click()
 
   const transcript = panel.getByRole('figure').filter({ hasText: 'Transkript' })
   await expect(transcript).toContainText(/kitchen/i, { timeout: 180_000 })

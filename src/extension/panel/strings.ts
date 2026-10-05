@@ -200,7 +200,13 @@ const de = {
   'transcription.fromFile.hint':
     'Falls GitHub im Firmennetz gesperrt ist: dieselbe Datei von woanders, geprüft gegen dieselbe Prüfsumme.',
   'transcription.imported': 'Modell übernommen.',
-  'transcription.needModel': 'Erst unter Einstellungen ein Sprachmodell laden.',
+  'transcription.needModel':
+    'Es ist kein Sprachmodell mehr da. „Transkribieren“ bietet es wieder zum Laden an.',
+  'transcription.offer':
+    'Für ein Transkript braucht WatIs? einmalig ein Sprachmodell ({size}, von GitHub). Es bleibt auf diesem Rechner.',
+  'transcription.offer.go': 'Laden und transkribieren',
+  'transcription.offer.cancel': 'Abbrechen',
+  'transcription.downloading': 'Sprachmodell wird geladen … {percent} %',
   'transcription.needTab': 'In Firefox transkribiert der WhatsApp-Tab – bitte WhatsApp Web öffnen.',
   'transcription.firefox': 'In Firefox rechnet der WhatsApp-Tab – er muss dafür offen sein.',
   'transcription.error.permission': 'Ohne Erlaubnis für den Download von GitHub geht es nicht.',

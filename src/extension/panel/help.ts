@@ -169,28 +169,28 @@ export const HELP: readonly HelpArticle[] = [
   {
     id: 'sprachnachrichten',
     title: 'Sprachnachrichten zum Nachlesen',
-    summary: 'Sprachnachrichten in Text umwandeln, ganz auf deinem Rechner.',
+    summary: 'Ein Klick macht aus einer Sprachnachricht Text, ganz auf deinem Rechner.',
     body: [
       {
-        p: 'Bei jeder Sprachnachricht im Archiv steht [[Transkribieren]]. Ein Klick macht daraus Text, der darunter erscheint und ab dann durchsuchbar ist.',
+        p: 'Unter jeder Sprachnachricht steht [[Transkribieren]]. Ein Klick macht daraus Text, der darunter erscheint und ab dann durchsuchbar ist. Ist die Sprachnachricht noch nicht im Archiv, holt WatIs? sie dabei gleich mit.',
       },
-      { h: 'Einmalig: das Sprachmodell' },
+      { h: 'Beim ersten Mal' },
       {
-        steps: [
-          '[[Einstellungen]] → [[Texterkennung und Transkription]] öffnen.',
-          'Bei [[Schnell]] ({size:base}, für klare Aufnahmen) oder [[Genau]] ({size:small}, auch bei Dialekt und Nebengeräuschen) auf [[Herunterladen]] klicken. Der Browser fragt dabei einmal, ob WatIs? die Datei von GitHub laden darf.',
+        p: 'Dafür braucht es einmalig ein Sprachmodell ({size:base}). Beim ersten Klick fragt WatIs? direkt an der Sprachnachricht nach: [[Laden und transkribieren]] lädt das Modell von GitHub und wandelt danach sofort um. Der Browser fragt dabei einmal, ob WatIs? die Datei von GitHub laden darf. Danach reicht immer ein Klick.',
+      },
+      { h: 'Einstellen, wenn du willst' },
+      {
+        list: [
+          'Unter [[Einstellungen]] → [[Texterkennung und Transkription]] gibt es neben [[Schnell]] ({size:base}, für klare Aufnahmen) auch [[Genau]] ({size:small}, auch bei Dialekt und Nebengeräuschen). Ist [[Schnell]] da, nimmt WatIs? dieses.',
           'Bei [[Sprache der Sprachnachrichten]] die Sprache wählen. Deutsch ist voreingestellt. [[Automatisch erkennen]] geht auch, dauert aber doppelt so lang.',
+          'Ist GitHub im Firmennetz gesperrt: dieselbe Modelldatei von woanders besorgen und bei [[Modell aus einer Datei]] über [[Datei wählen …]] öffnen. WatIs? prüft sie gegen dieselbe Prüfsumme.',
         ],
-      },
-      {
-        p: 'Ist GitHub im Firmennetz gesperrt: dieselbe Modelldatei von woanders besorgen und bei [[Modell aus einer Datei]] über [[Datei wählen …]] öffnen. WatIs? prüft sie gegen dieselbe Prüfsumme.',
       },
       {
         list: [
           'Die Umwandlung läuft **auf deinem Rechner**. Die Sprachnachricht geht nirgendwohin.',
           'Je nach Rechner dauert sie einige Sekunden bis zu einer Minute.',
           'In **Firefox** rechnet der WhatsApp-Tab. Er muss dafür offen sein.',
-          'Die Sprachnachricht muss im Archiv sein. Steht dort [[Laden]], erst laden.',
         ],
       },
     ],

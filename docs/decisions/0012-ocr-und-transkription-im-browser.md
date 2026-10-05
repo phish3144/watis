@@ -82,6 +82,11 @@ Die vollständigen Prüfsummen stehen in `src/extension/whisper-models.json`. Di
 MIT (Whisper-Gewichte von OpenAI, ggml-Konvertierung von whisper.cpp).
 
 - **Nicht im Paket.** Geladen wird einmal, auf Klick, mit Größenangabe vorab.
+- **Ein Klick an der Sprachnachricht (2026-10-05).** Ist noch kein Modell da, bietet
+  „Transkribieren“ direkt an der Sprachnachricht „Schnell“ (57 MB) an. Erst der zweite Klick auf
+  „Laden und transkribieren“ lädt es; danach wird sofort umgewandelt, und eine Sprachnachricht, die
+  noch nicht im Archiv ist, wird dabei geholt. „Schnell“, weil der erste Eindruck Sekunden statt
+  Minuten dauern soll. „Genau“ bleibt in den Einstellungen; ist es da, nimmt WatIs? dieses.
 - **Aus dem eigenen GitHub-Release `whisper-models`**, nicht von einem persönlichen
   Hugging-Face-Konto. `scripts/mirror-whisper-models.mjs` holt die Dateien aus whisper.cpps eigenem
   Repository, prüft sie und gibt die `gh`-Befehle aus. Hochladen ist ein bewusster Schritt einer

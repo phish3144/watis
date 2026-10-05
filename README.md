@@ -147,9 +147,11 @@ der Erweiterung nicht. Deshalb gibt es unter Einstellungen die **Sicherung**, in
 (Chrome, Edge) oder als ZIP. Sie hat dasselbe Format wie die Sicherung der Desktop-App
 ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
-Für die Transkription wird einmalig ein Sprachmodell geladen, 57 MB („Schnell") oder 181 MB
-(„Genau"), nur auf Klick und gegen eine hinterlegte Prüfsumme geprüft. Ist GitHub im Firmennetz
-gesperrt, nimmt die Erweiterung dieselbe Datei auch von der Platte
+Transkribieren ist ein Klick auf **Transkribieren** unter der Sprachnachricht; eine, die noch nicht
+im Archiv ist, wird dabei geholt. Beim ersten Mal bietet der Knopf das Sprachmodell an, 57 MB
+(„Schnell"), und lädt es erst nach einem zweiten Klick, gegen eine hinterlegte Prüfsumme geprüft.
+„Genau" (181 MB) lässt sich in den Einstellungen dazuholen. Ist GitHub im Firmennetz gesperrt, nimmt
+die Erweiterung dieselbe Datei auch von der Platte
 ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
 
 Im Browser gibt es kein Tray, keinen Autostart, keine Direktantwort, kein Nachladen älterer
