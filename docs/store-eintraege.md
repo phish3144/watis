@@ -19,15 +19,15 @@ nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (sieh
 
 ### Vorher einmal erledigen
 
-1. **Datenschutzerklärung live schalten.** Alle drei Stores wollen eine URL. Die Seite steht in
-   `site/datenschutz.html`; es fehlen nur **Name und E-Mail-Adresse** des Verantwortlichen. Sobald
-   sie eingetragen und zusammengeführt ist, lautet die URL:
+1. **Datenschutzerklärung:** Alle drei Stores wollen eine URL. Die Seite steht in
+   `site/datenschutz.html` und ist auf der Landing Page verlinkt:
    `https://phish3144.github.io/watis/datenschutz.html`
 2. **Eine eigene E-Mail-Adresse für die Stores** nehmen, zum Beispiel `watis@…`. Beim Chrome Web
    Store lässt sich die Adresse des Entwicklerkontos später **nicht mehr ändern**, und die
    Kontakt-Adresse ist öffentlich sichtbar.
 3. **Die Dateien bereitlegen:**
-   - Pakete aus dem neuesten Release:
+   - Pakete aus dem neuesten Release, **mindestens 0.8.1** (erst ab dieser Version zeigt die Hilfe in
+     Edge nur Edge, und Edge sortiert gespeicherte Anhänge richtig):
      [WatIs-Browser-Firefox.zip](https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Firefox.zip)
      und
      [WatIs-Browser-Chrome-Edge.zip](https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip).
@@ -163,10 +163,9 @@ installieren. Edge fragt einmal, ob es **„Erweiterungen aus anderen Stores zul
 geht es mit einem Klick. Ein eigener Edge-Eintrag lohnt sich vor allem für Firmenrechner, auf denen
 die IT nur den Edge-Store freigibt.
 
-**Bekanntes Risiko:** Edge verlangt, dass eine Erweiterung **keine anderen Browser erwähnt**
-(Richtlinie 1.1.2). Die eingebaute Hilfe von WatIs? erklärt aber auch Chrome und Firefox. Das kann
-zur Ablehnung führen. Vor dem Einreichen kann ich die Hilfe so umbauen, dass sie nur den Browser
-zeigt, in dem sie läuft.
+**Andere Browser:** Edge verlangt, dass eine Erweiterung keine anderen Browser erwähnt (Richtlinie
+1.1.2). Ab 0.8.1 zeigt die eingebaute Hilfe nur den Browser, in dem sie läuft. Wer WatIs? aus einem
+Store installiert hat, liest dort auch nichts über ZIP-Dateien und Entwicklermodus.
 
 1. **Microsoft-Konto:** ein privates (Outlook, Hotmail, Live) oder ein GitHub-Konto. Mit Arbeits-
    oder Schulkonten geht es nicht. Neu anlegen: <https://signup.live.com/>

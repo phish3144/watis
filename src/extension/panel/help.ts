@@ -16,6 +16,11 @@
  *
  * Markup: `**bold**`, `[[label of this interface]]` (shown bold, checked), `` `typed text` ``.
  * Labels of the browser's own pages (Neu laden, Entfernen …) are plain bold: not ours to check.
+ *
+ * A block can carry `when`: then it shows only in that browser, or only for that kind of install.
+ * The help names no browser but the one it runs in — the Edge Add-ons policy forbids an extension
+ * to reference other browsers (1.1.2), and the steps differ anyway — and it explains updating from
+ * a ZIP only to somebody who installed from one.
  */
 
 import {
@@ -37,12 +42,77 @@ export type HelpTopic =
   | 'probleme'
   | 'grenzen'
 
-export type HelpBlock = SharedHelpBlock<'search-syntax' | 'media-problems' | 'status'>
+type Generated = 'search-syntax' | 'media-problems' | 'status'
 
-export type HelpArticle = SharedHelpArticle<
-  HelpTopic,
-  'search-syntax' | 'media-problems' | 'status'
->
+/** The browser the panel runs in. Other Chromium browsers read the Chrome text. */
+export type HelpBrowser = 'chrome' | 'edge' | 'firefox'
+
+/** `store`: installed from the browser's add-on store, which updates it. `manual`: from the ZIP. */
+export type HelpInstall = 'store' | 'manual'
+
+export interface HelpContext {
+  browser: HelpBrowser
+  install: HelpInstall
+}
+
+/** Where a block applies. Absent fields mean "everywhere". */
+export interface HelpCondition {
+  browser?: readonly HelpBrowser[]
+  install?: HelpInstall
+}
+
+export type HelpBlock = SharedHelpBlock<Generated> & { when?: HelpCondition }
+
+export interface HelpArticle extends Omit<SharedHelpArticle<HelpTopic, Generated>, 'body'> {
+  body: HelpBlock[]
+}
+
+/** Every situation the help is written for, for the tests. */
+export const HELP_CONTEXTS: readonly HelpContext[] = (
+  ['chrome', 'edge', 'firefox'] as const
+).flatMap((browser) => (['store', 'manual'] as const).map((install) => ({ browser, install })))
+
+export function appliesTo(block: HelpBlock, context: HelpContext): boolean {
+  const when = block.when
+  if (!when) return true
+  if (when.browser && !when.browser.includes(context.browser)) return false
+  if (when.install && when.install !== context.install) return false
+  return true
+}
+
+/** The blocks of an article that are true where the panel runs. */
+export function bodyFor(article: HelpArticle, context: HelpContext): HelpBlock[] {
+  return article.body.filter((block) => appliesTo(block, context))
+}
+
+const CHROMIUM: HelpCondition = { browser: ['chrome', 'edge'] }
+const FIREFOX: HelpCondition = { browser: ['firefox'] }
+
+// Rows of "Wenn etwas nicht klappt", combined below per browser and kind of install.
+const ROW_MEDIA: [string, string] = [
+  'Ein Bild oder Video kommt nicht',
+  'Siehe „Bilder, Videos und Sprachnachrichten" – meist ist es nicht mehr auf WhatsApps Servern.',
+]
+const ROW_TRANSCRIBE: [string, string] = [
+  'Transkribieren meldet einen Fehler',
+  'Ist ein Sprachmodell geladen?',
+]
+const ROW_TRANSCRIBE_FIREFOX: [string, string] = [
+  'Transkribieren meldet einen Fehler',
+  'Ist ein Sprachmodell geladen? Ist der WhatsApp-Tab offen?',
+]
+const ROW_OTHER_FOLDER: [string, string] = [
+  'Nach einem Update ist das Archiv leer',
+  'Die neue Version wurde in einen anderen Ordner entpackt. Den alten Ordner wieder laden.',
+]
+const ROW_DEVELOPER_MODE: [string, string] = [
+  'Der Entwicklermodus ist ausgegraut',
+  'Die IT hat ihn gesperrt. Dann geht es nur mit WatIs? aus dem Add-on-Store des Browsers.',
+]
+const ROW_GONE_AFTER_RESTART: [string, string] = [
+  'WatIs? ist nach dem Neustart weg',
+  'Die ZIP wieder über „Temporäres Add-on laden …" laden. Das Archiv ist noch da.',
+]
 
 export { SEARCH_SYNTAX }
 
@@ -190,8 +260,11 @@ export const HELP: readonly HelpArticle[] = [
         list: [
           'Die Umwandlung läuft **auf deinem Rechner**. Die Sprachnachricht geht nirgendwohin.',
           'Je nach Rechner dauert sie einige Sekunden bis zu einer Minute.',
-          'In **Firefox** rechnet der WhatsApp-Tab. Er muss dafür offen sein.',
         ],
+      },
+      {
+        p: 'In Firefox rechnet der **WhatsApp-Tab**. Er muss dafür offen sein.',
+        when: FIREFOX,
       },
     ],
     related: ['medien', 'datenschutz'],
@@ -204,8 +277,9 @@ export const HELP: readonly HelpArticle[] = [
       {
         p: 'Das Archiv liegt im Speicher deines Browsers. Abmelden, Cache leeren und Updates überlebt es. **Das Entfernen der Erweiterung oder ein zurückgesetztes Browserprofil nicht.** Eine Sicherung legt eine Kopie außerhalb des Browsers ab.',
       },
-      { h: 'In einen Ordner (Chrome und Edge)' },
+      { h: 'In einen Ordner', when: CHROMIUM },
       {
+        when: CHROMIUM,
         steps: [
           '[[Einstellungen]] → [[Archiv und Sicherung]] → [[Ordner wählen …]]',
           'Einen Ordner aussuchen, zum Beispiel in „Dokumente". Auch ein Ordner, den OneDrive oder Nextcloud abgleicht, geht – dann liegt die Sicherung dort, wohin dieser Dienst sie bringt.',
@@ -214,8 +288,13 @@ export const HELP: readonly HelpArticle[] = [
       },
       {
         p: 'Nach einem Neustart des Browsers fragt er beim Sichern einmal nach, ob WatIs? wieder in den Ordner schreiben darf.',
+        when: CHROMIUM,
       },
-      { h: 'Als ZIP (alle Browser, in Firefox der einzige Weg)' },
+      { h: 'Als ZIP' },
+      {
+        p: 'In Firefox ist das der einzige Weg: Einen Ordner wählen lässt Firefox eine Erweiterung nicht.',
+        when: FIREFOX,
+      },
       {
         p: '[[Als ZIP herunterladen]] legt die Sicherung in deinen Download-Ordner unter „WatIs/Sicherung“. Die erste ZIP enthält alles, jede weitere nur die neuen Medien seit der letzten; [[Alle Medien neu]] packt wieder alles ein. Große Archive kommen in mehreren Teilen von höchstens 1 GB.',
       },
@@ -224,9 +303,18 @@ export const HELP: readonly HelpArticle[] = [
         p: 'Nach dem Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung von WatIs? beginnt das Archiv leer. So kommt es zurück:',
       },
       {
+        when: CHROMIUM,
         steps: [
           '[[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]]',
-          '[[Aus einem Ordner …]] wählt den Sicherungsordner (Chrome und Edge). [[ZIP-Dateien wählen …]] nimmt die ZIP-Sicherungen – **alle auf einmal markieren**, denn jede nach der ersten enthält nur die neuen Medien.',
+          '[[Aus einem Ordner …]] wählt den Sicherungsordner. [[ZIP-Dateien wählen …]] nimmt die ZIP-Sicherungen – **alle auf einmal markieren**, denn jede nach der ersten enthält nur die neuen Medien.',
+          'WatIs? sagt, von wann die Sicherung ist und wie viele Medien sie enthält. [[Zurückspielen]] klicken.',
+        ],
+      },
+      {
+        when: FIREFOX,
+        steps: [
+          '[[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]]',
+          '[[ZIP-Dateien wählen …]] nimmt die ZIP-Sicherungen – **alle auf einmal markieren**, denn jede nach der ersten enthält nur die neuen Medien.',
           'WatIs? sagt, von wann die Sicherung ist und wie viele Medien sie enthält. [[Zurückspielen]] klicken.',
         ],
       },
@@ -243,26 +331,54 @@ export const HELP: readonly HelpArticle[] = [
   {
     id: 'aktualisieren',
     title: 'Aktualisieren, ohne etwas zu verlieren',
-    summary: 'Neue Version einspielen – und die zwei Dinge, die man nie tun sollte.',
+    summary: 'Neue Versionen bekommen, ohne das Archiv zu verlieren.',
     body: [
-      { h: 'Chrome und Edge' },
       {
+        p: 'Neue Versionen kommen **von selbst** aus dem Add-on-Store deines Browsers. Du musst nichts tun, und dein Archiv bleibt dabei erhalten.',
+        when: { install: 'store' },
+      },
+      {
+        when: { browser: ['chrome'], install: 'manual' },
         steps: [
           'Die neue ZIP herunterladen.',
           'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
-          'Auf der Erweiterungsseite bei WatIs? neu laden: in Chrome (chrome://extensions) der runde Pfeil **Neu laden**, in Edge (edge://extensions) **Erneut laden**.',
+          'Unter chrome://extensions bei WatIs? auf den runden Pfeil **Neu laden** klicken.',
         ],
       },
-      { h: 'Firefox' },
       {
-        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig, bis WatIs? auf addons.mozilla.org steht. Dein Archiv bleibt dabei erhalten.',
+        when: { browser: ['edge'], install: 'manual' },
+        steps: [
+          'Die neue ZIP herunterladen.',
+          'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
+          'Unter edge://extensions bei WatIs? auf **Erneut laden** klicken.',
+        ],
+      },
+      {
+        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig. Dein Archiv bleibt dabei erhalten. Aus addons.mozilla.org installiert, bleibt WatIs? dagegen dauerhaft und aktualisiert sich selbst.',
+        when: { browser: ['firefox'], install: 'manual' },
       },
       { h: 'Nie' },
       {
+        list: ['**Entfernen** löscht das Archiv. Für ein Update musst du nichts tun.'],
+        when: { install: 'store' },
+      },
+      {
         list: [
-          '**Entfernen** löscht das Archiv – in jedem Browser. Für ein Update reicht **Neu laden** (in Edge **Erneut laden**).',
-          'In einen **anderen Ordner** entpacken: Chrome und Edge halten das für eine zweite Erweiterung und zeigen ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Neu laden**.',
+          'In einen **anderen Ordner** entpacken: Chrome hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
+        when: { browser: ['chrome'], install: 'manual' },
+      },
+      {
+        list: [
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Erneut laden**.',
+          'In einen **anderen Ordner** entpacken: Edge hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
+        ],
+        when: { browser: ['edge'], install: 'manual' },
+      },
+      {
+        list: ['**Entfernen** löscht das Archiv. Für ein Update reicht es, die neue ZIP zu laden.'],
+        when: { browser: ['firefox'], install: 'manual' },
       },
     ],
     related: ['sicherung', 'probleme'],
@@ -299,29 +415,15 @@ export const HELP: readonly HelpArticle[] = [
       { generated: 'status' },
       { h: 'Typische Fälle' },
       {
-        table: [
-          [
-            'Nach einem Update ist das Archiv leer',
-            'Die neue Version wurde in einen anderen Ordner entpackt. Den alten Ordner wieder laden.',
-          ],
-          [
-            'Ein Bild oder Video kommt nicht',
-            'Siehe „Bilder, Videos und Sprachnachrichten" – meist ist es nicht mehr auf WhatsApps Servern.',
-          ],
-          [
-            'WatIs? ist nach dem Neustart weg (Firefox)',
-            'Die ZIP wieder über „Temporäres Add-on laden …" laden. Das Archiv ist noch da.',
-          ],
-          [
-            'Transkribieren meldet einen Fehler',
-            'Ist ein Sprachmodell geladen? In Firefox: Ist der WhatsApp-Tab offen?',
-          ],
-          [
-            'Der Entwicklermodus ist ausgegraut',
-            'Die IT hat ihn gesperrt. Dann geht es erst über die Stores.',
-          ],
-        ],
+        table: [ROW_OTHER_FOLDER, ROW_MEDIA, ROW_TRANSCRIBE, ROW_DEVELOPER_MODE],
+        when: { ...CHROMIUM, install: 'manual' },
       },
+      { table: [ROW_MEDIA, ROW_TRANSCRIBE], when: { ...CHROMIUM, install: 'store' } },
+      {
+        table: [ROW_GONE_AFTER_RESTART, ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX],
+        when: { ...FIREFOX, install: 'manual' },
+      },
+      { table: [ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX], when: { ...FIREFOX, install: 'store' } },
       {
         p: 'Hilft das alles nicht: Fehler melden unter github.com/phish3144/watis/issues – bitte ohne echte Nachrichten oder Telefonnummern.',
       },

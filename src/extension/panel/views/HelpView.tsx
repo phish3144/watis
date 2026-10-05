@@ -1,5 +1,5 @@
-import { HELP, SEARCH_SYNTAX, helpArticle, type HelpBlock, type HelpTopic } from '../help'
-import { HelpLink, RichText } from '../helpui'
+import { HELP, SEARCH_SYNTAX, bodyFor, helpArticle, type HelpBlock, type HelpTopic } from '../help'
+import { HelpLink, RichText, useHelpContext } from '../helpui'
 import { BackIcon, ChevronIcon } from '../icons'
 import { MEDIA_PROBLEMS } from '../problems'
 import { t, type StringKey } from '../strings'
@@ -66,6 +66,8 @@ function Topics({ onTopic }: { onTopic: (topic: HelpTopic) => void }): React.JSX
 
 function Article({ topic, onBack }: { topic: HelpTopic; onBack: () => void }): React.JSX.Element {
   const article = helpArticle(topic)
+  // Only what is true in this browser and for this kind of install (help.ts).
+  const context = useHelpContext()
   return (
     <article aria-labelledby="help-article-title">
       <button
@@ -80,9 +82,7 @@ function Article({ topic, onBack }: { topic: HelpTopic; onBack: () => void }): R
         {article.title}
       </h2>
       <div className="mt-3 space-y-3 text-[13px] leading-relaxed">
-        {article.body.map((block, i) => (
-          <Block key={i} block={block} />
-        ))}
+        {context && bodyFor(article, context).map((block, i) => <Block key={i} block={block} />)}
       </div>
       {article.related && article.related.length > 0 && (
         <div className="mt-6 border-t border-wa-hairline pt-3 text-xs">

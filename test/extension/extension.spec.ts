@@ -539,3 +539,15 @@ test('files saved from WhatsApp Web are sorted into a folder per chat', async ()
     true,
   )
 })
+
+test('the help shows the steps for this browser and this install, and names no other browser', async () => {
+  // Loaded unpacked, so updating means a new ZIP; and only this browser's extensions page.
+  const edge = await panel.evaluate(() => navigator.userAgent.includes(' Edg/'))
+  await panel.getByRole('button', { name: 'Hilfe', exact: true }).click()
+  await panel.getByRole('button', { name: /Aktualisieren/ }).click()
+  const article = panel.getByRole('article')
+  await expect(article).toContainText(edge ? 'edge://extensions' : 'chrome://extensions')
+  await expect(article).toContainText('denselben Ordner')
+  const text = await article.innerText()
+  expect(text).not.toMatch(edge ? /Chrome|chrome:\/\/|Firefox/ : /Edge|edge:\/\/|Firefox/)
+})

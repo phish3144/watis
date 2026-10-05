@@ -1,7 +1,14 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { HELP as BROWSER_HELP, SEARCH_SYNTAX } from '../../src/extension/panel/help'
+import {
+  HELP as BROWSER_HELP,
+  HELP_CONTEXTS,
+  SEARCH_SYNTAX,
+  appliesTo,
+  bodyFor,
+  type HelpContext,
+} from '../../src/extension/panel/help'
 import { explainMediaProblem } from '../../src/extension/panel/problems'
 import { LABELS } from '../../src/extension/panel/strings'
 import models from '../../src/extension/whisper-models.json'
@@ -90,6 +97,48 @@ describe('the browser extension help', () => {
     )
     expect(keys.length).toBeGreaterThan(0)
     for (const key of keys) expect(Object.keys(models.models)).toContain(key)
+  })
+
+  /** What a reader in one browser, with one kind of install, actually sees. */
+  const visible = (context: HelpContext): string[] =>
+    BROWSER_HELP.flatMap((article) => articleTexts({ ...article, body: bodyFor(article, context) }))
+
+  // The Edge Add-ons policy forbids an extension to reference other browsers (1.1.2); in the other
+  // browsers the steps for Edge or Chrome would only be in the way.
+  const OTHER_BROWSERS: Record<HelpContext['browser'], RegExp> = {
+    chrome: /\bEdge\b|edge:\/\/|Firefox|about:debugging|addons\.mozilla/,
+    edge: /\bChrome\b|chrome:\/\/|Firefox|about:debugging|addons\.mozilla/,
+    firefox: /\bChrome\b|\bEdge\b|chrome:\/\/|edge:\/\//,
+  }
+
+  it.each(HELP_CONTEXTS.map((c) => [`${c.browser}, ${c.install}`, c] as const))(
+    'names no other browser (%s)',
+    (_, context) => {
+      expect(visible(context).filter((text) => OTHER_BROWSERS[context.browser].test(text))).toEqual(
+        [],
+      )
+    },
+  )
+
+  it('explains updating from a ZIP only to those who installed from one', () => {
+    for (const context of HELP_CONTEXTS.filter((c) => c.install === 'store')) {
+      expect(
+        visible(context).filter((text) =>
+          /neue ZIP|entpack|Temporäres Add-on|Entwicklermodus/i.test(text),
+        ),
+      ).toEqual([])
+    }
+  })
+
+  it('has no block that nobody sees, and no article that is empty anywhere', () => {
+    for (const article of BROWSER_HELP) {
+      for (const block of article.body) {
+        expect(HELP_CONTEXTS.some((context) => appliesTo(block, context))).toBe(true)
+      }
+      for (const context of HELP_CONTEXTS) {
+        expect(bodyFor(article, context).length).toBeGreaterThan(0)
+      }
+    }
   })
 })
 

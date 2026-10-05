@@ -407,6 +407,32 @@ try {
     if (!(counts.messages > 0)) throw new Error(`restored ${JSON.stringify(counts)}`)
     if ((await localOnly()) !== 0) throw new Error('the message that was only here survived')
   })
+  await check('the help shows the Firefox steps and names no other browser', async () => {
+    // A temporary add-on is a "development" install: updating means loading the new ZIP.
+    const installType = await evaluate(
+      panel,
+      `browser.management.getSelf().then((s) => s.installType)`,
+    )
+    if (installType !== 'development') throw new Error(`installType ${String(installType)}`)
+    const text = await poll(
+      () =>
+        evaluate(
+          panel,
+          `(() => {
+             const button = (label) =>
+               [...document.querySelectorAll('button')].find((b) => b.textContent.trim().startsWith(label))
+             if (!document.querySelector('article')) {
+               button('Hilfe')?.click()
+               button('Aktualisieren')?.click()
+             }
+             return document.querySelector('article')?.innerText ?? ''
+           })()`,
+        ),
+      (value) => value.includes('about:debugging'),
+    )
+    if (/Chrome|Edge|chrome:\/\/|edge:\/\//.test(text))
+      throw new Error(`names another browser: ${text}`)
+  })
   // whisper.cpp needs a cross-origin isolated page. Firefox does not isolate its extension pages,
   // but it does isolate the archive frame in the WhatsApp tab, so that is where it runs (ADR 0012).
   if (existsSync(whisperModel)) {
