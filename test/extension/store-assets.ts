@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
@@ -10,8 +10,8 @@ import {
 } from './fake-whatsapp'
 
 /**
- * The pictures the extension stores ask for (docs/store-eintraege.md): screenshots at 1280×800 and
- * the promotional tiles. `npm run store:assets` writes them to out/store/.
+ * The pictures the extension stores ask for (docs/store-eintraege.md): screenshots at 1280×800, the
+ * promotional tiles and Edge's square logo. `npm run store:assets` writes them to out/store/.
  *
  * Taken from the extension itself, against the stand-in WhatsApp Web the E2E tests use, with a few
  * more chats. Every name and message is invented (CLAUDE.md: no real data, no screenshots with real
@@ -222,4 +222,12 @@ test('promotional tiles', async () => {
       </div></body></html>`)
     await page.screenshot({ path: join(out, name) })
   }
+  // Edge Add-ons asks for a square logo of its own, 300×300.
+  await page.setViewportSize({ width: 300, height: 300 })
+  await page.setContent(
+    `<!doctype html><html><body style="margin:0"><img src="data:image/png;base64,${icon}" style="width:300px;height:300px;display:block"></body></html>`,
+  )
+  await page.screenshot({ path: join(out, 'logo-300x300.png'), omitBackground: true })
+  // The Chrome Web Store's listing asks for the 128-pixel icon once more, next to the package.
+  cpSync(join(root, 'build', 'icon-128.png'), join(out, 'icon-128x128.png'))
 })

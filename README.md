@@ -182,6 +182,7 @@ npm run dev
 | `npm run dist:win`        | Per-User-Installer, ohne Adminrechte ([`docs/managed-deployment.md`](docs/managed-deployment.md))                         |
 | `npm run build:extension` | Browser-Erweiterung nach `out/extension/chromium` und `out/extension/firefox`; `pack:extension` zippt sie für die Stores  |
 | `npm run test:extension`  | Erweiterung in Chromium gegen eine nachgebaute WhatsApp-Seite; `test:extension:firefox` dasselbe in Firefox (`FIREFOX=…`) |
+| `npm run store:assets`    | Screenshots und Werbekacheln für die Stores nach `out/store/` ([`docs/store-eintraege.md`](docs/store-eintraege.md))      |
 | `npm run models:fetch`    | Sprachmodelle holen und prüfen (`base` reicht für die Tests); gibt die Befehle fürs Modell-Release aus                    |
 
 ### Wo die Daten liegen
