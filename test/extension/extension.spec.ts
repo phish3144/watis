@@ -529,3 +529,13 @@ test('the help opens from the navigation and from the "?" beside a setting', asy
   await expect(panel.getByRole('heading', { name: 'Sicherung', exact: true })).toBeVisible()
   await expect(panel.getByText('Jetzt sichern').first()).toBeVisible()
 })
+
+test('files saved from WhatsApp Web are sorted into a folder per chat', async () => {
+  // The background renames them as they start (onDeterminingFilename), in Chrome and Edge alike.
+  // Edge 154 offers Firefox's `browser` global too; telling the two apart by it once switched this
+  // off there.
+  const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
+  expect(await worker.evaluate(() => chrome.downloads.onDeterminingFilename.hasListeners())).toBe(
+    true,
+  )
+})

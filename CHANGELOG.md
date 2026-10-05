@@ -3,6 +3,14 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- **In Edge hielt sich die Erweiterung für Firefox.** Edge 154 bietet dasselbe `browser`-Objekt wie
+  Firefox, und daran hatte WatIs? Firefox erkannt. Folge: Gespeicherte Anhänge landeten in Edge
+  nicht im Ordner `WhatsApp/<Chat>`. Jetzt entscheidet die Adresse der Erweiterung.
+
 ## [0.8.0] — 2026-10-05
 
 ### Hinzugefügt
