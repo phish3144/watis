@@ -18,6 +18,8 @@ export interface ExportChat {
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
+const REVOKED_MARK = 'für alle gelöscht'
+
 /**
  * WhatsApp's own export writes local time, and so do we — an archive that reads differently from
  * the app it mirrors invites the reader to mistrust it.
@@ -32,9 +34,14 @@ export function toText(chat: ExportChat): string {
   const lines: string[] = []
   for (const m of chat.messages) {
     const who = m.fromMe ? 'Du' : (m.senderName ?? m.senderJid ?? 'Unbekannt')
-    const body = m.revoked
-      ? 'Diese Nachricht wurde gelöscht.'
-      : (m.body ?? (m.media ? `<Anhang: ${m.media.filename ?? m.media.mime ?? 'Datei'}>` : ''))
+    const content =
+      m.body ?? (m.media ? `<Anhang: ${m.media.filename ?? m.media.mime ?? 'Datei'}>` : '')
+    // A message deleted for everyone keeps what the archive had of it (ADR 0013), marked.
+    const body = !m.revoked
+      ? content
+      : content
+        ? `${content} (${REVOKED_MARK})`
+        : 'Diese Nachricht wurde gelöscht.'
     // A body with newlines stays one logical message; WhatsApp's export indents nothing, so
     // neither do we.
     lines.push(`[${formatTimestamp(m.ts)}] ${who}: ${body}`)
@@ -86,16 +93,18 @@ export function toHtml(chat: ExportChat, options: { mediaDir?: string } = {}): s
       const who = escapeHtml(m.fromMe ? 'Du' : (m.senderName ?? m.senderJid ?? 'Unbekannt'))
       const when = escapeHtml(formatTimestamp(m.ts))
       const classes = ['msg', m.fromMe ? 'me' : 'them', m.revoked ? 'revoked' : ''].filter(Boolean)
-      const body = m.revoked
-        ? '<em>Diese Nachricht wurde gelöscht.</em>'
-        : escapeHtml(m.body ?? '').replace(/\n/g, '<br>')
+      const body =
+        m.revoked && !m.body && !m.media
+          ? '<em>Diese Nachricht wurde gelöscht.</em>'
+          : escapeHtml(m.body ?? '').replace(/\n/g, '<br>')
       const attachment = m.media
         ? `<div class="att"><a href="${escapeHtml(mediaDir)}/${escapeHtml(
             m.media.filename ?? m.media.sha256 ?? m.media.id,
           )}">${escapeHtml(m.media.filename ?? m.media.mime ?? 'Anhang')}</a></div>`
         : ''
       const edited = m.edited ? ' <span class="tag">bearbeitet</span>' : ''
-      return `<li class="${classes.join(' ')}"><div class="meta">${who} · ${when}${edited}</div><div class="body">${body}</div>${attachment}</li>`
+      const revoked = m.revoked ? ` <span class="tag">${REVOKED_MARK}</span>` : ''
+      return `<li class="${classes.join(' ')}"><div class="meta">${who} · ${when}${edited}${revoked}</div><div class="body">${body}</div>${attachment}</li>`
     })
     .join('\n')
 

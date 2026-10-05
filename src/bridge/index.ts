@@ -128,7 +128,7 @@ export function install(): { stop: () => void } {
         return earliestReachableTs(globals)
       case 'downloadMedia': {
         if (typeof args.msgId !== 'string') throw new Error('msgId is required')
-        return downloadMedia(globals, args.msgId)
+        return downloadMedia(globals, args.msgId, args.manual === true)
       }
       default:
         throw new Error(`unknown bridge op`)
@@ -163,8 +163,3 @@ export function install(): { stop: () => void } {
     },
   }
 }
-
-// Re-injection happens on every navigation, and WhatsApp Web navigates on its own. Without this
-// the listeners would stack and every message would be mirrored several times over.
-window.__watisBridge?.stop()
-window.__watisBridge = install()

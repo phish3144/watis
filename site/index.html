@@ -5,1040 +5,3735 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="WatIs? - Desktop-Client fuer WhatsApp Web mit lokalem, durchsuchbarem Archiv. Fuer Windows und Linux. Installation ohne Adminrechte, alles bleibt auf dem eigenen Rechner."
+      content="WatIs? – ein durchsuchbares Archiv für WhatsApp Web auf deinem eigenen Rechner. Als Erweiterung für Chrome, Edge und Firefox oder als App für Windows und Linux. Ohne Adminrechte, ohne Cloud."
     />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E7C6F'/%3E%3Cpath d='M5 6h14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7.5L7 19l.8-4H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z' fill='white'/%3E%3C/svg%3E" />
-    <title>WatIs? - WhatsApp Web mit lokalem Archiv</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-/>
-<style>
-  :root {
-    --paper: #eff2f0;
-    --surface: #ffffff;
-    --ink: #101c1a;
-    --muted: #55655f;
-    --hairline: #d3dbd7;
-    --teal: #0e7c6f;
-    --teal-ink: #0a5c52;
-    --ochre: #8a5714;
-    --ochre-bg: #f5ecdc;
-    --shadow: 0 1px 2px rgba(16, 28, 26, 0.06), 0 8px 24px -12px rgba(16, 28, 26, 0.18);
-    --on-teal: #ffffff;
-    color-scheme: light;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) {
-      --paper: #0c1513;
-      --surface: #16221f;
-      --ink: #e2ebe7;
-      --muted: #8ba099;
-      --hairline: #26332f;
-      --teal: #3fd0ba;
-      --teal-ink: #7ee6d4;
-      --ochre: #e0ac5c;
-      --ochre-bg: #2a2216;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-      --on-teal: #06110f;
-      color-scheme: dark;
-    }
-  }
-
-  :root[data-theme='dark'] {
-    --paper: #0c1513;
-    --surface: #16221f;
-    --ink: #e2ebe7;
-    --muted: #8ba099;
-    --hairline: #26332f;
-    --teal: #3fd0ba;
-    --teal-ink: #7ee6d4;
-    --ochre: #e0ac5c;
-    --ochre-bg: #2a2216;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-    --on-teal: #06110f;
-    color-scheme: dark;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family:
-      'Archivo',
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      system-ui,
-      sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .wrap {
-    max-width: 62rem;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-  }
-
-  /* ---------- masthead ---------- */
-
-  .masthead {
-    border-bottom: 1px solid var(--hairline);
-    padding: 2.5rem 0 2rem;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-  }
-
-  .mark {
-    width: 44px;
-    height: 44px;
-    flex: none;
-    border-radius: 11px;
-    background: var(--teal);
-    display: grid;
-    place-items: center;
-  }
-
-  .mark svg {
-    width: 26px;
-    height: 26px;
-    display: block;
-  }
-
-  .wordmark {
-    font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1;
-  }
-
-  .eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.6875rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .thesis {
-    margin: 1.75rem 0 0;
-    max-width: 34ch;
-    font-size: clamp(1.75rem, 4.2vw, 2.75rem);
-    font-weight: 700;
-    line-height: 1.12;
-    letter-spacing: -0.032em;
-    text-wrap: balance;
-  }
-
-  .thesis em {
-    font-style: normal;
-    color: var(--teal);
-  }
-
-  .standfirst {
-    margin: 1rem 0 0;
-    max-width: 58ch;
-    color: var(--muted);
-    font-size: 1.0625rem;
-  }
-
-  /* ---------- download ---------- */
-
-  .download {
-    margin: 2.5rem 0 3rem;
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    box-shadow: var(--shadow);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 46rem) {
-    .download {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* One column per platform. Neither is the fallback for the other. */
-  .platform {
-    padding: 1.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    align-items: flex-start;
-  }
-
-  .platform + .platform {
-    border-left: 1px solid var(--hairline);
-  }
-
-  @media (max-width: 46rem) {
-    .platform + .platform {
-      border-left: none;
-      border-top: 1px solid var(--hairline);
-    }
-  }
-
-  .platform-name {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .download-action {
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    align-items: flex-start;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
-    background: var(--teal);
-    color: var(--on-teal);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1.0625rem;
-    padding: 0.8125rem 1.375rem;
-    border-radius: 3px;
-    transition:
-      transform 0.12s ease,
-      filter 0.12s ease;
-  }
-
-  .btn:hover {
-    filter: brightness(1.06);
-    transform: translateY(-1px);
-  }
-
-  .btn:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
-  }
-
-  .btn svg {
-    width: 17px;
-    height: 17px;
-    flex: none;
-  }
-
-  /* On a phone the longer of the two labels wrapped while the other did not, which made the two
-     primary buttons different shapes. Less padding buys the line back. */
-  @media (max-width: 30rem) {
-    .btn {
-      padding-left: 1rem;
-      padding-right: 1rem;
-      font-size: 1rem;
-    }
-  }
-
-  .btn-secondary {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.8125rem;
-    color: var(--teal-ink);
-    text-decoration: none;
-    border-bottom: 1px solid currentColor;
-    padding-bottom: 1px;
-  }
-
-  .btn-secondary:hover {
-    color: var(--ink);
-  }
-
-  .platform-heading {
-    margin: 2rem 0 0.75rem;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-  }
-
-  .platform-heading:first-of-type {
-    margin-top: 1rem;
-  }
-
-  .step-note {
-    margin: 0.75rem 0 0;
-    color: var(--muted);
-    font-size: 0.9375rem;
-  }
-
-  .shell {
-    margin: 0.75rem 0 0;
-    padding: 0.875rem 1rem;
-    background: var(--paper);
-    border: 1px solid var(--hairline);
-    border-radius: 3px;
-    overflow-x: auto;
-    font-size: 0.8125rem;
-    line-height: 1.6;
-  }
-
-  .shell code {
-    background: none;
-    padding: 0;
-    font-size: inherit;
-    white-space: pre;
-  }
-
-  .download-foot {
-    margin: -2rem 0 3rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem 1.25rem;
-  }
-
-  .download-note {
-    color: var(--muted);
-    font-size: 0.9375rem;
-  }
-
-  .download-meta {
-    margin: 0.25rem 0 0;
-    width: 100%;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.8125rem;
-  }
-
-  .meta-row {
-    display: grid;
-    grid-template-columns: 7.5rem minmax(0, 1fr);
-    gap: 0.75rem;
-    padding: 0.3125rem 0;
-  }
-
-  /* The columns collapse before the card does: 7.5rem of label beside a path leaves nothing. */
-  @media (max-width: 62rem) {
-    .meta-row {
-      grid-template-columns: 1fr;
-      gap: 0.125rem;
-      padding: 0.375rem 0;
-    }
-  }
-
-  .meta-row dt {
-    color: var(--muted);
-  }
-
-  .meta-row dd {
-    margin: 0;
-  }
-
-  /* ---------- sections ---------- */
-
-  section {
-    padding: 2.75rem 0;
-    border-top: 1px solid var(--hairline);
-  }
-
-  h2 {
-    margin: 0 0 1.5rem;
-    font-size: 1.375rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .spec {
-    display: grid;
-    gap: 0;
-  }
-
-  .spec-row {
-    display: grid;
-    grid-template-columns: 13rem minmax(0, 1fr);
-    gap: 1.5rem;
-    padding: 0.9375rem 0;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .spec-row:first-child {
-    border-top: none;
-    padding-top: 0;
-  }
-
-  @media (max-width: 40rem) {
-    .spec-row {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0.25rem;
-    }
-  }
-
-  .spec-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding-top: 0.25rem;
-  }
-
-  .spec-value {
-    max-width: 62ch;
-  }
-
-  .spec-value strong {
-    font-weight: 600;
-  }
-
-  .spec-value code {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.8125em;
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 2px;
-    padding: 0.1em 0.35em;
-    /* A path is one unbreakable word to the line breaker, and the longest ones here are wider
-       than a phone. Breaking them is better than scrolling the whole page sideways. */
-    overflow-wrap: anywhere;
-  }
-
-  .meta-row dd {
-    overflow-wrap: anywhere;
-  }
-
-  /* the limits section carries the same weight as the features - that is the point */
-  .limits .spec-label {
-    color: var(--ochre);
-  }
-
-  .limits {
-    background: var(--ochre-bg);
-  }
-
-  .limits h2 {
-    color: var(--ochre);
-  }
-
-  /* ---------- steps ---------- */
-
-  ol.steps {
-    counter-reset: step;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 1.125rem;
-    max-width: 62ch;
-  }
-
-  ol.steps li {
-    counter-increment: step;
-    display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr);
-    gap: 0.875rem;
-  }
-
-  ol.steps li::before {
-    content: counter(step, decimal-leading-zero);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
-    color: var(--teal);
-    padding-top: 0.28rem;
-  }
-
-  /* ---------- footer ---------- */
-
-  footer {
-    border-top: 1px solid var(--hairline);
-    padding: 2rem 0 3rem;
-    color: var(--muted);
-    font-size: 0.875rem;
-  }
-
-  footer a {
-    color: var(--teal-ink);
-  }
-
-  .disclaimer {
-    max-width: 62ch;
-    margin: 0 0 1.25rem;
-  }
-
-  .colophon {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-</style>
+    <meta name="theme-color" content="#f4f7f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#07100e" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content="WatIs? – Ab heute geht nichts mehr verloren." />
+    <meta
+      property="og:description"
+      content="Ein durchsuchbares Archiv für WhatsApp Web, lokal auf deinem Rechner. Im Browser, unter Windows und Linux."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E7C6F'/%3E%3Cpath d='M5 6h14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7.5L7 19l.8-4H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z' fill='white'/%3E%3C/svg%3E"
+    />
+    <title>WatIs? – WhatsApp Web mit lokalem Archiv</title>
+    <script>
+      // Before the first paint: a chosen theme, and the hook that lets the page animate things in.
+      // Without script, the page is complete and simply does not move.
+      ;(() => {
+        const root = document.documentElement
+        root.classList.add('js')
+        try {
+          const theme = localStorage.getItem('watis-theme')
+          if (theme === 'light' || theme === 'dark') root.dataset.theme = theme
+        } catch {
+          // Storage blocked: the system setting decides, which is the default anyway.
+        }
+      })()
+    </script>
+    <style>
+      /* No web fonts on purpose: a page about not sending anything anywhere should not hand every
+         visitor's address to a font server. The system faces are good enough, and instant. */
+      :root {
+        --sans: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue',
+          Arial, sans-serif;
+        --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+        --bg: #f4f7f5;
+        --bg-2: #eaf0ed;
+        --surface: #ffffff;
+        --glass: rgba(255, 255, 255, 0.72);
+        --ink: #0c1815;
+        --ink-2: #26332f;
+        --muted: #55665f;
+        --line: rgba(12, 24, 21, 0.1);
+        --line-2: rgba(12, 24, 21, 0.16);
+        --accent: #0e7c6f;
+        --accent-2: #0ea5e9;
+        --accent-ink: #0a5c52;
+        --accent-soft: rgba(14, 124, 111, 0.1);
+        --on-accent: #ffffff;
+        --amber: #8a5714;
+        --amber-soft: rgba(176, 116, 28, 0.08);
+        --amber-line: rgba(176, 116, 28, 0.24);
+        --danger: #c2410c;
+        --mark: rgba(250, 204, 21, 0.45);
+        --glow-1: rgba(20, 184, 166, 0.34);
+        --glow-2: rgba(14, 165, 233, 0.22);
+        --glow-3: rgba(251, 191, 36, 0.18);
+        --grid: rgba(12, 24, 21, 0.05);
+        --shadow: 0 1px 2px rgba(12, 24, 21, 0.05), 0 12px 32px -16px rgba(12, 24, 21, 0.22);
+        --shadow-lg: 0 2px 6px rgba(12, 24, 21, 0.06), 0 40px 90px -30px rgba(12, 40, 34, 0.45);
+
+        --wa-bg: #efeae2;
+        --wa-list: #ffffff;
+        --wa-bar: #e9edef;
+        --wa-bubble: #ffffff;
+        --wa-bubble-me: #d9fdd3;
+        --panel: #f7f9f8;
+        --skeleton: rgba(12, 24, 21, 0.09);
+        color-scheme: light;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #07100e;
+          --bg-2: #0b1714;
+          --surface: #0f1b18;
+          --glass: rgba(13, 24, 21, 0.7);
+          --ink: #e7f0ec;
+          --ink-2: #c4d2cc;
+          --muted: #8ea39b;
+          --line: rgba(231, 240, 236, 0.09);
+          --line-2: rgba(231, 240, 236, 0.16);
+          --accent: #3fd0ba;
+          --accent-2: #38bdf8;
+          --accent-ink: #7ee6d4;
+          --accent-soft: rgba(63, 208, 186, 0.12);
+          --on-accent: #04110e;
+          --amber: #e8b264;
+          --amber-soft: rgba(232, 178, 100, 0.07);
+          --amber-line: rgba(232, 178, 100, 0.22);
+          --danger: #fb923c;
+          --mark: rgba(250, 204, 21, 0.3);
+          --glow-1: rgba(45, 212, 191, 0.22);
+          --glow-2: rgba(56, 189, 248, 0.14);
+          --glow-3: rgba(251, 191, 36, 0.08);
+          --grid: rgba(231, 240, 236, 0.045);
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+          --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 40px 90px -30px rgba(0, 0, 0, 0.85);
+
+          --wa-bg: #0b141a;
+          --wa-list: #111b21;
+          --wa-bar: #202c33;
+          --wa-bubble: #202c33;
+          --wa-bubble-me: #005c4b;
+          --panel: #0f1a17;
+          --skeleton: rgba(231, 240, 236, 0.09);
+          color-scheme: dark;
+        }
+      }
+
+      :root[data-theme='dark'] {
+        --bg: #07100e;
+        --bg-2: #0b1714;
+        --surface: #0f1b18;
+        --glass: rgba(13, 24, 21, 0.7);
+        --ink: #e7f0ec;
+        --ink-2: #c4d2cc;
+        --muted: #8ea39b;
+        --line: rgba(231, 240, 236, 0.09);
+        --line-2: rgba(231, 240, 236, 0.16);
+        --accent: #3fd0ba;
+        --accent-2: #38bdf8;
+        --accent-ink: #7ee6d4;
+        --accent-soft: rgba(63, 208, 186, 0.12);
+        --on-accent: #04110e;
+        --amber: #e8b264;
+        --amber-soft: rgba(232, 178, 100, 0.07);
+        --amber-line: rgba(232, 178, 100, 0.22);
+        --danger: #fb923c;
+        --mark: rgba(250, 204, 21, 0.3);
+        --glow-1: rgba(45, 212, 191, 0.22);
+        --glow-2: rgba(56, 189, 248, 0.14);
+        --glow-3: rgba(251, 191, 36, 0.08);
+        --grid: rgba(231, 240, 236, 0.045);
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+        --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 40px 90px -30px rgba(0, 0, 0, 0.85);
+
+        --wa-bg: #0b141a;
+        --wa-list: #111b21;
+        --wa-bar: #202c33;
+        --wa-bubble: #202c33;
+        --wa-bubble-me: #005c4b;
+        --panel: #0f1a17;
+        --skeleton: rgba(231, 240, 236, 0.09);
+        color-scheme: dark;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--accent-ink);
+        text-underline-offset: 0.18em;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.84em;
+        background: var(--accent-soft);
+        border-radius: 5px;
+        padding: 0.12em 0.4em;
+        /* A path is one unbreakable word to the line breaker, and the longest ones here are wider
+           than a phone. Breaking them beats scrolling the whole page sideways. */
+        overflow-wrap: anywhere;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 72rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+
+      @media (max-width: 40rem) {
+        .wrap {
+          padding: 0 1rem;
+        }
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .skip {
+        position: absolute;
+        left: 1rem;
+        top: -4rem;
+        z-index: 100;
+        background: var(--accent);
+        color: var(--on-accent);
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .skip:focus {
+        top: 1rem;
+      }
+
+      .icon {
+        width: 1.25em;
+        height: 1.25em;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .icon.solid {
+        fill: currentColor;
+        stroke: none;
+      }
+
+      /* ---------- navigation ---------- */
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: color-mix(in srgb, var(--bg) 72%, transparent);
+        backdrop-filter: saturate(160%) blur(14px);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.2s ease;
+      }
+
+      .nav.scrolled {
+        border-bottom-color: var(--line);
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        height: 4rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.625rem;
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 1.1875rem;
+        letter-spacing: -0.03em;
+      }
+
+      .mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #14b8a6, #0e7c6f 55%, #0b5f69);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.25),
+          0 6px 16px -6px rgba(14, 124, 111, 0.7);
+      }
+
+      .mark svg {
+        width: 19px;
+        height: 19px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 0.25rem;
+        margin-left: auto;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: 999px;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease;
+      }
+
+      .nav-links a:hover {
+        color: var(--ink);
+        background: var(--accent-soft);
+      }
+
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .icon-btn {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--glass);
+        color: var(--ink-2);
+        cursor: pointer;
+      }
+
+      .icon-btn:hover {
+        color: var(--ink);
+        border-color: var(--line-2);
+      }
+
+      .theme-toggle .sun {
+        display: none;
+      }
+
+      :root[data-theme='dark'] .theme-toggle .sun {
+        display: block;
+      }
+
+      :root[data-theme='dark'] .theme-toggle .moon {
+        display: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .theme-toggle .sun {
+          display: block;
+        }
+
+        :root:not([data-theme='light']) .theme-toggle .moon {
+          display: none;
+        }
+      }
+
+      /* Without script the toggle could not do anything, so it is not there. */
+      :root:not(.js) .theme-toggle {
+        display: none;
+      }
+
+      @media (max-width: 52rem) {
+        .nav-links {
+          display: none;
+        }
+
+        .nav-actions {
+          margin-left: auto;
+        }
+      }
+
+      /* ---------- buttons ---------- */
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 2.875rem;
+        padding: 0.6875rem 1.25rem;
+        border-radius: 999px;
+        font-weight: 650;
+        font-size: 1rem;
+        text-decoration: none;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      .btn-primary {
+        color: var(--on-accent);
+        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--accent-2)));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.22),
+          0 10px 24px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.22),
+          0 16px 32px -12px color-mix(in srgb, var(--accent) 90%, transparent);
+      }
+
+      .btn-ghost {
+        color: var(--ink);
+        background: var(--glass);
+        border-color: var(--line-2);
+      }
+
+      .btn-ghost:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent);
+      }
+
+      .btn-sm {
+        min-height: 2.375rem;
+        padding: 0.4375rem 1rem;
+        font-size: 0.9375rem;
+      }
+
+      .link-arrow {
+        display: inline;
+        color: var(--accent-ink);
+        font-weight: 600;
+        font-size: 0.9375rem;
+        text-decoration: none;
+      }
+
+      .link-arrow .icon {
+        width: 1em;
+        height: 1em;
+        margin-left: 0.25rem;
+        vertical-align: -0.15em;
+        transition: transform 0.15s ease;
+      }
+
+      .link-arrow:hover .icon {
+        transform: translateX(3px);
+      }
+
+      @media (max-width: 30rem) {
+        .btn {
+          white-space: normal;
+          text-align: center;
+        }
+      }
+
+      /* ---------- hero ---------- */
+
+      .hero {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        padding: 4.5rem 0 5rem;
+      }
+
+      .aurora {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .aurora span {
+        position: absolute;
+        border-radius: 50%;
+        animation: drift 22s ease-in-out infinite alternate;
+      }
+
+      .aurora .a1 {
+        width: 46rem;
+        height: 46rem;
+        left: -14rem;
+        top: -18rem;
+        background: radial-gradient(circle, var(--glow-1), transparent 62%);
+      }
+
+      .aurora .a2 {
+        width: 40rem;
+        height: 40rem;
+        right: -12rem;
+        top: -8rem;
+        background: radial-gradient(circle, var(--glow-2), transparent 62%);
+        animation-duration: 26s;
+        animation-delay: -6s;
+      }
+
+      .aurora .a3 {
+        width: 34rem;
+        height: 34rem;
+        left: 30%;
+        bottom: -20rem;
+        background: radial-gradient(circle, var(--glow-3), transparent 62%);
+        animation-duration: 30s;
+        animation-delay: -12s;
+      }
+
+      .grid-bg {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background-image:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 44px 44px;
+        -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 80%);
+        mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 80%);
+      }
+
+      @keyframes drift {
+        from {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        to {
+          transform: translate3d(4rem, 2.5rem, 0) scale(1.12);
+        }
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+        gap: 3.5rem;
+        align-items: center;
+      }
+
+      @media (max-width: 64rem) {
+        .hero-grid {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 3rem;
+        }
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3125rem 0.875rem 0.3125rem 0.375rem;
+        border-radius: 999px;
+        border: 1px solid var(--line-2);
+        background: var(--glass);
+        color: var(--ink-2);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      .pill:hover {
+        border-color: var(--accent);
+      }
+
+      .pill b {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--on-accent);
+        background: var(--accent);
+        border-radius: 999px;
+        padding: 0.125rem 0.5rem;
+      }
+
+      .pill .icon {
+        width: 0.95em;
+        height: 0.95em;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 1.5rem 0 0;
+        font-size: clamp(2.375rem, 4vw, 3.75rem);
+        font-weight: 800;
+        line-height: 1.04;
+        letter-spacing: -0.045em;
+        text-wrap: balance;
+      }
+
+      .grad {
+        background: linear-gradient(
+          100deg,
+          var(--accent) 0%,
+          var(--accent-2) 45%,
+          var(--accent) 90%
+        );
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 9s ease-in-out infinite alternate;
+      }
+
+      @keyframes shimmer {
+        to {
+          background-position: 100% 0;
+        }
+      }
+
+      .lead {
+        margin: 1.5rem 0 0;
+        max-width: 38rem;
+        font-size: clamp(1.0625rem, 1.4vw, 1.1875rem);
+        line-height: 1.6;
+        color: var(--ink-2);
+        text-wrap: pretty;
+      }
+
+      .lead-2 {
+        margin: 0.875rem 0 0;
+        max-width: 38rem;
+        color: var(--muted);
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+      }
+
+      .trust {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        margin: 1.75rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .trust li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4375rem;
+      }
+
+      .trust .icon {
+        color: var(--accent);
+        width: 1.05em;
+        height: 1.05em;
+      }
+
+      /* ---------- the product mock ---------- */
+
+      .stage {
+        position: relative;
+      }
+
+      .mock {
+        position: relative;
+        border-radius: 18px;
+        background: var(--surface);
+        border: 1px solid var(--line-2);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transform: perspective(1600px) rotateY(-5deg) rotateX(2deg);
+        transform-origin: left center;
+        transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+
+      .stage:hover .mock {
+        transform: perspective(1600px) rotateY(0) rotateX(0);
+      }
+
+      @media (max-width: 64rem) {
+        .mock,
+        .stage:hover .mock {
+          transform: none;
+        }
+      }
+
+      .mock-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        height: 38px;
+        padding: 0 0.875rem;
+        background: var(--bg-2);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .dots i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .dots i:nth-child(2) {
+        background: #febc2e;
+      }
+
+      .dots i:nth-child(3) {
+        background: #28c840;
+      }
+
+      .url {
+        flex: 1;
+        min-width: 0;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0 0.625rem;
+        border-radius: 7px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .url .icon {
+        width: 11px;
+        height: 11px;
+      }
+
+      .ext {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #14b8a6, #0e7c6f);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+
+      .ext svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      .mock-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 19rem);
+        height: 29rem;
+      }
+
+      .wa {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+        background: var(--wa-bg);
+        min-width: 0;
+      }
+
+      .wa-list {
+        background: var(--wa-list);
+        border-right: 1px solid var(--line);
+        padding: 0.625rem 0;
+      }
+
+      .wa-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.4375rem 0.625rem;
+      }
+
+      .wa-row.active {
+        background: var(--skeleton);
+      }
+
+      .av {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        flex: none;
+        background: var(--skeleton);
+      }
+
+      .bars {
+        flex: 1;
+        min-width: 0;
+        display: grid;
+        gap: 5px;
+      }
+
+      .bars i {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--skeleton);
+      }
+
+      .bars i:first-child {
+        width: 70%;
+      }
+
+      .bars i:last-child {
+        width: 92%;
+        opacity: 0.6;
+      }
+
+      .wa-chat {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.875rem;
+        min-width: 0;
+      }
+
+      .wa-bubble {
+        max-width: 78%;
+        padding: 0.4375rem 0.5625rem;
+        border-radius: 8px;
+        background: var(--wa-bubble);
+        display: grid;
+        gap: 5px;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+      }
+
+      .wa-bubble.me {
+        align-self: flex-end;
+        background: var(--wa-bubble-me);
+      }
+
+      .wa-bubble i {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--skeleton);
+      }
+
+      .wa-input {
+        margin-top: 0.375rem;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--wa-bar);
+      }
+
+      .panel {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--panel);
+        border-left: 1px solid var(--line);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 0.875rem 0.5rem;
+      }
+
+      .panel-head strong {
+        font-size: 13px;
+        letter-spacing: -0.01em;
+      }
+
+      .status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3125rem;
+        font-size: 10.5px;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border-radius: 999px;
+        padding: 0.125rem 0.5rem;
+        white-space: nowrap;
+      }
+
+      .status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      .tabs-mini {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0 0.875rem 0.5rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tabs-mini span {
+        padding: 0.25rem 0.5rem;
+        border-radius: 7px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .tabs-mini span.on {
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+      }
+
+      .search {
+        margin: 0.75rem 0.875rem 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4375rem;
+        height: 32px;
+        padding: 0 0.75rem;
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow:
+          0 0 0 2px var(--accent),
+          0 4px 14px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+        font-size: 12.5px;
+      }
+
+      .search .icon {
+        width: 14px;
+        height: 14px;
+        color: var(--muted);
+      }
+
+      .typed {
+        display: inline-block;
+        white-space: nowrap;
+        animation: type 1.1s steps(8, end) 0.5s both;
+      }
+
+      .caret {
+        width: 1.5px;
+        height: 15px;
+        background: var(--accent);
+        margin-left: -3px;
+        animation: blink 1s step-end infinite;
+      }
+
+      @keyframes type {
+        from {
+          clip-path: inset(0 100% 0 0);
+        }
+        to {
+          clip-path: inset(0 0 0 0);
+        }
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .filters {
+        display: flex;
+        gap: 0.3125rem;
+        padding: 0 0.875rem 0.625rem;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .filters span {
+        padding: 0.1875rem 0.5625rem;
+        border-radius: 999px;
+        border: 1px solid var(--line-2);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .filters span.on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--on-accent);
+        font-weight: 600;
+      }
+
+      .hits {
+        display: grid;
+        gap: 0.4375rem;
+        padding: 0 0.875rem 0.875rem;
+        overflow: hidden;
+      }
+
+      .hit {
+        padding: 0.5625rem 0.6875rem;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        animation-delay: calc(1.7s + var(--i) * 0.14s);
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+      }
+
+      .hit-top {
+        display: flex;
+        align-items: baseline;
+        gap: 0.375rem;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .hit-top b {
+        color: var(--ink);
+        font-weight: 600;
+        font-size: 11.5px;
+      }
+
+      .hit-top time {
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      .hit p {
+        margin: 0.1875rem 0 0;
+        color: var(--ink-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hit mark {
+        background: var(--mark);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 2px;
+      }
+
+      .chips {
+        display: flex;
+        gap: 0.3125rem;
+        margin-top: 0.375rem;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 0.0625rem 0.4375rem;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent-ink);
+      }
+
+      .chip.del {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+        color: var(--danger);
+      }
+
+      .wave {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        height: 12px;
+        vertical-align: middle;
+        margin-right: 0.25rem;
+      }
+
+      .wave i {
+        width: 2px;
+        border-radius: 1px;
+        background: var(--accent);
+        height: calc(var(--h) * 1px);
+      }
+
+      .float {
+        position: absolute;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 14px;
+        background: var(--glass);
+        border: 1px solid var(--line-2);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--ink);
+        white-space: nowrap;
+        animation: bob 6s ease-in-out infinite;
+      }
+
+      .float .icon {
+        color: var(--accent);
+      }
+
+      .float small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .float.f1 {
+        left: -2.25rem;
+        top: 4.5rem;
+      }
+
+      .float.f2 {
+        right: 3.5rem;
+        top: -1.5rem;
+        animation-delay: -2s;
+      }
+
+      .float.f3 {
+        left: 1.5rem;
+        bottom: -1.5rem;
+        animation-delay: -4s;
+      }
+
+      .float.f3 .icon {
+        color: var(--danger);
+      }
+
+      @keyframes bob {
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      @media (max-width: 64rem) {
+        .float.f1 {
+          left: 1rem;
+          top: -1.25rem;
+        }
+
+      }
+
+      @media (max-width: 46rem) {
+        .wa {
+          display: none;
+        }
+
+        .mock-body {
+          grid-template-columns: minmax(0, 1fr);
+          height: auto;
+        }
+
+        .panel {
+          border-left: none;
+          font-size: 13px;
+        }
+
+        .float {
+          display: none;
+        }
+      }
+
+      /* ---------- sections ---------- */
+
+      section {
+        padding: 6rem 0;
+      }
+
+      @media (max-width: 40rem) {
+        section {
+          padding: 4rem 0;
+        }
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-ink);
+      }
+
+      .kicker::before {
+        content: '';
+        width: 18px;
+        height: 1.5px;
+        background: currentColor;
+      }
+
+      h2 {
+        margin: 0.75rem 0 0;
+        font-size: clamp(1.875rem, 4vw, 2.75rem);
+        font-weight: 800;
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+      }
+
+      .section-lead {
+        margin: 1rem 0 0;
+        max-width: 42rem;
+        color: var(--muted);
+        font-size: 1.0625rem;
+        text-wrap: pretty;
+      }
+
+      .section-head {
+        margin-bottom: 3rem;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+      }
+
+      .card {
+        position: relative;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 1.625rem;
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.25s ease,
+          border-color 0.25s ease,
+          box-shadow 0.25s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: var(--line-2);
+      }
+
+      .card > p {
+        margin: 0.625rem 0 0;
+        color: var(--muted);
+        font-size: 0.9688rem;
+      }
+
+      .card > p strong {
+        color: var(--ink-2);
+        font-weight: 650;
+      }
+
+      .card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1.125rem;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      }
+
+      .card-icon .icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .where {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-top: 1rem;
+      }
+
+      .where span {
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.04em;
+        padding: 0.125rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--line-2);
+        color: var(--muted);
+      }
+
+      /* ---------- how it works ---------- */
+
+      .how {
+        padding: 0 0 2rem;
+      }
+
+      .how-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        counter-reset: how;
+      }
+
+      @media (max-width: 52rem) {
+        .how-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .how-step {
+        counter-increment: how;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+        padding: 1.25rem 1.375rem;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--glass);
+      }
+
+      .how-step::before {
+        content: counter(how);
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 0.9375rem;
+        color: var(--on-accent);
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      }
+
+      .how-step strong {
+        display: block;
+        font-size: 1rem;
+      }
+
+      .how-step span {
+        color: var(--muted);
+        font-size: 0.9375rem;
+      }
+
+      /* ---------- features ---------- */
+
+      .bento {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .bento .big {
+        grid-column: span 3;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .bento .small {
+        grid-column: span 2;
+      }
+
+      @media (max-width: 64rem) {
+        .bento .big {
+          grid-column: span 6;
+        }
+
+        .bento .small {
+          grid-column: span 3;
+        }
+      }
+
+      @media (max-width: 40rem) {
+        .bento .small {
+          grid-column: span 6;
+        }
+      }
+
+      .visual {
+        margin-top: 1.5rem;
+        flex: 1;
+        min-height: 11.5rem;
+        border-radius: 16px;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        padding: 1.125rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* archive visual */
+
+      .bubble {
+        max-width: 82%;
+        padding: 0.5rem 0.75rem 0.375rem;
+        border-radius: 12px 12px 12px 4px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+
+      .bubble.me {
+        align-self: flex-end;
+        border-radius: 12px 12px 4px 12px;
+        background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+      }
+
+      .bubble small {
+        display: block;
+        text-align: right;
+        font-size: 0.6875rem;
+        color: var(--muted);
+        margin-top: 0.125rem;
+      }
+
+      .bubble small b {
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      .bubble.kept {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent);
+      }
+
+      /* search visual */
+
+      .query {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0.875rem;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line-2);
+        font-size: 0.875rem;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .query .icon {
+        color: var(--muted);
+        width: 16px;
+        height: 16px;
+      }
+
+      .query .tok {
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border-radius: 6px;
+        padding: 0.0625rem 0.375rem;
+      }
+
+      .syntax {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-top: 0.375rem;
+      }
+
+      .syntax code {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        color: var(--ink-2);
+      }
+
+      .norm {
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+
+      .norm b {
+        color: var(--ink);
+        font-weight: 650;
+      }
+
+      .norm .icon {
+        width: 16px;
+        height: 16px;
+        color: var(--accent);
+      }
+
+      /* OCR visual */
+
+      .paper {
+        position: relative;
+        align-self: center;
+        width: min(15rem, 100%);
+        padding: 1rem 1.125rem;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid var(--line-2);
+        transform: rotate(-2deg);
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 0.4375rem;
+        overflow: hidden;
+      }
+
+      .paper i {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--skeleton);
+      }
+
+      .paper .found {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+      }
+
+      .paper .found mark {
+        background: var(--mark);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 0.1875rem;
+      }
+
+      .paper .sum {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        color: var(--muted);
+        border-top: 1px dashed var(--line-2);
+        padding-top: 0.375rem;
+      }
+
+      .beam {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 34%;
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          color-mix(in srgb, var(--accent) 22%, transparent) 85%,
+          var(--accent)
+        );
+        border-bottom: 1.5px solid var(--accent);
+        opacity: 0.85;
+        animation: scan 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        pointer-events: none;
+      }
+
+      @keyframes scan {
+        0% {
+          transform: translateY(-100%);
+        }
+        60%,
+        100% {
+          transform: translateY(300%);
+        }
+      }
+
+      .ocr-meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.375rem;
+        margin-top: 0.75rem;
+      }
+
+      /* voice visual */
+
+      .player {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.875rem;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line-2);
+      }
+
+      .play {
+        width: 30px;
+        height: 30px;
+        flex: none;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+
+      .play svg {
+        width: 12px;
+        height: 12px;
+        margin-left: 2px;
+      }
+
+      .eq {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 26px;
+        overflow: hidden;
+      }
+
+      .eq i {
+        width: 3px;
+        flex: none;
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--accent) 70%, var(--muted));
+        height: calc(var(--h) * 1%);
+        animation: eq 1.4s ease-in-out infinite alternate;
+        animation-delay: calc(var(--d) * -0.13s);
+        transform-origin: center;
+      }
+
+      @keyframes eq {
+        to {
+          transform: scaleY(0.45);
+        }
+      }
+
+      .player time {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .arrow-down {
+        align-self: center;
+        color: var(--accent);
+        width: 18px;
+        height: 18px;
+      }
+
+      .transcript {
+        padding: 0.75rem 0.875rem;
+        border-radius: 14px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--ink-2);
+      }
+
+      .transcript .chip {
+        margin-bottom: 0.375rem;
+      }
+
+      /* ---------- privacy band ---------- */
+
+      .band {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        border-radius: 32px;
+        padding: clamp(2rem, 5vw, 4rem);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.35), transparent 45%),
+          radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.25), transparent 50%),
+          linear-gradient(160deg, #0a2420, #071512 60%, #06100f);
+        color: #e7f0ec;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .band::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+        -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+        mask-image: linear-gradient(to bottom, #000, transparent);
+      }
+
+      .band .kicker {
+        color: #7ee6d4;
+      }
+
+      .band h2 {
+        color: #ffffff;
+        max-width: 22ch;
+      }
+
+      .band .section-lead {
+        color: #a9bdb5;
+      }
+
+      .band-grid {
+        margin-top: 2.5rem;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      @media (max-width: 64rem) {
+        .band-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 36rem) {
+        .band-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .band-item {
+        padding: 1.25rem;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .band-item .icon {
+        width: 24px;
+        height: 24px;
+        color: #5eead4;
+      }
+
+      .band-item strong {
+        display: block;
+        margin-top: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+      }
+
+      .band-item span {
+        display: block;
+        margin-top: 0.375rem;
+        color: #a9bdb5;
+        font-size: 0.9063rem;
+      }
+
+      .band-note {
+        margin: 1.75rem 0 0;
+        max-width: 52rem;
+        color: #8ea39b;
+        font-size: 0.875rem;
+      }
+
+      .band code {
+        background: rgba(255, 255, 255, 0.08);
+        color: #d6e4de;
+      }
+
+      /* ---------- limits ---------- */
+
+      .limits .kicker {
+        color: var(--amber);
+      }
+
+      .limits-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      @media (max-width: 52rem) {
+        .limits-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .limit {
+        padding: 1.5rem 1.625rem;
+        border-radius: 20px;
+        background: var(--amber-soft);
+        border: 1px solid var(--amber-line);
+      }
+
+      .limit h3 {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        font-size: 1.0625rem;
+        color: var(--ink);
+      }
+
+      .limit h3 .icon {
+        color: var(--amber);
+        width: 20px;
+        height: 20px;
+      }
+
+      .limit p {
+        margin: 0.625rem 0 0;
+        color: var(--ink-2);
+        font-size: 0.9375rem;
+      }
+
+      .limit strong {
+        font-weight: 650;
+      }
+
+      /* ---------- downloads ---------- */
+
+      .downloads {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      @media (max-width: 64rem) {
+        .downloads {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .dl {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .dl.featured {
+        border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+        box-shadow:
+          0 0 0 4px var(--accent-soft),
+          var(--shadow);
+      }
+
+      .dl-head {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+      }
+
+      .dl-head .card-icon {
+        margin: 0;
+      }
+
+      .dl-head small {
+        display: block;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .badge {
+        position: absolute;
+        top: -0.75rem;
+        right: 1.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.1875rem 0.625rem;
+        border-radius: 999px;
+        color: var(--on-accent);
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      }
+
+      .meta {
+        margin: 0;
+        display: grid;
+        gap: 0;
+        font-size: 0.875rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .meta div {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .meta dt {
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .meta dd {
+        margin: 0.0625rem 0 0;
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        overflow-wrap: anywhere;
+      }
+
+      .dl-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.875rem;
+        margin-top: auto;
+      }
+
+      .dl-actions .btn {
+        white-space: normal;
+        text-align: center;
+      }
+
+      .dl-actions .link-arrow {
+        align-self: flex-start;
+      }
+
+      .nowrap {
+        white-space: nowrap;
+      }
+
+      .dl-foot {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+        align-items: baseline;
+        color: var(--muted);
+        font-size: 0.9375rem;
+      }
+
+      /* ---------- install ---------- */
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* The radios stay in the page for keyboards and screen readers; only their look changes. */
+      .tabs > input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .tabs > label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        padding: 0.5625rem 1.125rem;
+        border-radius: 999px;
+        border: 1px solid var(--line-2);
+        background: var(--surface);
+        color: var(--ink-2);
+        font-weight: 600;
+        font-size: 0.9375rem;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .tabs > label:hover {
+        border-color: var(--accent);
+      }
+
+      .tabs > label .icon {
+        width: 1.05em;
+        height: 1.05em;
+      }
+
+      .tabs > input:checked + label {
+        color: var(--on-accent);
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--accent-2)));
+      }
+
+      .tabs > input:focus-visible + label {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .tabs.sub > label {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.875rem;
+      }
+
+      .tabs.sub > input:checked + label {
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      .tab-panel {
+        display: none;
+        flex-basis: 100%;
+        min-width: 0;
+        margin-top: 1.5rem;
+      }
+
+      #os-browser:checked ~ .p-browser,
+      #os-windows:checked ~ .p-windows,
+      #os-linux:checked ~ .p-linux,
+      #tab-chrome:checked ~ .panel-chrome,
+      #tab-edge:checked ~ .panel-edge,
+      #tab-firefox:checked ~ .panel-firefox {
+        display: block;
+      }
+
+      .install-card {
+        padding: clamp(1.25rem, 3vw, 2.25rem);
+      }
+
+      .install-cols {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        gap: 2.5rem;
+      }
+
+      @media (max-width: 64rem) {
+        .install-cols {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .install-intro {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+        max-width: 44rem;
+      }
+
+      h4 {
+        margin: 0 0 1rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      ol.steps {
+        counter-reset: step;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 1.125rem;
+      }
+
+      ol.steps > li {
+        counter-increment: step;
+        position: relative;
+        padding-left: 2.875rem;
+        min-height: 2rem;
+      }
+
+      ol.steps > li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: -0.125rem;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      }
+
+      ol.steps > li:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: calc(1rem - 0.5px);
+        top: 2.125rem;
+        bottom: -1rem;
+        width: 1px;
+        background: var(--line-2);
+      }
+
+      .step-note {
+        margin: 0.5rem 0 0;
+        color: var(--muted);
+        font-size: 0.9063rem;
+      }
+
+      .shell {
+        position: relative;
+        margin: 0.75rem 0 0;
+        border-radius: 14px;
+        background: #0a1412;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .shell pre {
+        margin: 0;
+        padding: 1rem 1.125rem;
+        overflow-x: auto;
+        color: #d6e4de;
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        line-height: 1.7;
+      }
+
+      .shell pre::before {
+        content: '';
+        display: block;
+        width: 46px;
+        height: 10px;
+        margin-bottom: 0.75rem;
+        background:
+          radial-gradient(circle at 5px 5px, #ff5f57 4px, transparent 4.5px),
+          radial-gradient(circle at 23px 5px, #febc2e 4px, transparent 4.5px),
+          radial-gradient(circle at 41px 5px, #28c840 4px, transparent 4.5px);
+      }
+
+      .copy {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: #d6e4de;
+        font: 600 0.75rem var(--sans);
+        cursor: pointer;
+      }
+
+      .copy:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .copy .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      :root:not(.js) .copy {
+        display: none;
+      }
+
+      .caution {
+        padding: 1.375rem 1.5rem;
+        border-radius: 18px;
+        background: var(--amber-soft);
+        border: 1px solid var(--amber-line);
+        font-size: 0.9375rem;
+      }
+
+      .caution > strong {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--ink);
+      }
+
+      .caution > strong .icon {
+        color: var(--amber);
+      }
+
+      .caution ul {
+        margin: 0.75rem 0;
+        padding-left: 1.25rem;
+        color: var(--ink-2);
+      }
+
+      .caution li + li {
+        margin-top: 0.5rem;
+      }
+
+      .caution p {
+        margin: 0;
+        color: var(--ink-2);
+      }
+
+      .aside-stack {
+        display: grid;
+        gap: 1.25rem;
+        align-content: start;
+      }
+
+      .update {
+        padding: 1.375rem 1.5rem;
+        border-radius: 18px;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        font-size: 0.9375rem;
+      }
+
+      .update ul {
+        margin: 0;
+        padding-left: 1.125rem;
+        display: grid;
+        gap: 0.625rem;
+        color: var(--ink-2);
+      }
+
+      /* ---------- tech ---------- */
+
+      .tech {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      @media (max-width: 52rem) {
+        .tech {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .tech .card:hover {
+        transform: none;
+      }
+
+      .tech .card h3 {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent-ink);
+      }
+
+      .tech .card > p {
+        color: var(--ink-2);
+      }
+
+      .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-top: 0.875rem;
+      }
+
+      .stack span {
+        font-size: 0.8125rem;
+        padding: 0.1875rem 0.625rem;
+        border-radius: 999px;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        color: var(--ink-2);
+      }
+
+      /* ---------- closing ---------- */
+
+      .closing {
+        text-align: center;
+        padding: 3rem 0 6rem;
+      }
+
+      .closing h2 {
+        margin: 0 auto;
+        max-width: 18ch;
+      }
+
+      .closing .cta-row {
+        justify-content: center;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 2.5rem 0 3.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .foot {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        gap: 2rem;
+        align-items: start;
+      }
+
+      @media (max-width: 46rem) {
+        .foot {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .foot p {
+        margin: 0.75rem 0 0;
+        max-width: 40rem;
+      }
+
+      .foot-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.625rem 1.5rem;
+        justify-content: flex-end;
+        font-weight: 500;
+      }
+
+      @media (max-width: 46rem) {
+        .foot-links {
+          justify-content: flex-start;
+        }
+      }
+
+      .foot-links a {
+        color: var(--ink-2);
+        text-decoration: none;
+      }
+
+      .foot-links a:hover {
+        color: var(--accent-ink);
+      }
+
+      /* ---------- motion ---------- */
+
+      .js .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.7s ease,
+          transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+        transition-delay: calc(var(--d, 0) * 70ms);
+      }
+
+      .js .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        .js .reveal {
+          opacity: 1;
+          transform: none;
+        }
+
+        .mock,
+        .stage:hover .mock {
+          transform: none;
+        }
+      }
+    </style>
   </head>
   <body>
-<header class="masthead">
-  <div class="wrap">
-    <div class="brand">
-      <span class="mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path
-            d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-8.2L6 20.5l1-4.5H4.5A1.5 1.5 0 0 1 3 14.5V7a1.5 1.5 0 0 1 1.5-1.5Z"
-            fill="#fff"
-          />
-        </svg>
-      </span>
-      <div>
-        <div class="wordmark">WatIs?</div>
-        <div class="eyebrow">Desktop-Client für WhatsApp Web · Windows und Linux</div>
-      </div>
-    </div>
+    <!-- Icons, drawn once and used by reference. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-bubble" viewBox="0 0 24 24">
+        <path
+          d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-8.2L6 20.5l1-4.5H4.5A1.5 1.5 0 0 1 3 14.5V7a1.5 1.5 0 0 1 1.5-1.5Z"
+          fill="#fff"
+        />
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+      </symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+      </symbol>
+      <symbol id="i-windows" viewBox="0 0 24 24">
+        <path d="M3 5.6 10.4 4.6V11.4H3ZM11.6 4.4 21 3V11.4H11.6ZM3 12.6H10.4V19.4L3 18.4ZM11.6 12.6H21V21L11.6 19.6Z" />
+      </symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2.5" />
+        <path d="m7 9 3 3-3 3M13 15h4" />
+      </symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24">
+        <path d="M12 3 19 6v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6Z" />
+        <path d="m9 12 2 2 4-4" />
+      </symbol>
+      <symbol id="i-cloud-off" viewBox="0 0 24 24">
+        <path d="m3 3 18 18M17.5 19H8a5 5 0 0 1-1.7-9.7M9.6 5.3A6 6 0 0 1 18 10h.5a3.5 3.5 0 0 1 2.3 6.1" />
+      </symbol>
+      <symbol id="i-code" viewBox="0 0 24 24">
+        <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />
+      </symbol>
+      <symbol id="i-archive" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="4.5" rx="1" />
+        <path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4" />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </symbol>
+      <symbol id="i-scan" viewBox="0 0 24 24">
+        <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M8 9h8M8 12h8M8 15h5" />
+      </symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24">
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+      </symbol>
+      <symbol id="i-key" viewBox="0 0 24 24">
+        <circle cx="8" cy="15" r="4" />
+        <path d="m11 12 9-9M16.5 6.5l3 3" />
+      </symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24">
+        <path d="M3 13h5l1.5 2.5h5L16 13h5" />
+        <path d="M5.5 5h13L21 13v5.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5V13Z" />
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24">
+        <path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15ZM10 21a2 2 0 0 0 4 0" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.5h7.5A2.5 2.5 0 0 1 21 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5Z" />
+      </symbol>
+      <symbol id="i-hdd" viewBox="0 0 24 24">
+        <rect x="3" y="13" width="18" height="7" rx="2" />
+        <path d="M7 16.5h.01M11 16.5h.01M5 13l2.2-7.4A1 1 0 0 1 8.2 5h7.6a1 1 0 0 1 1 .6L19 13" />
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3.5" />
+        <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3a6.5 6.5 0 0 1 3.5 5.7" />
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4" y="10.5" width="16" height="10.5" rx="2.5" />
+        <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+      </symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24">
+        <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+        <circle cx="15" cy="6" r="2" />
+        <circle cx="9" cy="12" r="2" />
+        <circle cx="17" cy="18" r="2" />
+      </symbol>
+      <symbol id="i-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.8c0 1.7-2.5 2.2-2.5 3.8M12 17h.01" />
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 4.2 2.6 17.6A2 2 0 0 0 4.3 20.6h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0ZM12 9.5v4M12 17h.01" />
+      </symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24">
+        <rect x="6" y="6" width="12" height="12" rx="2" />
+        <path d="M9.5 9.5h5v5h-5ZM9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5" />
+      </symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24">
+        <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24">
+        <path d="M12 5v14M6 13l6 6 6-6" />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="11.5" height="11.5" rx="2" />
+        <path d="M5 15V5.5A2 2 0 0 1 7 3.5h8.5" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12.5 4.5 4.5L19 7.5" />
+      </symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24">
+        <path d="M4 9h15l-4-4M20 15H5l4 4" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4.5h6V7" />
+      </symbol>
+    </svg>
 
-    <h1 class="thesis">Ab heute geht <em>nichts mehr verloren.</em></h1>
-    <p class="standfirst">
-      Ein eigener Desktop-Client, der WhatsApp Web hostet und drumherum baut, was die offizielle App
-      nicht kann: ein <strong>durchsuchbares Archiv auf deiner Platte</strong>, das ab dem ersten
-      Start mitschreibt und auch Text in Bildern und PDFs findet. Dazu Tray mit echtem Zähler,
-      Benachrichtigungen, die den richtigen Chat öffnen, Dateien ohne Dialog im richtigen Ordner.
-      Installation ohne Adminrechte. Alles bleibt auf deinem Rechner.
-    </p>
-  </div>
-</header>
+    <a class="skip" href="#inhalt">Zum Inhalt</a>
 
-<div class="wrap">
-  <div class="download">
-    <div class="platform">
-      <div class="platform-name">Windows 10 / 11 · 64 Bit</div>
-      <div class="download-action">
-        <a
-          class="btn"
-          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
-        >
-          <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-          Für Windows herunterladen
+    <header class="nav" id="nav">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#" aria-label="WatIs? – zum Seitenanfang">
+          <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-bubble" /></svg></span>
+          WatIs?
         </a>
-        <a
-          class="btn-secondary"
-          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
-          >Portable Fassung, ohne Installation →</a
-        >
+        <nav class="nav-links" aria-label="Abschnitte">
+          <a href="#funktionen">Funktionen</a>
+          <a href="#datenschutz">Datenschutz</a>
+          <a href="#grenzen">Grenzen</a>
+          <a href="#installieren" data-open="os-browser">Installieren</a>
+          <a href="#technik">Technik</a>
+        </nav>
+        <div class="nav-actions">
+          <button class="icon-btn theme-toggle" type="button" aria-label="Hell oder dunkel">
+            <svg class="icon moon" aria-hidden="true"><use href="#i-moon" /></svg>
+            <svg class="icon sun" aria-hidden="true"><use href="#i-sun" /></svg>
+          </button>
+          <a class="btn btn-primary btn-sm" href="#download">Herunterladen</a>
+        </div>
       </div>
+    </header>
 
-      <dl class="download-meta">
-        <div class="meta-row">
-          <dt>Datei</dt>
-          <dd>WatIs-Setup-x64.exe</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Installiert nach</dt>
-          <dd>%LOCALAPPDATA%\Programs\WatIs</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Deine Daten</dt>
-          <dd>%LOCALAPPDATA%\watis\</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Adminrechte</dt>
-          <dd>keine, keine UAC-Abfrage</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Signatur</dt>
-          <dd>keine — siehe „Signatur“</dd>
-        </div>
-      </dl>
-    </div>
+    <main id="inhalt">
+      <!-- ================= hero ================= -->
+      <div class="hero">
+        <div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+        <div class="grid-bg" aria-hidden="true"></div>
 
-    <div class="platform">
-      <div class="platform-name">Linux · x86-64</div>
-      <div class="download-action">
-        <a
-          class="btn"
-          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-x86_64.AppImage"
-        >
-          <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-          Für Linux herunterladen
-        </a>
-        <a class="btn-secondary" href="#installieren">Was nach dem Download zu tun ist →</a>
-      </div>
-
-      <dl class="download-meta">
-        <div class="meta-row">
-          <dt>Datei</dt>
-          <dd>WatIs-x86_64.AppImage</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Installiert nach</dt>
-          <dd>nirgends — eine Datei, wohin du willst</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Deine Daten</dt>
-          <dd>~/.local/share/watis/</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Adminrechte</dt>
-          <dd>keine, kein sudo, kein Paketmanager</dd>
-        </div>
-        <div class="meta-row">
-          <dt>Tray</dt>
-          <dd>nicht unter GNOME, Unity, Pantheon</dd>
-        </div>
-      </dl>
-    </div>
-  </div>
-
-  <p class="download-foot">
-    <a class="btn-secondary" href="https://github.com/phish3144/watis/releases/latest"
-      >Alle Dateien und Versionshinweise →</a
-    >
-    <span class="download-note"
-      >macOS wird bei jedem Commit gebaut, aber nicht veröffentlicht: unsigniert würde ihn Gatekeeper
-      ohnehin nicht starten.</span
-    >
-  </p>
-</div>
-
-<div class="wrap">
-  <section>
-    <h2>Was es kann</h2>
-    <div class="spec">
-      <div class="spec-row">
-        <div class="spec-label">Archiv</div>
-        <div class="spec-value">
-          Jede Nachricht, die ankommt, landet in einer <strong>SQLite-Datenbank auf deiner
-          Platte</strong> — Text, Absender, Zeitpunkt, Anhang. WhatsApp kann sie danach löschen,
-          dein Archiv behält sie. Es liegt außerhalb des Sitzungsordners: ein Abmelden, ein
-          Cache-Löschen oder ein Update fasst es nicht an.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Suche</div>
-        <div class="spec-value">
-          Volltext über <strong>alle Chats gleichzeitig</strong>, nicht einer nach dem anderen.
-          Deutsche Normalisierung — <code>Grüße</code> findet <code>Gruesse</code>. Dazu eine
-          Suchsyntax mit <code>von:</code>, <code>in:</code>, <code>vor:</code>, <code>nach:</code>,
-          <code>hat:</code> und <code>quelle:</code>.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Text in Bildern und PDFs</div>
-        <div class="spec-value">
-          Texterkennung und PDF-Text laufen mit und werden mitdurchsucht, sodass auch der
-          abfotografierte Zettel und die angehängte Rechnung auffindbar sind. Beides
-          <strong>lokal</strong>, nur im Leerlauf und am Netzstrom, über den Tray pausierbar.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Session</div>
-        <div class="spec-value">
-          Bleibt erhalten. Nach einem Update oder Neustart <strong>kein neuer QR-Code</strong>. Der
-          Sitzungsordner wird vom Updater nicht angefasst.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Tray</div>
-        <div class="spec-value">
-          Schließen minimiert in den Tray, die App läuft weiter. Der Zähler kommt aus WhatsApps
-          eigener Datenbank statt aus dem Fenstertitel — er stimmt also auch dann, wenn das Fenster
-          zu ist. Ändert WhatsApp sein Schema, fällt er auf den Fenstertitel zurück und ist wieder
-          so grob wie überall sonst, statt auszufallen. Einen Tray gibt es nicht auf jedem
-          Linux-Desktop; siehe unten.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Benachrichtigungen</div>
-        <div class="spec-value">
-          Ein Klick öffnet den <strong>richtigen Chat</strong>, nicht nur das Fenster. Kein Ping für
-          den Chat, den du gerade liest. Bei vielen Gruppen eine Sammelmeldung pro Chat statt einer
-          Flut. Ruhezeit mit Zeitplan, Pausieren im Tray.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Dateien</div>
-        <div class="spec-value">
-          Kein Speichern-Dialog. Alles landet im Downloads-Ordner unter
-          <code>WhatsApp/&lt;Chat&gt;/2026-08-30_Angebot.pdf</code>, gleiche Struktur auf beiden
-          Systemen. Umlaute und Emoji im Dateinamen bleiben erhalten — Electron würde sie sonst zu
-          <code>download</code> verkürzen. Dazu ein Toast mit <em>Öffnen</em> und
-          <em>Im Ordner zeigen</em>, und Gleiches zweimal geladen liegt nur einmal auf der Platte.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Darstellung</div>
-        <div class="spec-value">
-          Kompaktmodus, Schriftgröße, eigene CSS-Datei. Kanäle, „Aktuelles" und Meta AI lassen sich
-          einzeln ausblenden. Zoomstufe wird gemerkt.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Eingabe</div>
-        <div class="spec-value">
-          Enter kann einen Zeilenumbruch einfügen statt zu senden. Natives Kontextmenü mit
-          Rechtschreibvorschlägen.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Export und Sicherung</div>
-        <div class="spec-value">
-          Jeder Chat als JSON, HTML oder TXT. Eine Sicherung nimmt Datenbank und Medien mit und legt
-          einen <strong>Bericht dazu, was nicht drin ist</strong> — zeitgesteuert in einen Ordner,
-          den restic oder rsync abholen kann.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Mehrere Konten</div>
-        <div class="spec-value">
-          Jedes mit eigener Anmeldung, eigenem Archiv und eigenem Medienordner, umschaltbar über
-          Tabs. Alle laufen mit, auch im Hintergrund. Ein Konto zu entfernen nimmt es aus der Liste
-          und löscht keine Daten.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">App-Sperre</div>
-        <div class="spec-value">
-          PIN beim Start und nach Inaktivität, Weichzeichnen, sobald das Fenster den Fokus verliert.
-          Ausdrücklich Sichtschutz — siehe unten.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Datenschutz</div>
-        <div class="spec-value">
-          Keine Telemetrie, kein Konto, keine Cloud. Netzwerkverkehr nur zu WhatsApp und zu GitHub
-          für Updates. Keine offenen Ports. Texterkennung und alles andere rechnet auf deinem
-          Rechner. Eine einzige Ausnahme, und die ist abgeschaltet, bis du sie einschaltest:
-          Die Rechtschreibprüfung lässt Chromium unter Windows einmalig ein Wörterbuch von einem
-          Google-Server laden. Genau deshalb ist sie aus.
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<div class="limits">
-  <div class="wrap">
-    <section style="border-top: none">
-      <h2>Was es nicht kann</h2>
-      <div class="spec">
-        <div class="spec-row">
-          <div class="spec-label">Alte Nachrichten</div>
-          <div class="spec-value">
-            <strong>WhatsApp Web liefert höchstens rund 90 Tage rückwirkend.</strong> Das ist eine
-            Grenze im Client von WhatsApp, keine Einstellung — einen Massenabruf gibt es für
-            Web-Clients gar nicht. Bis dorthin holt WatIs? auf ausdrücklichen Start nach: ein Chat
-            nach dem anderen, mit Pausen, nach einem Neustart fortsetzbar. Was älter ist, bleibt
-            draußen. Der eigentliche Nutzen liegt darin, dass ab dem Installationstag nichts mehr
-            verschwindet.
+        <div class="wrap hero-grid">
+          <div>
+            <a class="pill" href="#installieren" data-open="os-browser">
+              <b>Neu</b> Jetzt auch für Chrome, Edge und Firefox
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+            <h1>Ab heute geht <span class="grad">nichts mehr verloren.</span></h1>
+            <p class="lead">
+              WatIs? schreibt mit, was in WhatsApp Web ankommt, und legt es in ein
+              <strong>durchsuchbares Archiv auf deinem Rechner</strong>. Es findet auch Text in
+              Bildern und PDFs, und im Browser macht es Sprachnachrichten lesbar. Wird etwas
+              gelöscht oder verschwindet es, steht es im Archiv noch.
+            </p>
+            <p class="lead-2">
+              Als Erweiterung für Chrome, Edge und Firefox oder als Programm für Windows und Linux.
+              Installation ohne Adminrechte. Alles bleibt auf deinem Rechner.
+            </p>
+            <div class="cta-row">
+              <a class="btn btn-primary" href="#installieren" data-open="os-browser">
+                <svg class="icon" aria-hidden="true"><use href="#i-globe" /></svg>
+                Im Browser installieren
+              </a>
+              <a class="btn btn-ghost" href="#download">
+                <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+                Desktop-App laden
+              </a>
+            </div>
+            <ul class="trust">
+              <li><svg class="icon" aria-hidden="true"><use href="#i-shield" /></svg>Keine Adminrechte</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-cloud-off" /></svg>Keine Cloud, keine Telemetrie</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-code" /></svg>Quelltext offen, MIT</li>
+            </ul>
           </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Was nicht durchsuchbar wird</div>
-          <div class="spec-value">
-            Sprachnachrichten werden <strong>noch nicht transkribiert</strong> und sind darum auch
-            nicht durchsuchbar. Word-Dateien ebenso wenig.
-            Die Aufträge dafür entstehen und werden übersprungen; welche Engine es wird, steht in
-            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0008-ocr-und-pdf-engines.md"
-              >ADR 0008</a
-            >. Text in Bildern und PDFs wird dagegen erkannt.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Tray unter GNOME</div>
-          <div class="spec-value">
-            GNOME zeigt seit 3.26 keine Tray-Icons mehr; für Unity und Pantheon gilt dasselbe.
-            WatIs? erkennt diese drei und <strong>beendet sich dort beim Schließen des
-            Fensters</strong>, statt in einen unsichtbaren Tray zu verschwinden — eine Tür, die man
-            wiederfindet. Mit der AppIndicator-Erweiterung und <code>WATIS_FORCE_TRAY=1</code> gibt
-            es ihn trotzdem. Unter KDE, XFCE, MATE und Cinnamon läuft er direkt. Erkennt die App den
-            Desktop gar nicht, entscheidet sie sich gegen den Tray — die Richtung, in der ein Irrtum
-            nichts kostet.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Senden</div>
-          <div class="spec-value">
-            Die App schreibt nichts über WhatsApps interne Schnittstellen — sie liest nur. Du
-            schreibst wie gewohnt im WhatsApp-Fenster. Die eine Stelle, an der sie doch etwas
-            auslöst: öffnet sie einen Chat, weil du auf einen Suchtreffer geklickt oder das
-            Nachladen gestartet hast, <strong>markiert WhatsApp diesen Chat als gelesen</strong> —
-            genauso, als hättest du ihn selbst angeklickt
-            (<a
-              href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md"
-              >ADR 0006</a
-            >).
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Signatur</div>
-          <div class="spec-value">
-            Die Installationsdatei ist nicht signiert. Windows zeigt beim ersten Start eine
-            SmartScreen-Warnung; sie lässt sich ohne Adminrechte bestätigen.
-            <strong
-              >Ist auf deinem Gerät „Intelligente App-Steuerung“ (Smart App Control) eingeschaltet,
-              wird der Start dagegen ohne Weiterklick verweigert</strong
+
+          <div class="stage">
+            <div
+              class="mock"
+              role="img"
+              aria-label="Beispielansicht: WatIs? als Seitenleiste neben WhatsApp Web. Die Suche nach „Rechnung“ findet Treffer in einem Foto, einem PDF, einer Sprachnachricht und einer für alle gelöschten Nachricht. Alle Namen sind erfunden."
             >
-            — dafür gibt es bewusst keine Ausnahme pro Programm. Was dann bleibt, steht in
-            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/windows-signing.md"
-              >docs/windows-signing.md</a
-            >. Unter Linux gibt es keine vergleichbare Hürde: dort entscheidet das
-            Ausführbar-Bit, das du selbst setzt. Wer eine unsignierte Datei trotzdem prüfen will:
-            GitHub zeigt zu jedem Anhang auf der
-            <a href="https://github.com/phish3144/watis/releases/latest">Release-Seite</a> dessen
-            SHA-256-Digest an, und der lässt sich mit <code>sha256sum</code> beziehungsweise
-            <code>Get-FileHash</code> gegen die heruntergeladene Datei halten.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Nachrichten anderer Leute</div>
-          <div class="spec-value">
-            Das Archiv behält, was gelöscht oder zurückgezogen wurde — und
-            <strong>auch verschwindende Nachrichten</strong>, sobald sie einmal angekommen sind. Das
-            ist eine bewusste Entscheidung ohne Schalter: eine Ausnahme wäre nur dann etwas wert,
-            wenn man sich auf sie verlassen könnte, und das kann man bei einer Kopie auf der eigenen
-            Platte nicht. Wer dir so etwas schickt, geht von einer Befristung aus. Ob dieses Archiv
-            entstehen soll, entscheidest du — für Leute, die davon nichts wissen.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Dein WhatsApp-Konto</div>
-          <div class="spec-value">
-            WhatsApps Bedingungen untersagen inoffizielle Clients, und die Policy nennt die
-            <strong>Sperre des Kontos</strong> ausdrücklich als mögliche Folge. Dokumentierte
-            Sperrwellen trafen bisher Clients, die senden und in Masse operieren — WatIs? liest,
-            sendet nicht und drosselt das Nachladen. Das ist der Grund für die Read-only-Regel; es
-            ist keine Zusicherung. Das Risiko bleibt bei dir.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Videos und große Dateien</div>
-          <div class="spec-value">
-            Bilder und Dokumente holt das Archiv von selbst, <strong>Videos nicht</strong> — die
-            bleiben bei einem Klick, sonst wäre die Platte in einer Woche voll. Im Archiv steht dann
-            der Eintrag ohne die Datei.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Suche nach Relevanz</div>
-          <div class="spec-value">
-            Zeitlich sortiert ist die Suche schnell, auch über eine Million Nachrichten. Nach
-            Relevanz sortiert braucht ein sehr häufiges Wort länger als die angepeilten 200 ms —
-            bauartbedingt, festgehalten in
-            <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md"
-              >ADR 0007</a
-            >.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Verschlüsselung</div>
-          <div class="spec-value">
-            Das Archiv liegt <strong>unverschlüsselt</strong> auf der Platte. Der Schutz kommt von
-            BitLocker beziehungsweise LUKS, nicht von dieser App. Die PIN-Sperre ist Sichtschutz
-            gegen jemanden, der am Bildschirm vorbeigeht — sie verschlüsselt nichts.
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Wenn WhatsApp sich ändert</div>
-          <div class="spec-value">
-            Der Client hängt an internen Strukturen von WhatsApp Web. Das Medienholen hängt an einer
-            Signatur, die als einzige im Projekt nicht gegen ein laufendes Bundle geprüft ist: löst
-            sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft weiter. Kaputt heißt
-            hier also nicht „alles weg", sondern „ein Teil fehlt, bis es nachgezogen ist".
-          </div>
-        </div>
-        <div class="spec-row">
-          <div class="spec-label">Auf Firmengeräten</div>
-          <div class="spec-value">
-            AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden, und unter
-            Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Und ein lokales
-            Archiv privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur
-            — „läuft lokal" heißt dort nicht „nur du kommst dran".
+              <div class="mock-bar" aria-hidden="true">
+                <div class="dots"><i></i><i></i><i></i></div>
+                <div class="url">
+                  <svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg>web.whatsapp.com
+                </div>
+                <div class="ext"><svg viewBox="0 0 24 24"><use href="#i-bubble" /></svg></div>
+              </div>
+              <div class="mock-body" aria-hidden="true">
+                <div class="wa">
+                  <div class="wa-list">
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row active"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                    <div class="wa-row"><span class="av"></span><span class="bars"><i></i><i></i></span></div>
+                  </div>
+                  <div class="wa-chat">
+                    <div class="wa-bubble"><i style="width: 7rem"></i><i style="width: 4.5rem"></i></div>
+                    <div class="wa-bubble me"><i style="width: 5.5rem"></i></div>
+                    <div class="wa-bubble"><i style="width: 8rem"></i><i style="width: 6rem"></i><i style="width: 3rem"></i></div>
+                    <div class="wa-bubble me"><i style="width: 6.5rem"></i><i style="width: 3.5rem"></i></div>
+                    <div class="wa-input"></div>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="ext"><svg viewBox="0 0 24 24"><use href="#i-bubble" /></svg></span>
+                    <strong>WatIs?</strong>
+                    <span class="status">Archiv läuft</span>
+                  </div>
+                  <div class="tabs-mini">
+                    <span class="on">Suche</span><span>Chats</span><span>Medien</span><span>Mehr</span>
+                  </div>
+                  <div class="search">
+                    <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                    <span class="typed">Rechnung</span><span class="caret"></span>
+                  </div>
+                  <div class="filters">
+                    <span class="on">Alles</span><span>Nachrichten</span><span>Text in Bildern</span><span>PDFs</span>
+                  </div>
+                  <div class="hits">
+                    <div class="hit" style="--i: 0">
+                      <div class="hit-top"><b>Anna Beispiel</b><time>Gestern</time></div>
+                      <p><mark>RECHNUNG</mark> Nr. 2026-117 · fällig 15.10.</p>
+                      <div class="chips"><span class="chip">Text im Bild</span></div>
+                    </div>
+                    <div class="hit" style="--i: 1">
+                      <div class="hit-top"><b>Verein Beispiel</b> · Carla<time>12.09.</time></div>
+                      <p>Die <mark>Rechnung</mark> geht heute an alle raus.</p>
+                      <div class="chips"><span class="chip">Nachricht</span><span class="chip del">für alle gelöscht</span></div>
+                    </div>
+                    <div class="hit" style="--i: 2">
+                      <div class="hit-top"><b>Angebot_Kueche.pdf</b><time>Mo.</time></div>
+                      <p>Gesamtbetrag der <mark>Rechnung</mark>: 1.240,00 €</p>
+                      <div class="chips"><span class="chip">PDF</span><span class="chip">S. 2</span></div>
+                    </div>
+                    <div class="hit" style="--i: 3">
+                      <div class="hit-top"><b>Familie Beispiel</b> · Ben<time>So.</time></div>
+                      <p>
+                        <span class="wave"><i style="--h: 5"></i><i style="--h: 10"></i><i style="--h: 7"></i><i style="--h: 12"></i><i style="--h: 6"></i></span>„… die <mark>Rechnung</mark> liegt im Flur …“
+                      </p>
+                      <div class="chips"><span class="chip">Sprachnachricht</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="float f1" aria-hidden="true">
+              <svg class="icon" aria-hidden="true"><use href="#i-swap" /></svg>
+              <span>„Grüße“ findet „Gruesse“<small>Umlaute dürfen fehlen</small></span>
+            </div>
+            <div class="float f2" aria-hidden="true">
+              <svg class="icon" aria-hidden="true"><use href="#i-cloud-off" /></svg>
+              <span>Läuft lokal<small>keine Cloud, kein Konto</small></span>
+            </div>
+            <div class="float f3" aria-hidden="true">
+              <svg class="icon" aria-hidden="true"><use href="#i-trash" /></svg>
+              <span>Für alle gelöscht?<small>Im Archiv steht es noch.</small></span>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-  </div>
-</div>
 
-<div class="wrap">
-  <section id="installieren">
-    <h2>Installieren</h2>
-
-    <h3 class="platform-heading">Windows</h3>
-    <ol class="steps">
-      <li>
-        <div>
-          <strong>Herunterladen und starten.</strong> Es gibt keine UAC-Abfrage und keinen
-          Installationsassistenten — die App installiert sich in dein Benutzerprofil und startet
-          danach von selbst.
+      <!-- ================= how it works ================= -->
+      <div class="wrap how">
+        <div class="how-grid">
+          <div class="how-step reveal">
+            <div>
+              <strong>Installieren</strong>
+              <span>Als Erweiterung im Browser oder als Programm – beides ohne Adminrechte.</span>
+            </div>
+          </div>
+          <div class="how-step reveal" style="--d: 1">
+            <div>
+              <strong>Wie gewohnt anmelden</strong>
+              <span>WhatsApp Web öffnen, QR-Code scannen. WatIs? liest nur mit.</span>
+            </div>
+          </div>
+          <div class="how-step reveal" style="--d: 2">
+            <div>
+              <strong>Ab jetzt wird mitgeschrieben</strong>
+              <span>Übernehmen, was WhatsApp Web schon geladen hat. Alles Neue kommt von selbst dazu.</span>
+            </div>
+          </div>
         </div>
-      </li>
-      <li>
-        <div>
-          <strong>SmartScreen bestätigen.</strong> Erscheint „Der Computer wurde durch Windows
-          geschützt", auf <em>Weitere Informationen</em> klicken und dann auf
-          <em>Trotzdem ausführen</em>. Das braucht keine Adminrechte. Fehlt dieser Weiterklick, war
-          es nicht SmartScreen, sondern Smart App Control — siehe „Signatur“ oben.
-        </div>
-      </li>
-    </ol>
+      </div>
 
-    <h3 class="platform-heading">Linux</h3>
-    <ol class="steps">
-      <li>
-        <div>
-          <strong>Ausführbar machen und starten.</strong> Ein AppImage ist eine einzelne Datei, die
-          dir gehört — kein Paketmanager, kein <code>sudo</code>, nichts unter <code>/usr</code>.
-          <pre class="shell"><code>mkdir -p ~/Applications
-mv ~/Downloads/WatIs-x86_64.AppImage ~/Applications/
-chmod +x ~/Applications/WatIs-x86_64.AppImage
-~/Applications/WatIs-x86_64.AppImage</code></pre>
-          <p class="step-note">
-            Bricht der Start mit <code>error loading libfuse.so.2</code> ab, fehlt FUSE 2: Ubuntu
-            22.04 und neuer liefern nur FUSE 3 mit. Mit Adminrechten behebt das
-            <code>sudo apt install libfuse2</code>. <strong>Ohne Adminrechte</strong> — der Fall,
-            für den diese App gebaut ist — startet sie genauso mit
-            <code>--appimage-extract-and-run</code>; sie entpackt sich dann bei jedem Start selbst
-            in <code>/tmp</code>.
+      <!-- ================= features ================= -->
+      <section id="funktionen">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Was es kann</span>
+            <h2>Ein Archiv, das mitdenkt.<br />Und nur dir gehört.</h2>
+            <p class="section-lead">
+              Was die offizielle App nicht kann: suchen über alle Chats, Text in Bildern finden,
+              Sprachnachrichten lesen und behalten, was andere löschen.
+            </p>
+          </div>
+
+          <div class="bento">
+            <article class="card big reveal">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-archive" /></svg></div>
+              <h3>Archiv auf deiner Platte</h3>
+              <p>
+                Jede Nachricht, die ankommt, landet in einer <strong>SQLite-Datenbank auf deinem
+                Rechner</strong> – Text, Absender, Zeitpunkt, Anhang. Wird sie danach in WhatsApp
+                gelöscht oder verschwindet sie, behält dein Archiv sie. Was jemand <em>für alle</em>
+                löscht, bleibt mit Text stehen und ist als gelöscht markiert. Abmelden, Cache leeren
+                oder ein Update fassen das Archiv nicht an.
+              </p>
+              <div class="visual" aria-hidden="true">
+                <div class="bubble">Treffen am Samstag in München?<small>10:41</small></div>
+                <div class="bubble me">Gerne, Grüße an alle!<small>10:42</small></div>
+                <div class="bubble kept">
+                  Der Schlüssel liegt unter der Fußmatte<small><b>für alle gelöscht</b> · 10:44</small>
+                </div>
+              </div>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card big reveal" style="--d: 1">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg></div>
+              <h3>Suche über alle Chats zugleich</h3>
+              <p>
+                Volltext über <strong>alle Chats gleichzeitig</strong>, nicht einer nach dem anderen.
+                Deutsche Normalisierung: <code>Grüße</code> findet <code>Gruesse</code>. Dazu eine
+                Suchsyntax mit <code>von:</code>, <code>in:</code>, <code>vor:</code>,
+                <code>nach:</code>, <code>hat:</code> und <code>quelle:</code>.
+              </p>
+              <div class="visual" aria-hidden="true">
+                <div class="query">
+                  <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                  Rechnung <span class="tok">von:Anna</span> <span class="tok">nach:2026-01-01</span>
+                </div>
+                <div class="syntax">
+                  <code>"genauer Satz"</code><code>in:Familie</code><code>hat:image</code><code>quelle:ocr</code><code>vor:2026-02-01</code>
+                </div>
+                <div class="norm">
+                  <b>Grüße</b><svg class="icon" aria-hidden="true"><use href="#i-swap" /></svg><b>Gruesse</b>
+                  <span>· <b>München</b> findet <b>Muenchen</b></span>
+                </div>
+              </div>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card big reveal">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-scan" /></svg></div>
+              <h3>Text in Bildern und PDFs</h3>
+              <p>
+                Texterkennung und PDF-Text laufen mit und werden mitdurchsucht – auch der
+                abfotografierte Zettel und die angehängte Rechnung, auch eingescannte PDFs. Alles
+                <strong>lokal</strong>. In der Desktop-App nur im Leerlauf und am Netzstrom, über den
+                Tray pausierbar.
+              </p>
+              <div class="visual" aria-hidden="true">
+                <div class="paper">
+                  <span class="beam"></span>
+                  <i style="width: 40%"></i>
+                  <span class="found"><mark>RECHNUNG</mark> Nr. 2026-117</span>
+                  <i style="width: 85%"></i>
+                  <i style="width: 70%"></i>
+                  <i style="width: 78%"></i>
+                  <span class="sum"><span>Summe</span><span>1.240,00 €</span></span>
+                </div>
+                <div class="ocr-meta"><span class="chip">Text im Bild</span><span class="chip">PDF · S. 2</span></div>
+              </div>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card big reveal" style="--d: 1">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-mic" /></svg></div>
+              <h3>Sprachnachrichten zum Nachlesen</h3>
+              <p>
+                <strong>Im Browser</strong> wird eine Sprachnachricht auf Klick zu Text, mit
+                whisper.cpp auf deinem Rechner, und ist danach durchsuchbar wie jede andere Nachricht.
+                Das Sprachmodell wird einmalig geladen (57 oder 181 MB), nur wenn du es willst, und
+                vor dem ersten Einsatz gegen eine Prüfsumme geprüft. Ist GitHub im Firmennetz
+                gesperrt, geht dieselbe Datei auch von der Platte.
+              </p>
+              <div class="visual" aria-hidden="true">
+                <div class="player">
+                  <span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5Z" /></svg></span>
+                  <span class="eq">
+                    <i style="--h: 40; --d: 0"></i><i style="--h: 75; --d: 1"></i><i style="--h: 55; --d: 2"></i><i style="--h: 90; --d: 3"></i><i style="--h: 60; --d: 4"></i><i style="--h: 35; --d: 5"></i><i style="--h: 80; --d: 6"></i><i style="--h: 100; --d: 7"></i><i style="--h: 65; --d: 8"></i><i style="--h: 45; --d: 9"></i><i style="--h: 70; --d: 10"></i><i style="--h: 50; --d: 11"></i><i style="--h: 85; --d: 12"></i><i style="--h: 40; --d: 13"></i><i style="--h: 60; --d: 14"></i><i style="--h: 30; --d: 15"></i><i style="--h: 75; --d: 16"></i><i style="--h: 55; --d: 17"></i><i style="--h: 90; --d: 18"></i><i style="--h: 45; --d: 19"></i><i style="--h: 65; --d: 20"></i><i style="--h: 35; --d: 21"></i><i style="--h: 50; --d: 22"></i><i style="--h: 25; --d: 23"></i>
+                  </span>
+                  <time>0:42</time>
+                </div>
+                <svg class="icon arrow-down" aria-hidden="true"><use href="#i-arrow-down" /></svg>
+                <div class="transcript">
+                  <span class="chip">Transkript · lokal</span><br />
+                  „Ich bin um halb acht da. Bring bitte den Schlüssel mit, der liegt unter der
+                  Fußmatte.“
+                </div>
+              </div>
+              <div class="where"><span>Browser</span></div>
+            </article>
+
+            <article class="card small reveal">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-key" /></svg></div>
+              <h3>Sitzung bleibt</h3>
+              <p>
+                Nach einem Update oder Neustart <strong>kein neuer QR-Code</strong>. Der
+                Sitzungsordner wird vom Updater nicht angefasst.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 1">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-inbox" /></svg></div>
+              <h3>Tray mit echtem Zähler</h3>
+              <p>
+                Schließen minimiert in den Tray, die App läuft weiter. Der Zähler kommt aus WhatsApps
+                eigener Datenbank statt aus dem Fenstertitel und stimmt auch bei geschlossenem
+                Fenster. Ändert WhatsApp sein Schema, fällt er auf den Fenstertitel zurück, statt
+                auszufallen. Nicht auf jedem Linux-Desktop, siehe Grenzen.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 2">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-bell" /></svg></div>
+              <h3>Benachrichtigungen, die passen</h3>
+              <p>
+                Ein Klick öffnet den <strong>richtigen Chat</strong>, nicht nur das Fenster. Kein Ping
+                für den Chat, den du gerade liest. Bei vielen Gruppen eine Sammelmeldung pro Chat
+                statt einer Flut. Ruhezeit mit Zeitplan, Pausieren im Tray. Im Browser: Zähler am
+                Symbol, Bündelung und Ruhezeit.
+              </p>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card small reveal">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg></div>
+              <h3>Dateien ohne Dialog</h3>
+              <p>
+                Alles landet im Downloads-Ordner unter
+                <code>WhatsApp/&lt;Chat&gt;/2026-08-30_Angebot.pdf</code>. Umlaute und Emoji im
+                Dateinamen bleiben erhalten. Dazu ein Toast mit <em>Öffnen</em> und <em>Im Ordner
+                zeigen</em>, und Gleiches zweimal geladen liegt nur einmal auf der Platte.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 1">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-hdd" /></svg></div>
+              <h3>Export und Sicherung</h3>
+              <p>
+                Jeder Chat als JSON, HTML oder TXT. Die Sicherung nimmt Datenbank und Medien mit und
+                legt einen <strong>Bericht dazu, was nicht drin ist</strong> – zeitgesteuert, für
+                restic oder rsync. Im Browser in einen Ordner deiner Wahl (Chrome, Edge) oder als ZIP,
+                im selben Format, und jedes Mal kommt nur Neues dazu. Der Ordner darf einer sein, den
+                OneDrive oder Nextcloud abgleicht; WatIs? selbst spricht mit keiner Cloud.
+              </p>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 2">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-help" /></svg></div>
+              <h3>Hilfe gleich dabei</h3>
+              <p>
+                Neben den Einstellungen erklärt ein <strong>„?“</strong>, was sie tun, und jede
+                Statusmeldung sagt, was zu tun ist. Im Browser steht bei einer Datei, die nicht ins
+                Archiv kam, auch warum. Alles Weitere steht unter <em>Hilfe</em> im Panel, auch ohne
+                Netz.
+              </p>
+              <div class="where"><span>Desktop</span><span>Browser</span></div>
+            </article>
+
+            <article class="card small reveal">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-users" /></svg></div>
+              <h3>Mehrere Konten</h3>
+              <p>
+                Jedes mit eigener Anmeldung, eigenem Archiv und eigenem Medienordner, umschaltbar über
+                Tabs. Alle laufen mit, auch im Hintergrund. Ein Konto zu entfernen nimmt es aus der
+                Liste und löscht keine Daten.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 1">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg></div>
+              <h3>App-Sperre</h3>
+              <p>
+                PIN beim Start und nach Inaktivität, Weichzeichnen, sobald das Fenster den Fokus
+                verliert. Ausdrücklich Sichtschutz, keine Verschlüsselung – siehe Grenzen.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+
+            <article class="card small reveal" style="--d: 2">
+              <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-sliders" /></svg></div>
+              <h3>Darstellung und Eingabe</h3>
+              <p>
+                Kompaktmodus, Schriftgröße, eigene CSS-Datei. Kanäle, „Aktuelles“ und Meta AI lassen
+                sich einzeln ausblenden, die Zoomstufe wird gemerkt. Enter kann einen Zeilenumbruch
+                einfügen statt zu senden. Natives Kontextmenü mit Rechtschreibvorschlägen.
+              </p>
+              <div class="where"><span>Desktop</span></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= privacy ================= -->
+      <div class="wrap" id="datenschutz">
+        <div class="band reveal">
+          <span class="kicker">Datenschutz</span>
+          <h2>Deine Nachrichten verlassen deinen Rechner nicht.</h2>
+          <p class="section-lead">
+            Kein Konto, keine Telemetrie, keine Cloud. Keine offenen Ports. Texterkennung,
+            PDF-Text, Transkription und alles andere rechnet auf deinem Rechner.
+          </p>
+          <div class="band-grid">
+            <div class="band-item">
+              <svg class="icon" aria-hidden="true"><use href="#i-cloud-off" /></svg>
+              <strong>Nichts geht raus</strong>
+              <span>Netzwerkverkehr nur zu WhatsApp und zu GitHub für Updates.</span>
+            </div>
+            <div class="band-item">
+              <svg class="icon" aria-hidden="true"><use href="#i-cpu" /></svg>
+              <strong>Rechnet lokal</strong>
+              <span>Texterkennung, PDF-Text und Sprachmodell laufen auf deinem Gerät.</span>
+            </div>
+            <div class="band-item">
+              <svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>
+              <strong>Liest nur mit</strong>
+              <span>WatIs? schreibt nichts über WhatsApps interne Schnittstellen.</span>
+            </div>
+            <div class="band-item">
+              <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg>
+              <strong>Offen</strong>
+              <span>Der ganze Quelltext liegt auf GitHub, unter MIT-Lizenz.</span>
+            </div>
+          </div>
+          <p class="band-note">
+            Sonst nur, wenn du es auslöst: Das Sprachmodell für die Transkription kommt einmalig aus
+            einem GitHub-Release. Und die Rechtschreibprüfung der Desktop-App lässt
+            Chromium unter Windows einmalig ein Wörterbuch von einem Google-Server laden – genau
+            deshalb ist sie aus, bis du sie einschaltest. Auch diese Seite lädt nichts von fremden
+            Servern, nicht einmal Schriften.
           </p>
         </div>
-      </li>
-      <li>
+      </div>
+
+      <!-- ================= limits ================= -->
+      <section id="grenzen" class="limits">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Was es nicht kann</span>
+            <h2>Ehrlich vorab.</h2>
+            <p class="section-lead">
+              Diese Grenzen wiegen so viel wie die Funktionen oben. Lies sie, bevor du dich
+              entscheidest.
+            </p>
+          </div>
+
+          <div class="limits-grid">
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Alte Nachrichten</h3>
+              <p>
+                <strong>WhatsApp Web liefert höchstens rund 90 Tage rückwirkend.</strong> Das ist eine
+                Grenze im Client von WhatsApp, keine Einstellung – einen Massenabruf gibt es für
+                Web-Clients gar nicht. Bis dorthin holt WatIs? auf ausdrücklichen Start nach: ein Chat
+                nach dem anderen, mit Pausen, nach einem Neustart fortsetzbar. Was älter ist, bleibt
+                draußen. Der eigentliche Nutzen liegt darin, dass ab dem Installationstag nichts mehr
+                verschwindet.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Nachrichten anderer Leute</h3>
+              <p>
+                Das Archiv behält, was gelöscht oder zurückgezogen wurde – und
+                <strong>auch verschwindende Nachrichten</strong>, sobald sie einmal angekommen sind.
+                Auch was jemand <em>für alle</em> löscht, bleibt mit Text stehen und ist als gelöscht
+                markiert. Das ist eine bewusste Entscheidung ohne Schalter: Eine Ausnahme wäre nur dann
+                etwas wert, wenn man sich auf sie verlassen könnte, und das kann man bei einer Kopie
+                auf der eigenen Platte nicht. Wer dir so etwas schickt, geht von einer Befristung aus
+                oder will es zurückhaben. Ob dieses Archiv entstehen soll, entscheidest du – für
+                Leute, die davon nichts wissen.
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Dein WhatsApp-Konto</h3>
+              <p>
+                WhatsApps Bedingungen untersagen inoffizielle Clients, und die Policy nennt die
+                <strong>Sperre des Kontos</strong> ausdrücklich als mögliche Folge. Dokumentierte
+                Sperrwellen trafen bisher Clients, die senden und in Masse operieren – WatIs? liest,
+                sendet nicht und drosselt das Nachladen. Das ist der Grund für die Read-only-Regel; es
+                ist keine Zusicherung. Das Risiko bleibt bei dir.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Senden</h3>
+              <p>
+                Die App schreibt nichts über WhatsApps interne Schnittstellen – sie liest nur. Du
+                schreibst wie gewohnt im WhatsApp-Fenster. Die eine Stelle, an der sie doch etwas
+                auslöst: Öffnet sie einen Chat, weil du auf einen Suchtreffer geklickt oder das
+                Nachladen gestartet hast, <strong>markiert WhatsApp diesen Chat als gelesen</strong> –
+                genauso, als hättest du ihn selbst angeklickt
+                (<a
+                  href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0006-lesebestaetigung-beim-chatoeffnen.md"
+                  >ADR 0006</a
+                >).
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Was nicht durchsuchbar wird</h3>
+              <p>
+                In der <strong>Desktop-App</strong> werden Sprachnachrichten noch nicht transkribiert
+                und sind darum dort nicht durchsuchbar; in der Browser-Erweiterung schon, auf Klick.
+                Word-Dateien werden nirgends durchsucht. Die Aufträge dafür entstehen und werden
+                übersprungen; warum, steht in
+                <a href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0008-ocr-und-pdf-engines.md"
+                  >ADR 0008</a
+                >. Text in Bildern und PDFs wird dagegen erkannt.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Videos und große Dateien</h3>
+              <p>
+                Bilder und Dokumente holt das Archiv von selbst, <strong>Videos nicht</strong> – die
+                bleiben bei einem Klick, sonst wäre die Platte in einer Woche voll. Im Archiv steht
+                dann der Eintrag ohne die Datei.
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Verschlüsselung</h3>
+              <p>
+                Das Archiv liegt <strong>unverschlüsselt</strong> auf der Platte. Der Schutz kommt von
+                BitLocker beziehungsweise LUKS, nicht von dieser App. Die PIN-Sperre ist Sichtschutz
+                gegen jemanden, der am Bildschirm vorbeigeht – sie verschlüsselt nichts.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Wenn WhatsApp sich ändert</h3>
+              <p>
+                Der Client hängt an internen Strukturen von WhatsApp Web, und die ändern sich. Im
+                Oktober 2026 hat WhatsApp zum Beispiel geändert, wie sein Downloader aufgerufen werden
+                will, und Medien kamen nicht mehr ins Archiv, bis die Bridge nachgezogen war.
+                Nachrichten und Suche liefen dabei weiter, und was in der Zeit fehlschlug, holt das
+                Archiv danach von selbst nach. Kaputt heißt hier also nicht „alles weg“, sondern „ein
+                Teil fehlt, bis es nachgezogen ist“.
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Im Browser</h3>
+              <p>
+                Das Archiv gehört dort zum <strong>Browserprofil</strong>: Abmelden, Cache leeren und
+                Updates übersteht es, das Entfernen der Erweiterung oder ein zurückgesetztes
+                Firmenprofil nicht – darum die Sicherung. Kein Tray, kein Autostart, keine
+                Direktantwort, kein Nachladen älterer Nachrichten, kein Export als JSON/HTML/TXT. In
+                Firefox geht keine Sicherung in einen Ordner, nur als ZIP, und zum Transkribieren muss
+                der WhatsApp-Tab offen sein. In den Stores steht die Erweiterung noch nicht; in
+                Firefox lässt sie sich bis dahin nur bis zum nächsten Neustart laden. Wie lange eine
+                Transkription auf einem normalen Arbeitsplatzrechner dauert, ist noch nicht gemessen.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Signatur</h3>
+              <p>
+                Die Installationsdatei ist nicht signiert. Windows zeigt beim ersten Start eine
+                SmartScreen-Warnung; sie lässt sich ohne Adminrechte bestätigen.
+                <strong
+                  >Ist „Intelligente App-Steuerung“ (Smart App Control) eingeschaltet, wird der Start
+                  dagegen ohne Weiterklick verweigert</strong
+                >
+                – dafür gibt es bewusst keine Ausnahme pro Programm. Was dann bleibt, steht in
+                <a href="https://github.com/phish3144/watis/blob/HEAD/docs/windows-signing.md"
+                  >docs/windows-signing.md</a
+                >. Unter Linux entscheidet das Ausführbar-Bit, das du selbst setzt. Prüfen lässt sich
+                jede Datei über den SHA-256-Digest, den GitHub auf der
+                <a href="https://github.com/phish3144/watis/releases/latest">Release-Seite</a> zu
+                jedem Anhang zeigt – mit <code>sha256sum</code> beziehungsweise
+                <code>Get-FileHash</code>.
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Tray unter GNOME</h3>
+              <p>
+                GNOME zeigt seit 3.26 keine Tray-Icons mehr; für Unity und Pantheon gilt dasselbe.
+                WatIs? erkennt diese drei und <strong>beendet sich dort beim Schließen des
+                Fensters</strong>, statt in einen unsichtbaren Tray zu verschwinden. Mit der
+                AppIndicator-Erweiterung und <code>WATIS_FORCE_TRAY=1</code> gibt es ihn trotzdem.
+                Unter KDE, XFCE, MATE und Cinnamon läuft er direkt. Erkennt die App den Desktop gar
+                nicht, entscheidet sie sich gegen den Tray – die Richtung, in der ein Irrtum nichts
+                kostet.
+              </p>
+            </article>
+
+            <article class="limit reveal" style="--d: 1">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Suche nach Relevanz</h3>
+              <p>
+                Zeitlich sortiert ist die Suche schnell, auch über eine Million Nachrichten. Nach
+                Relevanz sortiert braucht ein sehr häufiges Wort länger als die angepeilten 200 ms –
+                bauartbedingt, festgehalten in
+                <a
+                  href="https://github.com/phish3144/watis/blob/HEAD/docs/decisions/0007-suchreihenfolge-und-zeitgeordnete-rowid.md"
+                  >ADR 0007</a
+                >.
+              </p>
+            </article>
+
+            <article class="limit reveal">
+              <h3><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Auf Firmengeräten</h3>
+              <p>
+                AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden, und unter
+                Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Erweiterungen
+                kann die IT ebenso sperren oder nur freigegebene zulassen. Und ein lokales Archiv
+                privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur –
+                „läuft lokal“ heißt dort nicht „nur du kommst dran“.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= downloads ================= -->
+      <section id="download">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Herunterladen</span>
+            <h2>Drei Wege rein. Keiner braucht Adminrechte.</h2>
+            <p class="section-lead">
+              Darfst du auf deinem Rechner nichts installieren, nimm die Erweiterung. Willst du Tray,
+              Autostart und Dateien ohne Dialog, nimm das Programm.
+            </p>
+          </div>
+
+          <div class="downloads">
+            <article class="card dl featured reveal" id="browser">
+              <span class="badge">Ohne Installation</span>
+              <div class="dl-head">
+                <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-globe" /></svg></div>
+                <div>
+                  <h3>Im Browser</h3>
+                  <small>Chrome, Edge, Firefox</small>
+                </div>
+              </div>
+              <dl class="meta">
+                <div><dt>Läuft in</dt><dd>web.whatsapp.com, als Erweiterung daneben</dd></div>
+                <div><dt>Deine Daten</dt><dd>im Browserprofil, privater Speicher der Erweiterung</dd></div>
+                <div><dt>Adminrechte</dt><dd>keine, nichts wird auf dem Rechner installiert</dd></div>
+                <div><dt>Stores</dt><dd>noch nicht – vorerst von Hand geladen</dd></div>
+              </dl>
+              <div class="dl-actions">
+                <a class="btn btn-primary" href="#installieren" data-open="os-browser">
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  Zur Anleitung
+                </a>
+              </div>
+            </article>
+
+            <article class="card dl reveal" style="--d: 1">
+              <div class="dl-head">
+                <div class="card-icon"><svg class="icon solid" aria-hidden="true"><use href="#i-windows" /></svg></div>
+                <div>
+                  <h3>Windows</h3>
+                  <small>Windows 10 / 11 · 64 Bit</small>
+                </div>
+              </div>
+              <dl class="meta">
+                <div><dt>Datei</dt><dd>WatIs-Setup-x64.exe</dd></div>
+                <div><dt>Installiert nach</dt><dd>%LOCALAPPDATA%\Programs\WatIs</dd></div>
+                <div><dt>Deine Daten</dt><dd>%LOCALAPPDATA%\watis\</dd></div>
+                <div><dt>Adminrechte</dt><dd>keine, keine UAC-Abfrage</dd></div>
+                <div><dt>Signatur</dt><dd>keine – siehe „Signatur“</dd></div>
+              </dl>
+              <div class="dl-actions">
+                <a
+                  class="btn btn-primary"
+                  href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
+                >
+                  <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+                  Herunterladen <span class="sr-only">für Windows</span>
+                </a>
+                <a
+                  class="link-arrow"
+                  href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
+                  >Portable Fassung, ohne <span class="nowrap"
+                    >Installation<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></span
+                ></a>
+              </div>
+            </article>
+
+            <article class="card dl reveal" style="--d: 2">
+              <div class="dl-head">
+                <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-terminal" /></svg></div>
+                <div>
+                  <h3>Linux</h3>
+                  <small>x86-64 · AppImage</small>
+                </div>
+              </div>
+              <dl class="meta">
+                <div><dt>Datei</dt><dd>WatIs-x86_64.AppImage</dd></div>
+                <div><dt>Installiert nach</dt><dd>nirgends – eine Datei, wohin du willst</dd></div>
+                <div><dt>Deine Daten</dt><dd>~/.local/share/watis/</dd></div>
+                <div><dt>Adminrechte</dt><dd>keine, kein sudo, kein Paketmanager</dd></div>
+                <div><dt>Tray</dt><dd>nicht unter GNOME, Unity, Pantheon</dd></div>
+              </dl>
+              <div class="dl-actions">
+                <a
+                  class="btn btn-primary"
+                  href="https://github.com/phish3144/watis/releases/latest/download/WatIs-x86_64.AppImage"
+                >
+                  <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+                  Herunterladen <span class="sr-only">für Linux</span>
+                </a>
+                <a class="link-arrow" href="#installieren" data-open="os-linux"
+                  >Was nach dem Download zu tun <span class="nowrap"
+                    >ist<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></span
+                ></a>
+              </div>
+            </article>
+          </div>
+
+          <p class="dl-foot">
+            <a class="link-arrow" href="https://github.com/phish3144/watis/releases/latest"
+              >Alle Dateien und <span class="nowrap"
+                >Versionshinweise<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></span
+            ></a>
+            <span
+              >macOS wird bei jedem Commit gebaut, aber nicht veröffentlicht: unsigniert würde ihn
+              Gatekeeper ohnehin nicht starten.</span
+            >
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= install ================= -->
+      <section id="installieren" style="padding-top: 0">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Installieren</span>
+            <h2>In fünf Minuten startklar.</h2>
+            <p class="section-lead">Wähle, wo WatIs? laufen soll. Jeder Schritt steht da.</p>
+          </div>
+
+          <div class="card install-card reveal">
+            <div class="tabs">
+              <input type="radio" name="os" id="os-browser" checked />
+              <label for="os-browser"><svg class="icon" aria-hidden="true"><use href="#i-globe" /></svg>Browser</label>
+              <input type="radio" name="os" id="os-windows" />
+              <label for="os-windows"><svg class="icon solid" aria-hidden="true"><use href="#i-windows" /></svg>Windows</label>
+              <input type="radio" name="os" id="os-linux" />
+              <label for="os-linux"><svg class="icon" aria-hidden="true"><use href="#i-terminal" /></svg>Linux</label>
+
+              <!-- ---------- browser ---------- -->
+              <div class="tab-panel p-browser" id="im-browser">
+                <p class="install-intro">
+                  In den Stores von Chrome, Edge und Firefox steht WatIs? noch nicht. Bis dahin
+                  installierst du es einmal von Hand. Wähle deinen Browser:
+                </p>
+                <div class="install-cols">
+                  <div>
+                    <div class="tabs sub">
+                      <input type="radio" name="browser" id="tab-chrome" checked />
+                      <label for="tab-chrome">Chrome</label>
+                      <input type="radio" name="browser" id="tab-edge" />
+                      <label for="tab-edge">Edge</label>
+                      <input type="radio" name="browser" id="tab-firefox" />
+                      <label for="tab-firefox">Firefox</label>
+
+                      <div class="tab-panel panel-chrome">
+                        <ol class="steps">
+                          <li>
+                            <strong>Herunterladen:</strong>
+                            <a
+                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
+                              >WatIs-Browser-Chrome-Edge.zip</a
+                            >
+                          </li>
+                          <li>
+                            <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die Datei
+                            → <em>Alle extrahieren …</em> → als Ziel <code>Dokumente\WatIs</code>
+                            eintragen → <em>Extrahieren</em>. Am Mac: Doppelklick auf die ZIP, den
+                            neuen Ordner nach <em>Dokumente</em> ziehen und in <code>WatIs</code>
+                            umbenennen.
+                            <p class="step-note">
+                              Diesen Ordner danach nicht verschieben und nicht löschen: Chrome lädt
+                              WatIs? bei jedem Start von dort.
+                            </p>
+                          </li>
+                          <li>
+                            <strong>Erweiterungen öffnen:</strong> <code>chrome://extensions</code>
+                            in die Adresszeile tippen und Enter drücken.
+                          </li>
+                          <li><strong>Entwicklermodus einschalten:</strong> der Schalter oben rechts.</li>
+                          <li>
+                            <strong>Laden:</strong> oben links auf
+                            <em>Entpackte Erweiterung laden</em> klicken, den Ordner
+                            <code>Dokumente\WatIs</code> wählen, <em>Ordner auswählen</em>.
+                          </li>
+                          <li>
+                            <strong>Anheften:</strong> rechts neben der Adresszeile auf das
+                            Puzzleteil klicken und bei WatIs? auf die Stecknadel.
+                          </li>
+                          <li>
+                            <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
+                            und auf das WatIs?-Symbol klicken. Rechts öffnet sich die Seitenleiste
+                            mit Suche, Chats, Medien und Einstellungen.
+                          </li>
+                        </ol>
+                      </div>
+
+                      <div class="tab-panel panel-edge">
+                        <ol class="steps">
+                          <li>
+                            <strong>Herunterladen:</strong>
+                            <a
+                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
+                              >WatIs-Browser-Chrome-Edge.zip</a
+                            >
+                            – dieselbe Datei wie für Chrome.
+                          </li>
+                          <li>
+                            <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die Datei
+                            → <em>Alle extrahieren …</em> → als Ziel <code>Dokumente\WatIs</code>
+                            eintragen → <em>Extrahieren</em>.
+                            <p class="step-note">
+                              Diesen Ordner danach nicht verschieben und nicht löschen: Edge lädt
+                              WatIs? bei jedem Start von dort.
+                            </p>
+                          </li>
+                          <li>
+                            <strong>Erweiterungen öffnen:</strong> <code>edge://extensions</code> in
+                            die Adresszeile tippen und Enter drücken.
+                          </li>
+                          <li>
+                            <strong>Entwicklermodus einschalten:</strong> der Schalter in der linken
+                            Spalte.
+                          </li>
+                          <li>
+                            <strong>Laden:</strong> oben auf <em>Entpackte Erweiterung laden</em>
+                            klicken, den Ordner <code>Dokumente\WatIs</code> wählen,
+                            <em>Ordner auswählen</em>.
+                          </li>
+                          <li>
+                            <strong>Anheften:</strong> rechts neben der Adresszeile auf das Puzzleteil
+                            (<em>Erweiterungen</em>) klicken und bei WatIs? auf das Auge, damit das
+                            Symbol in der Symbolleiste bleibt.
+                          </li>
+                          <li>
+                            <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
+                            und auf das WatIs?-Symbol klicken. Rechts öffnet sich die Seitenleiste.
+                            <p class="step-note">
+                              Fragt Edge beim Start, ob Erweiterungen im Entwicklermodus
+                              ausgeschaltet werden sollen: nicht ausschalten, das Fenster einfach
+                              schließen.
+                            </p>
+                          </li>
+                        </ol>
+                      </div>
+
+                      <div class="tab-panel panel-firefox">
+                        <ol class="steps">
+                          <li>
+                            <strong>Herunterladen:</strong>
+                            <a
+                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Firefox.zip"
+                              >WatIs-Browser-Firefox.zip</a
+                            >
+                            – nicht entpacken.
+                          </li>
+                          <li>
+                            <strong>Debugging-Seite öffnen:</strong>
+                            <code>about:debugging#/runtime/this-firefox</code> in die Adresszeile
+                            tippen und Enter drücken.
+                          </li>
+                          <li>
+                            <strong>Laden:</strong> auf <em>Temporäres Add-on laden …</em> klicken,
+                            die heruntergeladene ZIP wählen, <em>Öffnen</em>.
+                          </li>
+                          <li>
+                            <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
+                            und auf das WatIs?-Symbol in der Symbolleiste klicken. Links öffnet sich
+                            die Seitenleiste.
+                          </li>
+                          <li>
+                            <strong>Nach jedem Neustart von Firefox</strong> die Schritte 2 und 3
+                            wiederholen. Firefox nimmt Add-ons, die nicht über seinen Store kommen,
+                            beim Beenden wieder heraus. <strong>Dein Archiv bleibt dabei
+                            erhalten</strong> und ist nach dem Laden wieder da. Dieser Schritt
+                            entfällt, sobald WatIs? auf addons.mozilla.org steht.
+                          </li>
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="aside-stack">
+                    <div class="update">
+                      <h4>Im Browser aktualisieren</h4>
+                      <ul>
+                        <li>
+                          <strong>Chrome und Edge:</strong> die neue ZIP herunterladen und wie links
+                          mit <em>Alle extrahieren …</em> in <strong>denselben Ordner</strong>
+                          <code>Dokumente\WatIs</code> entpacken; fragt Windows, dann
+                          <em>Dateien im Ziel ersetzen</em>. Danach auf der Erweiterungsseite bei
+                          WatIs? auf den runden Pfeil (<em>Neu laden</em>) klicken.
+                        </li>
+                        <li>
+                          <strong>Firefox:</strong> die neue ZIP wie links über
+                          <em>Temporäres Add-on laden …</em> laden.
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div class="caution">
+                      <strong
+                        ><svg class="icon" aria-hidden="true"><use href="#i-alert" /></svg>Zwei
+                        Dinge, die dein Archiv kosten können</strong
+                      >
+                      <ul>
+                        <li>
+                          <strong><em>Entfernen</em> löscht das Archiv</strong>, in jedem Browser.
+                          Für ein Update reicht <em>Neu laden</em>.
+                        </li>
+                        <li>
+                          <strong>Ein anderer Ordner ist eine andere Erweiterung.</strong> Entpackst
+                          du ein Update woandershin, zeigen Chrome und Edge ein leeres WatIs? an. Weg
+                          ist dein Archiv dann nicht: Lädst du wieder den alten Ordner, ist es zurück.
+                        </li>
+                      </ul>
+                      <p>
+                        Vor allem Größeren: <em>Einstellungen → Sicherung</em>. Ist der
+                        Entwicklermodus ausgegraut, hat die IT ihn gesperrt – dann geht es erst über
+                        die Stores.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ---------- windows ---------- -->
+              <div class="tab-panel p-windows">
+                <div class="install-cols">
+                  <div>
+                    <h4>Windows</h4>
+                    <ol class="steps">
+                      <li>
+                        <strong>Herunterladen und starten:</strong>
+                        <a
+                          href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Setup-x64.exe"
+                          >WatIs-Setup-x64.exe</a
+                        >. Es gibt keine UAC-Abfrage und keinen Installationsassistenten – die App
+                        installiert sich in dein Benutzerprofil und startet danach von selbst.
+                      </li>
+                      <li>
+                        <strong>SmartScreen bestätigen.</strong> Erscheint „Der Computer wurde durch
+                        Windows geschützt“, auf <em>Weitere Informationen</em> klicken und dann auf
+                        <em>Trotzdem ausführen</em>. Das braucht keine Adminrechte. Fehlt dieser
+                        Weiterklick, war es nicht SmartScreen, sondern Smart App Control – siehe
+                        <a href="#grenzen">„Signatur“</a>.
+                      </li>
+                      <li>
+                        <strong>QR-Code scannen</strong>, wie bei WhatsApp Web. Danach nie wieder –
+                        die Sitzung bleibt über Updates hinweg erhalten.
+                      </li>
+                      <li>
+                        <strong>Archiv und Einstellungen</strong> liegen im Panel rechts:
+                        <code>Strg</code> + <code>,</code>, die Leiste am rechten Rand oder das
+                        Tray-Menü. <em>Jetzt übernehmen</em> holt in einem Zug, was WhatsApp Web
+                        schon im Speicher hat; danach wächst das Archiv von selbst weiter.
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="aside-stack">
+                    <div class="update">
+                      <h4>Updates</h4>
+                      <ul>
+                        <li>
+                          Kommen von selbst über GitHub Releases und werden erst installiert, wenn du
+                          es sagst. Sitzung und Archiv bleiben unberührt.
+                        </li>
+                        <li>
+                          Lieber ohne Installation? Die
+                          <a
+                            href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Portable-x64.exe"
+                            >Portable Fassung</a
+                          >
+                          läuft aus einer einzigen Datei.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ---------- linux ---------- -->
+              <div class="tab-panel p-linux">
+                <div class="install-cols">
+                  <div>
+                    <h4>Linux</h4>
+                    <ol class="steps">
+                      <li>
+                        <strong>Ausführbar machen und starten.</strong> Ein AppImage ist eine
+                        einzelne Datei, die dir gehört – kein Paketmanager, kein <code>sudo</code>,
+                        nichts unter <code>/usr</code>.
+                        <div class="shell">
+                          <button class="copy" type="button" data-copy="linux-commands">
+                            <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg><span>Kopieren</span>
+                          </button>
+                          <pre id="linux-commands">mkdir -p ~/Applications
+mv ~/Downloads/WatIs-x86_64.AppImage ~/Applications/
+chmod +x ~/Applications/WatIs-x86_64.AppImage
+~/Applications/WatIs-x86_64.AppImage</pre>
+                        </div>
+                        <p class="step-note">
+                          Bricht der Start mit <code>error loading libfuse.so.2</code> ab, fehlt FUSE
+                          2: Ubuntu 22.04 und neuer liefern nur FUSE 3 mit. Mit Adminrechten behebt das
+                          <code>sudo apt install libfuse2</code>. <strong>Ohne Adminrechte</strong> –
+                          der Fall, für den diese App gebaut ist – startet sie genauso mit
+                          <code>--appimage-extract-and-run</code>; sie entpackt sich dann bei jedem
+                          Start selbst in <code>/tmp</code>.
+                        </p>
+                      </li>
+                      <li>
+                        <strong>Danach wie jedes andere Programm.</strong> Beim ersten Start trägt
+                        WatIs? sich selbst in den Desktop ein: Menüeintrag, Icon, über die Suche
+                        auffindbar. Alles unter <code>~/.local/share/</code>. Verschiebst du die Datei
+                        später, korrigiert sich der Eintrag beim nächsten Start von selbst.
+                      </li>
+                      <li>
+                        <strong>QR-Code scannen</strong>, wie bei WhatsApp Web. Danach nie wieder –
+                        die Sitzung bleibt über Updates hinweg erhalten.
+                      </li>
+                      <li>
+                        <strong>Archiv und Einstellungen</strong> liegen im Panel rechts:
+                        <code>Strg</code> + <code>,</code>, die Leiste am rechten Rand oder das
+                        Tray-Menü. <em>Jetzt übernehmen</em> holt in einem Zug, was WhatsApp Web
+                        schon im Speicher hat; danach wächst das Archiv von selbst weiter.
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="aside-stack">
+                    <div class="update">
+                      <h4>Gut zu wissen</h4>
+                      <ul>
+                        <li>
+                          Updates gibt es nur aus dem AppImage heraus, weil der Updater genau diese
+                          eine Datei ersetzt.
+                        </li>
+                        <li>
+                          Unter GNOME, Unity und Pantheon gibt es keinen Tray; dort beendet sich
+                          WatIs? beim Schließen des Fensters. Mehr unter
+                          <a href="#grenzen">Grenzen</a>.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= tech ================= -->
+      <section id="technik" style="padding-top: 0">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Technische Daten</span>
+            <h2>Für alle, die es genau wissen wollen.</h2>
+          </div>
+
+          <div class="tech">
+            <article class="card reveal">
+              <h3>Unterbau</h3>
+              <div class="stack">
+                <span>Electron 44</span><span>Chromium 152</span><span>Node 24</span><span>SQLite mit FTS5</span><span>Windows 10/11 und Linux, je 64 Bit</span>
+              </div>
+              <p>
+                Im Browser: Manifest V3, SQLite als WebAssembly im privaten Speicher der Erweiterung
+                (OPFS), tesseract.js, pdf.js und whisper.cpp als WebAssembly. Chrome und Edge ab 116,
+                Firefox ab 128.
+              </p>
+            </article>
+
+            <article class="card reveal" style="--d: 1">
+              <h3>Daten</h3>
+              <p>
+                Windows: <code>%LOCALAPPDATA%\watis\</code> – nie im Roaming-Profil, damit ein
+                Domänen-Konto keine Gigabytes synchronisiert. Linux: <code>~/.local/share/watis/</code>.
+                Darunter jeweils <code>session/</code>, <code>archive/</code>, <code>blobs/</code> und
+                <code>logs/</code>. Im Browser liegt das Archiv im Profil, im privaten Speicher der
+                Erweiterung, getrennt von WhatsApps eigenem Speicher.
+              </p>
+            </article>
+
+            <article class="card reveal">
+              <h3>Updates</h3>
+              <p>
+                Automatisch über GitHub Releases, ohne Adminrechte; alle sechs Stunden geprüft und im
+                Hintergrund geladen. <strong>Installiert wird erst, wenn du es sagst</strong> –
+                <em>Jetzt neu starten</em> oder <em>Beim nächsten Beenden</em>; ohne diese Wahl bleibt
+                das Update liegen. Abschalten lässt sich die Prüfung im Panel; dann greift die App
+                dafür auf gar nichts mehr zu. Sitzung und Archiv bleiben unberührt – das beweist ein
+                Test bei jedem Commit. <strong>Unter Linux nur aus dem AppImage heraus</strong>, weil
+                der Updater genau diese eine Datei ersetzt; startest du einen entpackten Build, sagt die
+                App das und prüft gar nicht erst.
+              </p>
+            </article>
+
+            <article class="card reveal" style="--d: 1">
+              <h3>Deinstallation</h3>
+              <p>
+                Windows: über die Einstellungen. Der Deinstaller <em>fragt</em>, ob Archiv, Medien und
+                Anmeldung mitgehen sollen – voreingestellt ist Nein, weil das die richtige Antwort ist,
+                wenn neu installiert werden soll. Linux: die AppImage-Datei löschen, dazu
+                <code>~/.local/share/applications/watis.desktop</code>, das Icon unter
+                <code>~/.local/share/icons/hicolor/512x512/apps/watis.png</code>, den Zwischenspeicher
+                des Updaters unter <code>~/.cache/watis-updater/</code> und, falls Autostart an war,
+                <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen
+                liegen, bis du es selbst entfernst. <strong>Im Browser ist das anders:</strong> Wer
+                die Erweiterung entfernt, entfernt ihr Archiv mit. Vorher sichern.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= closing ================= -->
+      <div class="wrap closing reveal">
+        <h2>Ab heute geht <span class="grad">nichts mehr verloren.</span></h2>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#installieren" data-open="os-browser">
+            <svg class="icon" aria-hidden="true"><use href="#i-globe" /></svg>
+            Im Browser installieren
+          </a>
+          <a class="btn btn-ghost" href="#download">
+            <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+            Desktop-App laden
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap foot">
         <div>
-          <strong>Danach wie jedes andere Programm.</strong> Beim ersten Start trägt WatIs? sich
-          selbst in den Desktop ein: Menüeintrag, Icon, über die Suche auffindbar. Alles unter
-          <code>~/.local/share/</code>. Verschiebst du die Datei später, korrigiert sich der Eintrag
-          beim nächsten Start von selbst.
+          <a class="brand" href="#" aria-label="WatIs? – zum Seitenanfang">
+            <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-bubble" /></svg></span>
+            WatIs?
+          </a>
+          <p>
+            WatIs? ist kein offizielles WhatsApp-Produkt und steht in keiner Verbindung zu Meta.
+            WhatsApp ist eine Marke von Meta Platforms, Inc. Der Client hängt an internen Strukturen
+            von WhatsApp Web; ein Update dort kann Teile davon jederzeit brechen. Nutzung auf eigenes
+            Risiko.
+          </p>
         </div>
-      </li>
-    </ol>
+        <nav class="foot-links" aria-label="Weiteres">
+          <a href="https://github.com/phish3144/watis">Quelltext</a>
+          <a href="https://github.com/phish3144/watis/releases/latest">Versionen</a>
+          <a href="https://github.com/phish3144/watis/blob/HEAD/docs/backfill-findings.md">Warum 90 Tage</a>
+          <a href="https://github.com/phish3144/watis/issues">Fehler melden</a>
+          <span>MIT-Lizenz</span>
+        </nav>
+      </div>
+    </footer>
 
-    <h3 class="platform-heading">Auf beiden</h3>
-    <ol class="steps">
-      <li>
-        <div>
-          <strong>QR-Code scannen</strong>, wie bei WhatsApp Web. Danach nie wieder — die Sitzung
-          bleibt über Updates hinweg erhalten.
-        </div>
-      </li>
-      <li>
-        <div>
-          <strong>Archiv und Einstellungen</strong> liegen im Panel rechts:
-          <code>Strg</code> + <code>,</code> (macOS: <code>Cmd</code> + <code>,</code>), die Leiste
-          am rechten Rand oder das Tray-Menü. <em>Jetzt übernehmen</em> holt in einem Zug, was
-          WhatsApp Web schon im Speicher hat; danach wächst das Archiv von selbst weiter.
-        </div>
-      </li>
-    </ol>
-  </section>
+    <script>
+      ;(() => {
+        const root = document.documentElement
+        const check = (id) => {
+          const radio = document.getElementById(id)
+          if (radio) radio.checked = true
+        }
 
-  <section>
-    <h2>Technische Daten</h2>
-    <div class="spec">
-      <div class="spec-row">
-        <div class="spec-label">Unterbau</div>
-        <div class="spec-value">
-          Electron 44 · Chromium 152 · Node 24 · SQLite mit FTS5 · Windows 10/11 und Linux, je 64
-          Bit
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Daten</div>
-        <div class="spec-value">
-          Windows: <code>%LOCALAPPDATA%\watis\</code> — nie im Roaming-Profil, damit ein
-          Domänen-Konto keine Gigabytes synchronisiert. Linux: <code>~/.local/share/watis/</code>.
-          Darunter jeweils <code>session/</code>, <code>archive/</code>, <code>blobs/</code> und
-          <code>logs/</code>.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Updates</div>
-        <div class="spec-value">
-          Automatisch über GitHub Releases, ohne Adminrechte; alle sechs Stunden geprüft und im
-          Hintergrund geladen. <strong>Installiert wird erst, wenn du es sagst</strong> —
-          <em>Jetzt neu starten</em> oder <em>Beim nächsten Beenden</em>; ohne diese Wahl bleibt das
-          Update liegen. Abschalten lässt sich die Prüfung im Panel; dann greift die App dafür auf
-          gar nichts mehr zu.
-          Sitzung und Archiv bleiben unberührt — das beweist ein Test bei jedem Commit.
-          <strong>Unter Linux nur aus dem AppImage heraus</strong>, weil der Updater genau diese
-          eine Datei ersetzt; startest du einen entpackten Build, sagt die App das und prüft gar
-          nicht erst.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Deinstallation</div>
-        <div class="spec-value">
-          Windows: über die Einstellungen. Der Deinstaller <em>fragt</em>, ob Archiv, Medien und
-          Anmeldung mitgehen sollen — voreingestellt ist Nein, weil das die richtige Antwort ist,
-          wenn neu installiert werden soll. Linux: die AppImage-Datei löschen, dazu
-          <code>~/.local/share/applications/watis.desktop</code>, das Icon unter
-          <code>~/.local/share/icons/hicolor/512x512/apps/watis.png</code>, den
-          Zwischenspeicher des Updaters unter <code>~/.cache/watis-updater/</code> und, falls
-          Autostart an war, <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen liegen,
-          bis du es selbst entfernst.
-        </div>
-      </div>
-      <div class="spec-row">
-        <div class="spec-label">Lizenz</div>
-        <div class="spec-value">MIT · Quelltext offen</div>
-      </div>
-    </div>
-  </section>
-</div>
+        // The instructions for the browser this page is read in. Without script, Chrome's are open
+        // and the others one click away.
+        const ua = navigator.userAgent
+        check(/Edg\//.test(ua) ? 'tab-edge' : /Firefox\//.test(ua) ? 'tab-firefox' : 'tab-chrome')
 
-<footer>
-  <div class="wrap">
-    <p class="disclaimer">
-      WatIs? ist kein offizielles WhatsApp-Produkt und steht in keiner Verbindung zu Meta. WhatsApp
-      ist eine Marke von Meta Platforms, Inc. Der Client hängt an internen Strukturen von WhatsApp
-      Web; ein Update dort kann Teile davon jederzeit brechen. Nutzung auf eigenes Risiko.
-    </p>
-    <div class="colophon">
-      <a href="https://github.com/phish3144/watis">Quelltext</a>
-      <a href="https://github.com/phish3144/watis/blob/HEAD/docs/backfill-findings.md"
-        >Warum 90 Tage</a
-      >
-      <a href="https://github.com/phish3144/watis/issues">Fehler melden</a>
-      <span>MIT</span>
-    </div>
-  </div>
-</footer>
+        // A link that leads to the install steps opens the right tab on the way.
+        for (const link of document.querySelectorAll('[data-open]')) {
+          link.addEventListener('click', () => check(link.dataset.open))
+        }
+        if (location.hash === '#im-browser' || location.hash === '#browser') check('os-browser')
 
+        // Light or dark, remembered if the browser lets us.
+        const toggle = document.querySelector('.theme-toggle')
+        const dark = () =>
+          root.dataset.theme
+            ? root.dataset.theme === 'dark'
+            : matchMedia('(prefers-color-scheme: dark)').matches
+        toggle?.addEventListener('click', () => {
+          const next = dark() ? 'light' : 'dark'
+          root.dataset.theme = next
+          try {
+            localStorage.setItem('watis-theme', next)
+          } catch {
+            // Not remembered; it still applies until the page is closed.
+          }
+        })
+
+        // Copy the Linux commands.
+        for (const button of document.querySelectorAll('[data-copy]')) {
+          button.addEventListener('click', async () => {
+            const text = document.getElementById(button.dataset.copy)?.textContent ?? ''
+            const label = button.querySelector('span')
+            try {
+              await navigator.clipboard.writeText(text)
+              if (label) label.textContent = 'Kopiert'
+            } catch {
+              if (label) label.textContent = 'Bitte markieren'
+            }
+            setTimeout(() => {
+              if (label) label.textContent = 'Kopieren'
+            }, 2000)
+          })
+        }
+
+        // The bar gets its line once the page moves under it.
+        const nav = document.getElementById('nav')
+        const onScroll = () => nav?.classList.toggle('scrolled', scrollY > 8)
+        addEventListener('scroll', onScroll, { passive: true })
+        onScroll()
+
+        // Sections arrive as they scroll into view. Where that cannot be observed, they are simply
+        // there.
+        const items = document.querySelectorAll('.reveal')
+        if (!('IntersectionObserver' in window)) {
+          for (const item of items) item.classList.add('in')
+          return
+        }
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue
+              entry.target.classList.add('in')
+              observer.unobserve(entry.target)
+            }
+          },
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+        )
+        for (const item of items) observer.observe(item)
+      })()
+    </script>
   </body>
 </html>

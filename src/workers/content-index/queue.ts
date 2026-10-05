@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3'
+import type { SqlDatabase } from '../archive/sql'
 
 /**
  * The index job queue (PLAN.md Phase 7), backed by `index_jobs`.
@@ -23,10 +23,10 @@ export interface QueueCounts {
 }
 
 export class IndexQueue {
-  readonly #db: Database.Database
+  readonly #db: SqlDatabase
   readonly #maxAttempts: number
 
-  constructor(db: Database.Database, maxAttempts = 3) {
+  constructor(db: SqlDatabase, maxAttempts = 3) {
     this.#db = db
     this.#maxAttempts = maxAttempts
   }

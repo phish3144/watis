@@ -3,6 +3,49 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Hinzugefügt
+
+- **WatIs? im Browser**: als Erweiterung für Chrome, Edge und Firefox, ohne Installation auf dem
+  Rechner und ohne Adminrechte ([ADR 0010](docs/decisions/0010-browser-erweiterung.md)). Sie nutzt
+  dieselbe read-only Bridge, dasselbe Archiv auf SQLite (hier als WASM im privaten Speicher der
+  Erweiterung) und dieselbe Suche wie die Desktop-App. Dazu kommen Badge und Benachrichtigungen mit
+  Bündelung und Ruhezeit.
+- **Neu gestaltete Oberfläche** im Browser: Suche, Chats, Medien, Einstellungen. Schmal neben
+  WhatsApp, breit als eigener Tab. Treffer nennen Chat und Absender statt Telefonnummern.
+- **Texterkennung und PDF-Text im Browser**, auch für eingescannte PDFs. Alles im Paket, nichts aus
+  dem Netz.
+- **Sprachnachrichten transkribieren**, auf Klick, mit whisper.cpp lokal im Browser. Das Transkript
+  ist sofort durchsuchbar. Die Sprache ist einstellbar, Deutsch voreingestellt. Das Modell (57 MB
+  oder 181 MB) wird einmalig auf Klick geladen und geprüft, oder von der Platte genommen, wenn GitHub
+  gesperrt ist ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
+- **Medien dauerhaft sichern**: Abrufregeln für Bilder, Dokumente, Sprachnachrichten und Videos als
+  Einstellung. Die Sicherung des Browser-Archivs geht in einen gewählten Ordner (Chrome, Edge), der
+  auch ein OneDrive- oder Nextcloud-Ordner sein darf, oder als ZIP. Sie hat dasselbe Format wie die
+  Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
+  ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
+
+- **Hilfe eingebaut**, in der Desktop-App und in der Browser-Erweiterung: ein Reiter **Hilfe** mit
+  kurzen Artikeln, die ohne Netz funktionieren, ein **?** neben jedem Abschnitt der Einstellungen
+  und **Mehr dazu** an den Statuszeilen. Die Meldung oben im Panel sagt jetzt auch, was zu tun ist.
+  Im Browser erklärt das Panel außerdem auf Deutsch, warum eine Datei nicht ins Archiv kam.
+
+### Geändert
+
+- **Für alle gelöschte Nachrichten bleiben im Archiv**, mit Text und Anhang, als „für alle gelöscht"
+  markiert und weiter in der Suche. Das gilt für Nachrichten, die WatIs? vor dem Löschen schon
+  mitgeschrieben hatte, auch im Export
+  ([ADR 0013](docs/decisions/0013-geloeschte-nachrichten-bleiben.md)).
+
+### Behoben
+
+- **Ein Backfill konnte eine gelöschte Nachricht als nicht gelöscht zurückschreiben**, wenn er eine
+  ältere Fassung nachlieferte. Die Markierung bleibt jetzt in jedem Fall.
+- **Anhänge wurden nie ins Archiv geholt.** Die Bridge legte für Anhänge keine Medienzeile an, und
+  der Medienabruf fand deshalb nie etwas zu tun, im Desktop wie im Browser. Jetzt entsteht für jede
+  Nachricht mit Anhang eine Zeile, live wie beim Übernehmen.
+
 ## [0.7.1] — 2026-09-13
 
 - **Linux (Ubuntu und andere)** als zweite Plattform, seit 0.7.0: ein AppImage, ohne `sudo`, ohne

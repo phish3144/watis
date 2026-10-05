@@ -262,9 +262,57 @@ CREATE TABLE reminders (
 CREATE INDEX reminders_due ON reminders (done_ts, due_ts);
 `
 
+/**
+ * Another try for media that failed against WhatsApp's changed downloader.
+ *
+ * From WA Web 2.3000.1049110567 (at the latest) the downloader wanted a `downloadQpl` argument the
+ * bridge did not pass, and every fetch failed with "Cannot read properties of undefined (reading
+ * 'addAnnotations')" — in the desktop app and the browser alike. Failed rows are not retried on
+ * their own, so without this every attachment that arrived in that window would stay missing.
+ * Once per archive, as a migration is.
+ */
+const RETRY_FAILED_MEDIA = `
+UPDATE media SET status = 'pending' WHERE status = 'failed';
+`
+
+/**
+ * Messages deleted for everyone stay findable (ADR 0013).
+ *
+ * The first schema took their text out of the search index on revoke. The archive now keeps that
+ * text (repository.upsertMessages), so the index keeps it too: the triggers no longer look at
+ * `revoked`, and deleted messages that still carry text are indexed once by touching their body.
+ */
+const KEEP_DELETED_MESSAGES = `
+DROP TRIGGER messages_ai_search;
+DROP TRIGGER messages_au_search;
+
+CREATE TRIGGER messages_ai_search AFTER INSERT ON messages
+WHEN new.body IS NOT NULL AND new.body <> '' BEGIN
+  INSERT INTO search_docs (rowid, msg_id, chat_id, ts, source, text)
+  VALUES (${nextRowid('new.ts')}, new.id, new.chat_id, new.ts, 'body', ${INDEX_FORM_FUNCTION}(new.body))
+  ON CONFLICT (source, IFNULL(msg_id, ''), IFNULL(media_id, ''))
+  DO UPDATE SET text = excluded.text, ts = excluded.ts, chat_id = excluded.chat_id;
+END;
+
+CREATE TRIGGER messages_au_search AFTER UPDATE OF body ON messages BEGIN
+  DELETE FROM search_docs WHERE msg_id = old.id AND source = 'body';
+  INSERT INTO search_docs (rowid, msg_id, chat_id, ts, source, text)
+  SELECT ${nextRowid('new.ts')}, new.id, new.chat_id, new.ts, 'body', ${INDEX_FORM_FUNCTION}(new.body)
+  WHERE new.body IS NOT NULL AND new.body <> '';
+END;
+
+UPDATE messages SET body = body WHERE revoked = 1 AND body IS NOT NULL AND body <> '';
+`
+
 export const MIGRATIONS: readonly Migration[] = [
   { version: 1, name: 'initial schema', sql: INITIAL },
   { version: 2, name: 'local reminders', sql: REMINDERS },
+  {
+    version: 3,
+    name: 'retry media that failed against the changed downloader',
+    sql: RETRY_FAILED_MEDIA,
+  },
+  { version: 4, name: 'messages deleted for everyone stay findable', sql: KEEP_DELETED_MESSAGES },
 ]
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0)

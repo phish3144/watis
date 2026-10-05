@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "WatIs Host Probe",
+  "version": "1.0",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://web.whatsapp.com/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["host.html"],
+      "matches": ["https://web.whatsapp.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["cs-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["cs-isolated.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "cross_origin_embedder_policy": {
+    "value": "require-corp"
+  },
+  "cross_origin_opener_policy": {
+    "value": "same-origin"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

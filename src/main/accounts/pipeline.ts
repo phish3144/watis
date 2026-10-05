@@ -64,7 +64,13 @@ export class AccountPipeline {
       },
     })
 
-    this.mediaFetcher = new MediaFetcher({ bridge: this.bridge, archive: options.archive })
+    this.mediaFetcher = new MediaFetcher({
+      bridge: this.bridge,
+      archive: options.archive,
+      warn: (message) => {
+        log.warn(message)
+      },
+    })
     this.mediaFetcher.start()
   }
 

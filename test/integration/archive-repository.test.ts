@@ -1,16 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import Database from 'better-sqlite3'
-import { migrate, registerFunctions } from '../../src/workers/archive/db'
+import { openArchiveMemory } from '../helpers/sql'
+import type { SqlDatabase } from '../../src/workers/archive/sql'
 import { ArchiveRepository } from '../../src/workers/archive/repository'
 import { parseQuery } from '@shared/search/query'
 
-let db: Database.Database
+let db: SqlDatabase
 let repo: ArchiveRepository
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  registerFunctions(db)
-  migrate(db)
+  db = openArchiveMemory()
   repo = new ArchiveRepository(db)
 })
 
@@ -257,5 +255,106 @@ describe('search reaches every chat unless told otherwise', () => {
 
   it('accepts in: by chat id as well as by the name the user sees', () => {
     expect(repo.search(parseQuery('in:c2 Grüße'), 50).map((h) => h.msgId)).toEqual(['m3'])
+  })
+})
+
+describe('media rows survive being mirrored again', () => {
+  // A message is re-mirrored on every change event, and its attachment arrives as 'pending' each
+  // time. That must not undo a download or a decision not to fetch.
+  it('keeps a fetched file fetched, and its hash', () => {
+    repo.upsertMedia([
+      { id: 'f1', msgId: 'm1', chatId: 'c1', mime: 'image/png', status: 'pending' },
+    ])
+    repo.attachBlob('f1', 'ab'.repeat(32), 10)
+    repo.upsertMedia([
+      { id: 'f1', msgId: 'm1', chatId: 'c1', mime: 'image/png', status: 'pending' },
+    ])
+    expect(repo.mediaById('f1')).toMatchObject({ status: 'done', sha256: 'ab'.repeat(32) })
+    expect(repo.pendingMedia(10)).toEqual([])
+  })
+
+  it('keeps a skipped file skipped', () => {
+    repo.upsertMedia([{ id: 'v1', msgId: 'm2', chatId: 'c1', mime: 'video/mp4' }])
+    repo.markMedia('v1', 'skipped')
+    repo.upsertMedia([{ id: 'v1', msgId: 'm2', chatId: 'c1', mime: 'video/mp4' }])
+    expect(repo.mediaById('v1')?.status).toBe('skipped')
+  })
+
+  it('fills in what a later event knows and an earlier one did not', () => {
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1' }])
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1', mime: 'application/pdf', size: 7 }])
+    repo.upsertMedia([{ id: 'd1', msgId: 'm3', chatId: 'c1' }])
+    expect(repo.mediaById('d1')).toMatchObject({ mime: 'application/pdf', size: 7 })
+  })
+})
+
+describe('messages deleted for everyone (ADR 0013)', () => {
+  const query = (text: string) => repo.search(parseQuery(text), 10).map((hit) => hit.msgId)
+
+  beforeEach(() => {
+    repo.upsertChats([{ id: 'c1', name: 'Familie', kind: 'group' }])
+    repo.upsertMessages([
+      { id: 'm1', chatId: 'c1', ts: 1000, kind: 'chat', body: 'Die Tür-PIN ist 4711' },
+      { id: 'm2', chatId: 'c1', ts: 1100, kind: 'image', body: 'Das Angebot', mediaId: 'f1' },
+    ])
+  })
+
+  it('keeps the text, the type and the attachment, and marks the message', () => {
+    // How WhatsApp reports a revoke: the same id, type "revoked", no text, no attachment.
+    repo.upsertMessages([
+      { id: 'm1', chatId: 'c1', ts: 1000, kind: 'revoked', body: null, revoked: true },
+      { id: 'm2', chatId: 'c1', ts: 1100, kind: 'revoked', body: '', revoked: true },
+    ])
+    const [first, second] = repo.messagesByIds(['m1', 'm2']).sort((a, b) => a.ts - b.ts)
+    expect(first).toMatchObject({ body: 'Die Tür-PIN ist 4711', kind: 'chat', revoked: true })
+    expect(second).toMatchObject({
+      body: 'Das Angebot',
+      kind: 'image',
+      mediaId: 'f1',
+      revoked: true,
+    })
+  })
+
+  it('keeps them findable', () => {
+    repo.upsertMessages([
+      { id: 'm1', chatId: 'c1', ts: 1000, kind: 'revoked', body: null, revoked: true },
+    ])
+    expect(query('Tür-PIN')).toEqual(['m1'])
+  })
+
+  it('never undoes the mark when an older copy of the message comes in again', () => {
+    repo.upsertMessages([
+      { id: 'm1', chatId: 'c1', ts: 1000, kind: 'revoked', body: null, revoked: true },
+    ])
+    // A backfill bringing the message as it was before the revoke (ADR 0005 B).
+    repo.upsertMessages([
+      {
+        id: 'm1',
+        chatId: 'c1',
+        ts: 1000,
+        kind: 'chat',
+        body: 'Die Tür-PIN ist 4711',
+        revoked: false,
+      },
+    ])
+    expect(repo.messagesByIds(['m1'])[0]).toMatchObject({
+      revoked: true,
+      body: 'Die Tür-PIN ist 4711',
+    })
+  })
+
+  it('still takes an edit as the new text', () => {
+    repo.upsertMessages([
+      {
+        id: 'm1',
+        chatId: 'c1',
+        ts: 1000,
+        kind: 'chat',
+        body: 'Die Tür-PIN ist 1234',
+        edited: true,
+      },
+    ])
+    expect(repo.messagesByIds(['m1'])[0]?.body).toBe('Die Tür-PIN ist 1234')
+    expect(query('4711')).toEqual([])
   })
 })

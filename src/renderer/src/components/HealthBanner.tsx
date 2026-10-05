@@ -1,5 +1,6 @@
 import { canStillReadMessages, type HealthState } from '@shared/health/degraded'
 import { t } from '../i18n'
+import { HelpLink } from '../help/help-ui'
 
 /**
  * One line above everything else, saying what is broken and what still works (PLAN.md Phase 9).
@@ -26,7 +27,9 @@ export function HealthBanner({
           : 'border border-wa-warning/30 bg-wa-warning/10 text-wa-warning'
       }`}
     >
-      <p>{t(state.banner)}</p>
+      <p>
+        {t(state.banner)} <HelpLink topic="probleme">Was tun?</HelpLink>
+      </p>
       {canStillReadMessages(state) && (
         <p className="mt-0.5 opacity-70">{t('health.stillReadable')}</p>
       )}

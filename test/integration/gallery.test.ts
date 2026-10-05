@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import Database from 'better-sqlite3'
-import { migrate, registerFunctions } from '../../src/workers/archive/db'
+import { openArchiveMemory } from '../helpers/sql'
+import type { SqlDatabase } from '../../src/workers/archive/sql'
 import { ArchiveRepository } from '../../src/workers/archive/repository'
 
-let db: Database.Database
+let db: SqlDatabase
 let repo: ArchiveRepository
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  registerFunctions(db)
-  migrate(db)
+  db = openArchiveMemory()
   repo = new ArchiveRepository(db)
 
   repo.upsertChats([

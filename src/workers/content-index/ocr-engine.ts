@@ -1,13 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createWorker, type Worker } from 'tesseract.js'
-import {
-  joinLines,
-  meanConfidence,
-  type Engine,
-  type Extraction,
-  type ExtractedLine,
-} from './engine'
+import type { Engine, Extraction } from './engine'
+import { toExtraction } from './ocr-lines'
 
 /**
  * OCR via Tesseract (ADR 0008).
@@ -70,25 +65,12 @@ export class TesseractEngine implements Engine {
     // per-line boxes are what let a hit point at the place in the image it came from.
     const result = await worker.recognize(file, {}, { blocks: true, text: true })
 
-    const lines: ExtractedLine[] = (result.data.blocks ?? [])
-      .flatMap((block) => block.paragraphs)
-      .flatMap((paragraph) => paragraph.lines)
-      .filter((line) => line.confidence >= this.#options.minConfidence)
-      .map((line) => ({
-        text: line.text.replace(/\s+$/, ''),
-        box: [line.bbox.x0, line.bbox.y0, line.bbox.x1, line.bbox.y1] as const,
-        confidence: line.confidence / 100,
-      }))
-
-    return {
-      source: 'ocr',
-      text: joinLines(lines),
-      lines,
+    return toExtraction(result.data, {
       engine: this.name,
-      engineVersion: this.version,
-      lang: this.#options.languages,
-      ...(meanConfidence(lines) !== undefined ? { confidence: meanConfidence(lines) } : {}),
-    }
+      version: this.version,
+      languages: this.#options.languages,
+      minConfidence: this.#options.minConfidence,
+    })
   }
 
   async close(): Promise<void> {

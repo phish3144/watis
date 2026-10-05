@@ -1,7 +1,9 @@
-import type Database from 'better-sqlite3'
 import { toMatchExpression, type ParsedQuery } from '@shared/search/query'
 import { indexForm } from '@shared/search/normalise'
 import { INDEX_FORM_FUNCTION } from './schema'
+import type { SqlDatabase } from './sql'
+import { storeExtraction } from '../content-index/store'
+import type { Extraction } from '../content-index/engine'
 import type { ChatRow, ContactRow, MediaRow, MessageRow, SyncStateRow } from '@shared/model/rows'
 
 // Re-exported because most of this file's callers reach for the row types through the repository,
@@ -37,9 +39,9 @@ export interface SearchHit {
 const bool = (v: boolean | undefined): number => (v ? 1 : 0)
 
 export class ArchiveRepository {
-  readonly #db: Database.Database
+  readonly #db: SqlDatabase
 
-  constructor(db: Database.Database) {
+  constructor(db: SqlDatabase) {
     this.#db = db
   }
 
@@ -97,8 +99,17 @@ export class ArchiveRepository {
         (@id, @chatId, @senderJid, @ts, @kind, @body, @quotedId, @mediaId, @edited, @revoked, @fromMe, @rawJson)
       ON CONFLICT(id) DO UPDATE SET
         chat_id = excluded.chat_id, sender_jid = excluded.sender_jid, ts = excluded.ts,
-        kind = excluded.kind, body = excluded.body, quoted_id = excluded.quoted_id,
-        media_id = excluded.media_id, edited = excluded.edited, revoked = excluded.revoked,
+        -- A message deleted for everyone arrives with its text, its type and its attachment gone.
+        -- The archive keeps what it already had and only marks it (ADR 0013).
+        kind = CASE WHEN excluded.revoked = 1 AND messages.kind IS NOT NULL
+                    THEN messages.kind ELSE excluded.kind END,
+        body = CASE WHEN excluded.revoked = 1
+                    THEN COALESCE(NULLIF(excluded.body, ''), messages.body) ELSE excluded.body END,
+        media_id = CASE WHEN excluded.revoked = 1
+                        THEN COALESCE(excluded.media_id, messages.media_id) ELSE excluded.media_id END,
+        quoted_id = excluded.quoted_id, edited = excluded.edited,
+        -- Once deleted, always deleted: an older copy from a backfill must not undo it (ADR 0005 B).
+        revoked = MAX(messages.revoked, excluded.revoked),
         from_me = excluded.from_me, raw_json = excluded.raw_json
     `)
     return this.#runBatch(rows, (r) =>
@@ -124,9 +135,16 @@ export class ArchiveRepository {
       INSERT INTO media (id, msg_id, chat_id, mime, size, sha256, filename, status)
       VALUES (@id, @msgId, @chatId, @mime, @size, @sha256, @filename, @status)
       ON CONFLICT(id) DO UPDATE SET
-        msg_id = excluded.msg_id, chat_id = excluded.chat_id, mime = excluded.mime,
-        size = excluded.size, sha256 = excluded.sha256, filename = excluded.filename,
-        status = excluded.status
+        msg_id = COALESCE(excluded.msg_id, media.msg_id),
+        chat_id = COALESCE(excluded.chat_id, media.chat_id),
+        mime = COALESCE(excluded.mime, media.mime),
+        size = COALESCE(excluded.size, media.size),
+        sha256 = COALESCE(excluded.sha256, media.sha256),
+        filename = COALESCE(excluded.filename, media.filename),
+        -- A message is mirrored again on every change event (an ack, an edit). Its attachment
+        -- arrives as 'pending' each time, and must not undo a download that already happened or
+        -- a decision not to fetch: only a row still pending takes the new status.
+        status = CASE WHEN media.status = 'pending' THEN excluded.status ELSE media.status END
     `)
     return this.#runBatch(rows, (r) =>
       stmt.run({
@@ -874,6 +892,85 @@ export class ArchiveRepository {
         lastTs: null,
       })),
     ]
+  }
+
+  /** Stores an extraction made outside the index queue — today, a transcript made on demand. */
+  storeExtraction(mediaId: string, extraction: Extraction): void {
+    const now = Math.floor(Date.now() / 1000)
+    storeExtraction(this.#db, mediaId, extraction, now)
+    this.#db
+      .prepare(
+        `UPDATE index_jobs SET status = 'done', last_error = NULL, updated_ts = ?
+         WHERE media_id = ? AND kind = ?`,
+      )
+      .run(now, mediaId, extraction.source)
+  }
+
+  /** The stored transcript of a voice message, with its timed lines, or undefined. */
+  transcript(
+    mediaId: string,
+  ): { text: string; lines: { text: string; startSeconds?: number }[] } | undefined {
+    const row = this.#db
+      .prepare(
+        `SELECT text, detail_json FROM content_text WHERE media_id = ? AND source = 'transcript'`,
+      )
+      .get(mediaId) as { text: string; detail_json: string | null } | undefined
+    if (!row) return undefined
+    let lines: { text: string; startSeconds?: number }[] = []
+    try {
+      lines = (JSON.parse(row.detail_json ?? '{}') as { lines?: typeof lines }).lines ?? []
+    } catch {
+      // A detail that does not parse still leaves the text.
+    }
+    return { text: row.text, lines }
+  }
+
+  /**
+   * Specific messages by id, for a search result list that shows who wrote what. Bounded by the
+   * page of hits the caller holds; ids that are not in the archive are simply absent.
+   */
+  messagesByIds(ids: readonly string[]): MessageRow[] {
+    const unique = [...new Set(ids)].slice(0, 200)
+    if (unique.length === 0) return []
+    const rows = this.#db
+      .prepare(
+        `SELECT id, chat_id, sender_jid, ts, kind, body, quoted_id, media_id,
+                edited, revoked, from_me
+         FROM messages WHERE id IN (${unique.map(() => '?').join(', ')})`,
+      )
+      .all(...unique) as Record<string, unknown>[]
+    return rows.map((r): MessageRow => ({
+      id: r.id as string,
+      chatId: r.chat_id as string,
+      senderJid: r.sender_jid as string | null,
+      ts: r.ts as number,
+      kind: r.kind as string | null,
+      body: r.body as string | null,
+      quotedId: r.quoted_id as string | null,
+      mediaId: r.media_id as string | null,
+      edited: Boolean(r.edited),
+      revoked: Boolean(r.revoked),
+      fromMe: Boolean(r.from_me),
+    }))
+  }
+
+  /**
+   * Display names for senders, so a message list can say "Anna" instead of a phone-number id.
+   *
+   * Bounded by the caller's page: the list asks for the senders on screen, never for every
+   * contact. A jid without a contact row is simply absent from the answer, and the UI shows the
+   * number instead — inventing a name is worse than showing none.
+   */
+  senderNames(jids: readonly string[]): Record<string, string> {
+    const unique = [...new Set(jids)].slice(0, 500)
+    if (unique.length === 0) return {}
+    const rows = this.#db
+      .prepare(
+        `SELECT jid, COALESCE(NULLIF(name, ''), NULLIF(pushname, '')) AS label FROM contacts
+         WHERE jid IN (${unique.map(() => '?').join(', ')})`,
+      )
+      .all(...unique) as { jid: string; label: string | null }[]
+    return Object.fromEntries(rows.flatMap((r) => (r.label ? [[r.jid, r.label]] : [])))
   }
 
   stats(pendingWrites = 0): {

@@ -115,7 +115,7 @@ function buildPage(options: { healthy?: boolean } = {}): void {
 
 const load = async (): Promise<void> => {
   vi.resetModules()
-  await import('../../src/bridge/index')
+  await import('../../src/bridge/main')
 }
 
 const command = (op: string, args?: Record<string, unknown>): void => {

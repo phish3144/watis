@@ -7,7 +7,12 @@ import {
   LOAD_MESSAGES,
   MSG_COLLECTION,
 } from '../../src/bridge/signatures'
-import { earliestReachableTs, loadOlder, openChat } from '../../src/bridge/operations'
+import {
+  downloadMedia,
+  earliestReachableTs,
+  loadOlder,
+  openChat,
+} from '../../src/bridge/operations'
 
 /** A page whose `require` behaves like WhatsApp's: it throws for anything unregistered. */
 function fakePage(modules: Record<string, unknown>) {
@@ -35,6 +40,14 @@ function fullPage(chat = chatModel([{ t: 1000 }])) {
       WAWebCmd: { Cmd: { openChatAt: vi.fn(), openChatBottom: vi.fn() } },
       WAWebHistorySyncUtils: { getEarliestHistorySyncDate: vi.fn(() => 1_700_000_000) },
       WAWebDownloadManager: { downloadManager: { downloadAndMaybeDecrypt: vi.fn() } },
+      WAWebMmsMediaTypes: {
+        getMsgMediaType: vi.fn(),
+        getValidMimeTypes: vi.fn(),
+        mediaTypeToMsgTypeSupportedByAllowlist: vi.fn(),
+      },
+      WAWebStartMediaDownloadQpl: { startMediaDownloadQpl: vi.fn() },
+      WAWebMediaInMemoryBlobCache: { InMemoryMediaBlobCache: { get: vi.fn() } },
+      WAWebMediaGetDownloadOriginForMsg: vi.fn(),
     }),
     collection,
     chat,
@@ -322,6 +335,177 @@ describe('operations', () => {
     const exports = await import('../../src/bridge/operations')
     const names = Object.keys(exports)
     expect(names.sort()).toEqual(['downloadMedia', 'earliestReachableTs', 'loadOlder', 'openChat'])
+  })
+})
+
+type Fn = (...args: unknown[]) => unknown
+
+/** WhatsApp's exact mimetype allowlist, as 2.3000.1049110567 has it (docs/bridge-map.md). */
+const ALLOWED: Record<string, string[]> = {
+  video: ['video/mp4', 'video/3gpp'],
+  ptt: ['audio/ogg; codecs=opus', 'audio/mp4', 'audio/mpeg', 'audio/aac', 'audio/amr'],
+  image: ['image/jpeg', 'image/png', 'image/webp'],
+}
+
+/**
+ * WhatsApp's media download as 2.3000.1049110567 has it: the first thing the downloader does is
+ * call `addAnnotations` on `downloadQpl`, and it checks the mimetype against an exact allowlist for
+ * every type but documents. Both failures are what the real one throws.
+ */
+function mediaPage(message: Record<string, unknown>, modules: Record<string, unknown> = {}) {
+  const calls: { arg: Record<string, unknown>; self: unknown }[] = []
+  const manager = {
+    downloadAndMaybeDecrypt: vi.fn(function (this: unknown, arg: Record<string, unknown>) {
+      calls.push({ arg, self: this })
+      ;(arg.downloadQpl as { addAnnotations: Fn }).addAnnotations({})
+      const type = String(arg.type)
+      if (type !== 'document' && !ALLOWED[type]?.includes(String(arg.mimetype))) {
+        const error = new Error(
+          `Unexpected mimetype ${String(arg.mimetype)} for media type ${type}`,
+        )
+        error.name = 'InvalidMediaFileType'
+        throw error
+      }
+      return Promise.resolve(new TextEncoder().encode('plain').buffer)
+    }),
+  }
+  const page = fakePage({
+    WAWebMsgCollection: { MsgCollection: { get: () => message } },
+    WAWebDownloadManager: { downloadManager: manager },
+    WAWebMmsMediaTypes: {
+      getMsgMediaType: (msg: { type: string; isGif?: boolean }) => (msg.isGif ? 'gif' : msg.type),
+      mediaTypeToMsgTypeSupportedByAllowlist: (type: string) =>
+        type === 'document' ? null : type === 'gif' ? 'video' : type,
+      getValidMimeTypes: (type: string) => new Set(ALLOWED[type] ?? []),
+    },
+    ...modules,
+  })
+  return { page, manager, calls }
+}
+
+const voiceNote = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
+  type: 'ptt',
+  mimetype: 'audio/ogg; codecs=opus',
+  filehash: 'aGFzaA==',
+  encFilehash: 'ZW5j',
+  mediaKey: 'a2V5',
+  mediaKeyTimestamp: 1_700_000_000,
+  directPath: '/v/t62/x',
+  ...extra,
+})
+
+describe('downloadMedia', () => {
+  it('calls the downloader the way WhatsApp 2.3000.1049110567 requires', async () => {
+    const { page, calls } = mediaPage(voiceNote())
+    const result = await downloadMedia(page, 'm1')
+
+    expect(result).toEqual({
+      data: btoa('plain'),
+      mime: 'audio/ogg; codecs=opus',
+      filename: undefined,
+      size: 5,
+    })
+    const arg: Record<string, unknown> = calls[0]?.arg ?? {}
+    expect(arg).toMatchObject({ type: 'ptt', mimetype: 'audio/ogg; codecs=opus', mode: 'auto' })
+    // The stand-in tracing object carries every member WhatsApp's decryption worker asks for.
+    for (const member of ['addAnnotations', 'addPoint', 'getQPLAttrs', 'isActive', 'endSuccess']) {
+      expect(typeof (arg.downloadQpl as Record<string, unknown>)[member]).toBe('function')
+    }
+    expect(arg).not.toHaveProperty('partialVideoOpts')
+  })
+
+  it('calls it as a method of the download manager, and says when a click asked for it', async () => {
+    const { page, manager, calls } = mediaPage(voiceNote())
+    await downloadMedia(page, 'm1', true)
+    expect(calls[0]?.self).toBe(manager)
+    expect(calls[0]?.arg.mode).toBe('manual')
+  })
+
+  it('uses the type WhatsApp computes, not msg.type', async () => {
+    const { page, calls } = mediaPage(
+      voiceNote({ type: 'video', isGif: true, mimetype: 'video/mp4' }),
+    )
+    await downloadMedia(page, 'm1')
+    expect(calls[0]?.arg.type).toBe('gif')
+  })
+
+  it("uses WhatsApp's own tracing object when it has the shape we know, and ends it", async () => {
+    const qpl = Object.fromEntries(
+      [
+        'addAnnotations',
+        'addPoint',
+        'getQPLAttrs',
+        'isActive',
+        'endSuccess',
+        'endFailWithError',
+        'endCancel',
+      ].map((name) => [name, vi.fn()]),
+    )
+    const { page, calls } = mediaPage(voiceNote(), {
+      WAWebStartMediaDownloadQpl: { startMediaDownloadQpl: () => qpl },
+    })
+    await downloadMedia(page, 'm1')
+    expect(calls[0]?.arg.downloadQpl).toBe(qpl)
+    expect(qpl.endSuccess).toHaveBeenCalled()
+  })
+
+  it('falls back to the stand-in when that object is not what we know', async () => {
+    const { page, calls } = mediaPage(voiceNote(), {
+      WAWebStartMediaDownloadQpl: { startMediaDownloadQpl: () => ({ addAnnotations: vi.fn() }) },
+    })
+    await downloadMedia(page, 'm1')
+    expect(typeof (calls[0]?.arg.downloadQpl as Record<string, unknown>).getQPLAttrs).toBe(
+      'function',
+    )
+  })
+
+  it.each([
+    ['view-once media', { isViewOnce: true }, 'view-once'],
+    ['a mimetype off the exact allowlist', { mimetype: 'audio/ogg' }, 'does not accept audio/ogg'],
+    ['an SVG document', { type: 'document', mimetype: 'image/svg+xml' }, 'SVG'],
+    ['an attachment without its key', { mediaKey: undefined }, 'no key'],
+    ['an attachment without a path', { directPath: undefined }, 'no download path'],
+  ])('skips %s without asking the downloader', async (_, extra, reason) => {
+    const { page, manager } = mediaPage(voiceNote(extra))
+    const result = await downloadMedia(page, 'm1')
+    expect(result).toMatchObject({ skipped: expect.stringContaining(reason) as unknown })
+    expect(manager.downloadAndMaybeDecrypt).not.toHaveBeenCalled()
+  })
+
+  it('serves a file this tab already decrypted, without downloading it again', async () => {
+    const { page, manager } = mediaPage(voiceNote(), {
+      WAWebMediaInMemoryBlobCache: {
+        InMemoryMediaBlobCache: {
+          get: (hash: string) => (hash === 'aGFzaA==' ? new Blob(['plain']) : null),
+        },
+      },
+    })
+    expect(await downloadMedia(page, 'm1')).toMatchObject({ data: btoa('plain') })
+    expect(manager.downloadAndMaybeDecrypt).not.toHaveBeenCalled()
+  })
+
+  it('reports media gone from the servers as skipped, without asking for a re-upload', async () => {
+    const { page, manager } = mediaPage(voiceNote())
+    manager.downloadAndMaybeDecrypt.mockImplementationOnce(() => {
+      const error = new Error('404')
+      error.name = 'MediaNotFoundError'
+      return Promise.reject(error)
+    })
+    expect(await downloadMedia(page, 'm1')).toEqual({ skipped: "no longer on WhatsApp's servers" })
+  })
+
+  it('lets any other failure surface, so it is recorded as one', async () => {
+    const { page, manager } = mediaPage(voiceNote())
+    manager.downloadAndMaybeDecrypt.mockImplementationOnce(() => Promise.reject(new Error('boom')))
+    await expect(downloadMedia(page, 'm1')).rejects.toThrow('boom')
+  })
+
+  it('switches media fetching off when the media-type module is gone', async () => {
+    const page = fakePage({
+      WAWebMsgCollection: { MsgCollection: { get: () => voiceNote() } },
+      WAWebDownloadManager: { downloadManager: { downloadAndMaybeDecrypt: vi.fn() } },
+    })
+    expect(await downloadMedia(page, 'm1')).toBeUndefined()
   })
 })
 

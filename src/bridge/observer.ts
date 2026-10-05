@@ -1,5 +1,5 @@
 import { isFailure, resolveModule, type PageGlobals } from './modules'
-import type { ChatRow, ContactRow, MessageRow, MirrorRow } from '@shared/model/rows'
+import type { ChatRow, ContactRow, MediaRow, MessageRow, MirrorRow } from '@shared/model/rows'
 import { CHAT_COLLECTION, CONTACT_COLLECTION, MSG_COLLECTION } from './signatures'
 
 /**
@@ -166,6 +166,45 @@ export function toContactRow(model: unknown): ContactRow | undefined {
 }
 
 /**
+ * The attachment a message carries, as its own row (§5.4).
+ *
+ * Without this the archive knew that a message had media — `messages.media_id` — but never got a
+ * `media` row to go with it, so the media fetcher found nothing pending and nothing was ever
+ * downloaded, on the desktop as much as in the browser. The fields are the ones the bridge's own
+ * download operation already reads off the same model (`operations.ts`): `filehash` identifies the
+ * file and is what `media_id` already holds, `mimetype`, `size` and `filename` describe it.
+ *
+ * Every row starts out `pending`; the repository never lets a re-mirrored message push a file that
+ * was already fetched or deliberately skipped back to `pending`.
+ */
+export function toMediaRow(model: unknown, message: MessageRow): MediaRow | undefined {
+  const m = model as Record<string, unknown> | null
+  if (!m || typeof m.filehash !== 'string' || m.filehash === '') return undefined
+  return {
+    id: m.filehash,
+    msgId: message.id,
+    chatId: message.chatId,
+    mime: typeof m.mimetype === 'string' ? m.mimetype : null,
+    size: typeof m.size === 'number' && Number.isFinite(m.size) ? m.size : null,
+    filename: typeof m.filename === 'string' ? m.filename : null,
+    status: 'pending',
+  }
+}
+
+/** A message model as the events it yields: the message, and its attachment if it has one. */
+export function messageEvents(model: unknown, diagnostics?: MessageDiagnostics): MirrorEvent[] {
+  const row = toMessageRow(model, diagnostics)
+  if (!row) return []
+  const media = toMediaRow(model, row)
+  return media
+    ? [
+        { kind: 'message', row },
+        { kind: 'media', row: media },
+      ]
+    : [{ kind: 'message', row }]
+}
+
+/**
  * A reaction is stored as its own child row rather than folded into the message (§5.4): reactions
  * arrive and disappear independently, and rewriting the parent for each one would churn the search
  * index for text that did not change.
@@ -301,7 +340,16 @@ export function observe(globals: PageGlobals, emit: Emit): ObserverHandle {
   }
 
   bind(collectionOf(globals, CHAT_COLLECTION), ['add', 'change', 'remove'], toChatRow, 'chat')
-  bind(collectionOf(globals, MSG_COLLECTION), ['add', 'change'], toMessageRow, 'message')
+  const messages = collectionOf(globals, MSG_COLLECTION)
+  if (messages?.on) {
+    for (const event of ['add', 'change']) {
+      const handler = (model: unknown): void => {
+        for (const mirrored of messageEvents(model)) emit(mirrored)
+      }
+      messages.on(event, handler)
+      detach.push(() => messages.off?.(event, handler))
+    }
+  }
   bind(collectionOf(globals, CONTACT_COLLECTION), ['add', 'change'], toContactRow, 'contact')
 
   return {
@@ -340,15 +388,25 @@ export function* snapshot(
   tally?: SnapshotTally,
 ): Generator<MirrorEvent[]> {
   const sources = [
-    { collection: collectionOf(globals, CHAT_COLLECTION), map: toChatRow, kind: 'chat' as const },
+    {
+      collection: collectionOf(globals, CHAT_COLLECTION),
+      toEvents: (model: unknown): MirrorEvent[] => {
+        const row = toChatRow(model)
+        return row ? [{ kind: 'chat', row }] : []
+      },
+      kind: 'chat' as const,
+    },
     {
       collection: collectionOf(globals, CONTACT_COLLECTION),
-      map: toContactRow,
+      toEvents: (model: unknown): MirrorEvent[] => {
+        const row = toContactRow(model)
+        return row ? [{ kind: 'contact', row }] : []
+      },
       kind: 'contact' as const,
     },
     {
       collection: collectionOf(globals, MSG_COLLECTION),
-      map: (model: unknown) => toMessageRow(model, tally?.messages),
+      toEvents: (model: unknown): MirrorEvent[] => messageEvents(model, tally?.messages),
       kind: 'message' as const,
     },
   ]
@@ -358,11 +416,10 @@ export function* snapshot(
     if (tally) tally[source.kind].models = models.length
     for (let i = 0; i < models.length; i += chunkSize) {
       const batch: MirrorEvent[] = []
-      for (const model of models.slice(i, i + chunkSize)) {
-        const row = source.map(model)
-        if (row) batch.push({ kind: source.kind, row } as MirrorEvent)
-      }
-      if (tally) tally[source.kind].mapped += batch.length
+      for (const model of models.slice(i, i + chunkSize)) batch.push(...source.toEvents(model))
+      // The tally counts models that mapped, not events: an image message is one message, even
+      // though it also yields a media row.
+      if (tally) tally[source.kind].mapped += batch.filter((e) => e.kind === source.kind).length
       if (batch.length > 0) yield batch
     }
   }

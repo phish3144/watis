@@ -3,6 +3,38 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
 
+// House rules from CLAUDE.md, enforced by the linter rather than by review.
+const NO_SOCKETS = [
+  {
+    // A listening socket triggers a Windows Firewall prompt, and dismissing that prompt
+    // needs administrator rights — which this project does not have and will not ask for.
+    selector: "CallExpression > MemberExpression[property.name='listen']",
+    message:
+      'No listening sockets (CLAUDE.md, "Keine Adminrechte"). A firewall prompt needs admin rights.',
+  },
+  {
+    selector: 'CallExpression > MemberExpression[property.name=/^create(Server|Socket)$/]',
+    message:
+      'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+  },
+  {
+    selector: 'CallExpression[callee.name=/^create(Server|Socket)$/]',
+    message:
+      'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
+  },
+]
+
+// The WhatsApp bridge is read-only with exactly one send path (ADR 0004 C).
+const NO_WHATSAPP_WRITES = {
+  selector:
+    'CallExpression > MemberExpression[property.name=/^(sendMessage|sendText|sendSeen|markComposing|deleteMessage|revokeMessage|blockContact|addParticipant|removeParticipant|setSubject|sendReaction)$/]',
+  message:
+    'Write access to WhatsApp is forbidden (CLAUDE.md, ADR 0004 C). The only send path is src/main/outgoing/.',
+}
+
+// The one file in the browser extension that talks to other extension contexts.
+const EXTENSION_MESSAGING = 'src/extension/ext.ts'
+
 export default defineConfig([
   globalIgnores([
     'out/**',
@@ -77,66 +109,35 @@ export default defineConfig([
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['src/preload/**/*.ts', 'src/renderer/**/*.{ts,tsx}'],
+    files: ['src/preload/**/*.ts', 'src/renderer/**/*.{ts,tsx}', 'src/extension/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
   },
   {
-    // House rules from CLAUDE.md, enforced by the linter rather than by review: nothing anywhere
-    // opens a listening socket, and the WhatsApp bridge is read-only with exactly one send path
-    // (ADR 0004 C).
-    files: ['src/**/*.ts'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        {
-          // A listening socket triggers a Windows Firewall prompt, and dismissing that prompt
-          // needs administrator rights — which this project does not have and will not ask for.
-          selector: "CallExpression > MemberExpression[property.name='listen']",
-          message:
-            'No listening sockets (CLAUDE.md, "Keine Adminrechte"). A firewall prompt needs admin rights.',
-        },
-        {
-          selector: 'CallExpression > MemberExpression[property.name=/^create(Server|Socket)$/]',
-          message:
-            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
-        },
-        {
-          selector: 'CallExpression[callee.name=/^create(Server|Socket)$/]',
-          message:
-            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
-        },
-      ],
-    },
+    // The send module itself still may not open sockets.
+    files: ['src/main/outgoing/**'],
+    rules: { 'no-restricted-syntax': ['error', ...NO_SOCKETS] },
   },
   {
     // Everywhere except the one module allowed to type into WhatsApp's visible composer.
-    files: ['src/**/*.ts'],
-    ignores: ['src/main/outgoing/**'],
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['src/main/outgoing/**', EXTENSION_MESSAGING],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_SOCKETS, NO_WHATSAPP_WRITES],
+    },
+  },
+  {
+    // The browser extension's own messaging (runtime/tabs.sendMessage) is IPC between extension
+    // contexts, not a write into WhatsApp — but it shares the method name the rule above guards.
+    // It is allowed in exactly one file, and only on `runtime` and `tabs`: a `sendMessage` on
+    // anything else is still refused here too (ADR 0010).
+    files: [EXTENSION_MESSAGING],
     rules: {
       'no-restricted-syntax': [
         'error',
+        ...NO_SOCKETS,
         {
-          // A listening socket triggers a Windows Firewall prompt, and dismissing that prompt
-          // needs administrator rights — which this project does not have and will not ask for.
-          selector: "CallExpression > MemberExpression[property.name='listen']",
-          message:
-            'No listening sockets (CLAUDE.md, "Keine Adminrechte"). A firewall prompt needs admin rights.',
-        },
-        {
-          selector: 'CallExpression > MemberExpression[property.name=/^create(Server|Socket)$/]',
-          message:
-            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
-        },
-        {
-          selector: 'CallExpression[callee.name=/^create(Server|Socket)$/]',
-          message:
-            'No servers or raw sockets (CLAUDE.md, "Keine Adminrechte"). Only WhatsApp and GitHub Releases.',
-        },
-        {
-          selector:
-            'CallExpression > MemberExpression[property.name=/^(sendMessage|sendText|sendSeen|markComposing|deleteMessage|revokeMessage|blockContact|addParticipant|removeParticipant|setSubject|sendReaction)$/]',
-          message:
-            'Write access to WhatsApp is forbidden (CLAUDE.md, ADR 0004 C). The only send path is src/main/outgoing/.',
+          ...NO_WHATSAPP_WRITES,
+          selector: `${NO_WHATSAPP_WRITES.selector}:not([object.property.name=/^(runtime|tabs)$/])`,
         },
       ],
     },

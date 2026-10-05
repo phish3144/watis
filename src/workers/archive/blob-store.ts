@@ -3,6 +3,9 @@ import { createReadStream } from 'node:fs'
 import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
+import { extensionFor, shardPath } from './blob-paths'
+
+export { extensionFor, shardPath }
 
 /**
  * Content-addressed media store: `blobs/<aa>/<bb>/<sha256>.<ext>` (PLAN.md §5.3).
@@ -28,30 +31,6 @@ export interface QuotaState {
   /** 0..1; the UI warns from 0.9. */
   used: number
   exceeded: boolean
-}
-
-/** Extensions are normalised, so `.JPEG` and `.jpeg` cannot produce two files for one hash. */
-export function extensionFor(mime: string | null | undefined, filename?: string | null): string {
-  const fromName = filename?.match(/\.([A-Za-z0-9]{1,8})$/)?.[1]?.toLowerCase()
-  if (fromName) return fromName
-  const known: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/gif': 'gif',
-    'video/mp4': 'mp4',
-    'audio/ogg': 'ogg',
-    'audio/mpeg': 'mp3',
-    'application/pdf': 'pdf',
-    'text/plain': 'txt',
-  }
-  return known[(mime ?? '').toLowerCase()] ?? 'bin'
-}
-
-export function shardPath(sha256: string, extension: string): string {
-  // Two levels of two hex characters: 256 directories at each level, so a million blobs average
-  // about sixteen files per leaf.
-  return `${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}.${extension}`
 }
 
 export function sha256Of(data: Buffer | Uint8Array): string {

@@ -1,7 +1,10 @@
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import { readFile } from 'node:fs/promises'
-import { joinLines, type Engine, type Extraction, type ExtractedLine } from './engine'
+import { joinLines, type Engine, type ExtractedLine } from './engine'
+import { MIN_CHARS_PER_PAGE, groupIntoLines, type PdfExtraction, type TextItem } from './pdf-lines'
+
+export type { PdfExtraction }
 
 /**
  * PDF text extraction via pdf.js (ADR 0008).
@@ -14,22 +17,7 @@ import { joinLines, type Engine, type Extraction, type ExtractedLine } from './e
  * `scannedPages` says which ones, so the caller can enqueue exactly those (ADR 0005 C).
  */
 
-export interface PdfExtraction extends Extraction {
-  pageCount: number
-  /** 1-based pages that produced no text and therefore need OCR. */
-  scannedPages: number[]
-}
-
 const VERSION = '6.3.289'
-
-/** Below this a "page of text" is more plausibly a page number than a text layer. */
-const MIN_CHARS_PER_PAGE = 12
-
-interface TextItem {
-  str?: string
-  transform?: number[]
-  hasEOL?: boolean
-}
 
 export class PdfEngine implements Engine {
   readonly name = 'pdfjs'
@@ -96,31 +84,4 @@ export class PdfEngine implements Engine {
       scannedPages,
     }
   }
-}
-
-/**
- * pdf.js reports positioned fragments, not lines. Grouping by the vertical position in the text
- * matrix reassembles them; without it a two-column invoice comes out interleaved word by word.
- */
-function groupIntoLines(items: readonly TextItem[], page: number): ExtractedLine[] {
-  const rows = new Map<number, string[]>()
-
-  for (const item of items) {
-    const text = item.str ?? ''
-    if (text === '') continue
-    // transform[5] is the y translation. Rounding folds the sub-pixel jitter that would otherwise
-    // split one visual line into several.
-    const y = Math.round(item.transform?.[5] ?? 0)
-    const row = rows.get(y)
-    if (row) row.push(text)
-    else rows.set(y, [text])
-  }
-
-  return (
-    [...rows.entries()]
-      // PDF y grows upwards, so descending y is top-to-bottom reading order.
-      .sort((a, b) => b[0] - a[0])
-      .map(([, parts]) => ({ text: parts.join(' ').replace(/\s+/g, ' ').trim(), page }))
-      .filter((line) => line.text !== '')
-  )
 }

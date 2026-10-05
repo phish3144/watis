@@ -1,7 +1,9 @@
 # WatIs?
 
 Ein Desktop-Client für WhatsApp Web mit lokalem Archiv, Volltextsuche und ordentlicher
-Desktop-Integration. Für Windows 10/11 und Linux (x64); macOS wird mitgebaut.
+Desktop-Integration. Für Windows 10/11 und Linux (x64); macOS wird mitgebaut. Und als
+**Browser-Erweiterung für Chrome, Edge und Firefox**, für alle, die nichts installieren dürfen oder
+nur im Browser arbeiten ([Im Browser](#im-browser-chrome-edge-firefox)).
 
 > **Status: benutzbar, unsigniert.** Die Releases stehen unter
 > [Releases](https://github.com/phish3144/watis/releases). Der Installer ist noch nicht signiert –
@@ -16,8 +18,8 @@ Desktop-Integration. Für Windows 10/11 und Linux (x64); macOS wird mitgebaut.
 - Schreibt ab dem Installationstag lückenlos mit und nimmt beim Verknüpfen mit, was WhatsApp Web
   hergibt – das sind rund 90 Tage, mehr gibt der Web-Client nicht her
 - Speichert Dateien ohne Dialog in eine feste Ordnerstruktur
-- Macht Text in Bildern (OCR), in PDFs – auch eingescannten – und, auf Anforderung, in Sprachnachrichten
-  durchsuchbar
+- Macht Text in Bildern (OCR) und in PDFs – auch eingescannten – durchsuchbar; in der
+  Browser-Erweiterung auf Klick auch Sprachnachrichten
 - Tray, Badge, native Benachrichtigungen, Autostart, Shortcuts, Themes, Declutter-Schalter
 - Exportiert alles in offene Formate (JSON, HTML, TXT)
 
@@ -94,6 +96,9 @@ sich den Zustand.
   das Archiv von selbst weiter.
 - Die Suche greift auf alles zu, was einmal gespiegelt wurde – Text, Dateinamen, erkannten Text aus
   Bildern und PDFs.
+- **Hilfe** ist eingebaut: der Reiter **Hilfe** im Panel, ein **?** neben jedem Abschnitt der
+  Einstellungen und ein **Mehr dazu** an den Statuszeilen. Sie funktioniert ohne Netz, in der
+  Desktop-App wie in der Browser-Erweiterung.
 
 Rückwirkend gibt es wenig zu holen; warum, steht unter [Ehrliche Hinweise](#ehrliche-hinweise).
 
@@ -110,6 +115,46 @@ verlorenes Archiv. Ein E2E-Test beweist das bei jedem Commit.
 SmartScreen meldet sich nur beim ersten Mal: die Updates lädt und startet die App selbst, sie kommen
 nicht durch den Browser.
 
+### Im Browser (Chrome, Edge, Firefox)
+
+Dieselbe Bridge, dasselbe Archiv und dieselbe Suche, als Erweiterung direkt in `web.whatsapp.com`.
+Keine Installation auf dem Rechner, keine Adminrechte. Eine gehostete Web-Version gibt es nicht und
+kann es nicht geben ([ADR 0010](docs/decisions/0010-browser-erweiterung.md)).
+
+Bis die Erweiterung in den Stores steht, wird sie selbst gebaut (`npm ci && npm run build:extension`)
+oder als Artefakt `browser-extension` aus einem CI-Lauf genommen:
+
+- **Chrome / Edge:** `chrome://extensions` bzw. `edge://extensions` öffnen, **Entwicklermodus** an,
+  **Entpackte Erweiterung laden** und `out/extension/chromium` wählen.
+- **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
+  `out/extension/firefox/manifest.json` wählen. Temporär heißt: Nach einem Neustart von Firefox ist
+  es weg, bis es auf addons.mozilla.org signiert ist.
+
+Dann WhatsApp Web öffnen und anmelden. Das Symbol in der Symbolleiste öffnet das Panel neben
+WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigenen Tab.
+
+|                                     | Chrome, Edge | Firefox                          |
+| ----------------------------------- | ------------ | -------------------------------- |
+| Archiv, Suche, Chats, Medien        | ja           | ja                               |
+| Texterkennung in Bildern und PDFs   | ja           | ja                               |
+| Sprachnachrichten transkribieren    | ja           | ja, WhatsApp-Tab muss offen sein |
+| Badge, Benachrichtigungen, Ruhezeit | ja           | ja                               |
+| Downloads in Ordner pro Chat        | ja           | nein                             |
+| Sicherung in einen gewählten Ordner | ja           | nein, als ZIP                    |
+
+Das Archiv liegt **im Browserprofil**. Abmelden, Cache leeren und Updates überlebt es, das Entfernen
+der Erweiterung nicht. Deshalb gibt es unter Einstellungen die **Sicherung**, in einen Ordner
+(Chrome, Edge) oder als ZIP. Sie hat dasselbe Format wie die Sicherung der Desktop-App
+([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
+
+Für die Transkription wird einmalig ein Sprachmodell geladen, 57 MB („Schnell") oder 181 MB
+(„Genau"), nur auf Klick und gegen eine hinterlegte Prüfsumme geprüft. Ist GitHub im Firmennetz
+gesperrt, nimmt die Erweiterung dieselbe Datei auch von der Platte
+([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
+
+Im Browser gibt es kein Tray, keinen Autostart, keine Direktantwort, kein Nachladen älterer
+Nachrichten und keinen Export als JSON/HTML/TXT. Das bleibt der Desktop-App vorbehalten.
+
 ## Aus dem Quelltext bauen
 
 Voraussetzung: Node 22 oder neuer und Git. Sonst nichts — kein Compiler, keine Adminrechte, kein
@@ -124,13 +169,16 @@ npm run dev
 
 ### Nützliche Kommandos
 
-|                        |                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `npm run dev`          | Entwicklungsmodus mit Hot Reload                                                                  |
-| `npm run verify`       | Format, Lint, Typen, Unit- und Integrationstests — Sekunden                                       |
-| `npm run test:e2e`     | Playwright gegen die echte Electron-App                                                           |
-| `npm run gate:release` | Alles davon plus Lasttest ([`docs/lasttest.md`](docs/lasttest.md))                                |
-| `npm run dist:win`     | Per-User-Installer, ohne Adminrechte ([`docs/managed-deployment.md`](docs/managed-deployment.md)) |
+|                           |                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`             | Entwicklungsmodus mit Hot Reload                                                                                          |
+| `npm run verify`          | Format, Lint, Typen, Unit- und Integrationstests — Sekunden                                                               |
+| `npm run test:e2e`        | Playwright gegen die echte Electron-App                                                                                   |
+| `npm run gate:release`    | Alles davon plus Lasttest ([`docs/lasttest.md`](docs/lasttest.md))                                                        |
+| `npm run dist:win`        | Per-User-Installer, ohne Adminrechte ([`docs/managed-deployment.md`](docs/managed-deployment.md))                         |
+| `npm run build:extension` | Browser-Erweiterung nach `out/extension/chromium` und `out/extension/firefox`; `pack:extension` zippt sie für die Stores  |
+| `npm run test:extension`  | Erweiterung in Chromium gegen eine nachgebaute WhatsApp-Seite; `test:extension:firefox` dasselbe in Firefox (`FIREFOX=…`) |
+| `npm run models:fetch`    | Sprachmodelle holen und prüfen (`base` reicht für die Tests); gibt die Befehle fürs Modell-Release aus                    |
 
 ### Wo die Daten liegen
 
@@ -160,9 +208,12 @@ Wie das Ganze aufgebaut ist: [`docs/architecture.md`](docs/architecture.md).
   [`docs/backfill-findings.md`](docs/backfill-findings.md).
 - Das Archiv liegt **unverschlüsselt** auf der Platte. Der Schutz kommt von der Laufwerksverschlüsselung
   des Betriebssystems (BitLocker, FileVault). Wer das nicht hat, sollte es einschalten.
-- Das Archiv enthält Nachrichten anderer Leute, auch gelöschte und **auch verschwindende**, sobald sie
-  einmal gespiegelt wurden. Bei einer verschwindenden Nachricht war die Befristung von Anfang an die
-  Bedingung, unter der sie geschickt wurde – dieses Archiv hält sie trotzdem. Das ist eine bewusste
+- Das Archiv enthält Nachrichten anderer Leute, **auch gelöschte** – auch solche, die der Absender
+  für alle gelöscht hat – und **auch verschwindende**, sobald sie einmal gespiegelt wurden. Bei einer
+  verschwindenden Nachricht war die Befristung von Anfang an die Bedingung, unter der sie geschickt
+  wurde, und beim Löschen für alle wollte der Absender sie zurückhaben – dieses Archiv hält beide
+  trotzdem, mit Text und Anhang, als gelöscht markiert
+  ([ADR 0013](docs/decisions/0013-geloeschte-nachrichten-bleiben.md)). Das ist eine bewusste
   Entscheidung und je nach Umfeld und Rechtslage eine, die man treffen muss, nicht eine, die einem
   passiert.
 - Läuft die App auf einem **verwalteten Firmengerät**, liegt das Archiv auf fremder Infrastruktur.
@@ -172,6 +223,9 @@ Wie das Ganze aufgebaut ist: [`docs/architecture.md`](docs/architecture.md).
   wird über „Weitere Informationen → Trotzdem ausführen" bestätigt und braucht keine Adminrechte. Ein
   Antrag bei SignPath Foundation läuft; sobald er durch ist, sind die Releases signiert und die
   Warnung verschwindet ([`docs/code-signing-policy.md`](docs/code-signing-policy.md)).
+- **Im Browser** gehört das Archiv zum Browserprofil. Wird die Erweiterung entfernt oder das Profil
+  zurückgesetzt, ist es weg. Eine Sicherung außerhalb des Browsers ist dort keine Kür. Auf
+  verwalteten Rechnern kann die IT Erweiterungen sperren oder nur freigegebene zulassen.
 - Nutzung auf eigenes Risiko.
 
 ## Lizenz

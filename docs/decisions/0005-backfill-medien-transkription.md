@@ -70,6 +70,9 @@ gehören nicht in Phase 5.
   `revoked = 1` niemals auf 0 zurücksetzen. Sonst macht das Archiv aktiv wieder sichtbar, was ein
   Absender zurückgezogen hat – das ist kein Aufbewahren mehr, sondern Wiederherstellen. Der Upsert-Pfad
   in Phase 3 stellt das sicher, und ein Integrationstest hält es fest.
+- **Geändert durch [ADR 0013](0013-geloeschte-nachrichten-bleiben.md):** Eine für alle gelöschte
+  Nachricht bleibt seitdem mit Text und Anhang im Archiv, als gelöscht markiert und auffindbar. Die
+  Regel oben gilt weiter: `revoked` wird nie zurückgesetzt.
 
 ---
 

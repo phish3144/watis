@@ -3,6 +3,8 @@ import { api } from '../api'
 import type { BridgeReady } from '../../../bridge/protocol'
 import type { ImporterStats } from '../../../main/archive/importer'
 import type { ArchiveStats } from '@shared/ipc/archive-protocol'
+import { MIRROR_STATES } from '../status-texts'
+import { HelpLink } from '../help/help-ui'
 
 /**
  * What the mirror is doing: whether the bridge resolved, how far behind the writer is, and how
@@ -145,10 +147,10 @@ export function MirrorStatus(): React.JSX.Element {
             aria-hidden="true"
           />
           {bridge === undefined
-            ? 'Mitschreiben startet …'
+            ? MIRROR_STATES.starting.label
             : bridge.ok
-              ? `Schreibt mit${bridge.version ? ` (WA Web ${bridge.version})` : ''}`
-              : 'Schreibt gerade nicht mit'}
+              ? `${MIRROR_STATES.running.label}${bridge.version ? ` (WA Web ${bridge.version})` : ''}`
+              : MIRROR_STATES.stopped.label}
         </span>
         <button
           type="button"
@@ -164,7 +166,8 @@ export function MirrorStatus(): React.JSX.Element {
         <p className="text-wa-muted">
           WatIs? kommt an WhatsApps Innenleben gerade nicht heran — meistens nach einem Update von
           WhatsApp Web. Lesen und Schreiben in WhatsApp geht normal weiter, und das bereits
-          Archivierte bleibt durchsuchbar; nur Neues kommt vorerst nicht dazu.
+          Archivierte bleibt durchsuchbar; nur Neues kommt vorerst nicht dazu.{' '}
+          <HelpLink topic="probleme" />
           {bridge.failures.length > 0 && (
             <span className="mt-0.5 block font-mono text-[10px] opacity-70">
               {bridge.failures.map((f) => f.module).join(', ')}

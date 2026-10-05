@@ -1,27 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import Database from 'better-sqlite3'
-import { LATEST_VERSION } from '../../src/workers/archive/schema'
-import { migrate, registerFunctions } from '../../src/workers/archive/db'
+import { LATEST_VERSION, MIGRATIONS } from '../../src/workers/archive/schema'
+import { migrate, registerFunctions } from '../../src/workers/archive/migrate'
+import type { SqlDatabase } from '../../src/workers/archive/sql'
+import { openArchiveMemory, openMemory } from '../helpers/sql'
 
 /** An in-memory archive at the current schema version. */
-function fresh(): Database.Database {
-  const db = new Database(':memory:')
-  registerFunctions(db)
-  migrate(db)
-  return db
-}
+const fresh = openArchiveMemory
 
-const insertChat = (db: Database.Database, id = 'c1') =>
+const insertChat = (db: SqlDatabase, id = 'c1') =>
   db
     .prepare("INSERT INTO chats (id, jid, name, kind) VALUES (?, ?, ?, 'dm')")
     .run(id, `${id}@s`, id)
 
-const insertMessage = (db: Database.Database, id: string, body: string | null, chat = 'c1') =>
+const insertMessage = (db: SqlDatabase, id: string, body: string | null, chat = 'c1') =>
   db
     .prepare('INSERT INTO messages (id, chat_id, ts, kind, body) VALUES (?, ?, ?, ?, ?)')
     .run(id, chat, 1_700_000_000, 'chat', body)
 
-const search = (db: Database.Database, match: string) =>
+const search = (db: SqlDatabase, match: string) =>
   db
     .prepare(
       `SELECT d.msg_id, d.source FROM search_fts f
@@ -41,9 +37,46 @@ describe('migrations', () => {
     expect(migrate(db)).toBe(LATEST_VERSION)
   })
 
+  it('gives media that failed against the changed downloader one more try, once', () => {
+    // An archive as it was before version 3, with the rows the broken downloader left behind.
+    const db = openMemory()
+    registerFunctions(db)
+    for (const migration of MIGRATIONS.filter((m) => m.version <= 2)) db.exec(migration.sql)
+    db.pragma('user_version = 2')
+    const insert = db.prepare('INSERT INTO media (id, status) VALUES (?, ?)')
+    for (const [id, status] of [
+      ['failed-1', 'failed'],
+      ['done-1', 'done'],
+      ['skipped-1', 'skipped'],
+      ['pending-1', 'pending'],
+    ]) {
+      insert.run(id, status)
+    }
+
+    migrate(db)
+    const statuses = Object.fromEntries(
+      (db.prepare('SELECT id, status FROM media').all() as { id: string; status: string }[]).map(
+        (r) => [r.id, r.status],
+      ),
+    )
+    expect(statuses).toEqual({
+      'failed-1': 'pending',
+      'done-1': 'done',
+      'skipped-1': 'skipped',
+      'pending-1': 'pending',
+    })
+
+    // A failure after the migration stays a failure: it runs once per archive, not on every start.
+    db.prepare("UPDATE media SET status = 'failed' WHERE id = 'failed-1'").run()
+    migrate(db)
+    expect(db.prepare("SELECT status FROM media WHERE id = 'failed-1'").get()).toEqual({
+      status: 'failed',
+    })
+  })
+
   it('refuses a database written by a newer build', () => {
     // Carrying on would run today's code against tomorrow's schema.
-    const db = new Database(':memory:')
+    const db = openMemory()
     registerFunctions(db)
     db.pragma(`user_version = ${String(LATEST_VERSION + 1)}`)
     expect(() => migrate(db)).toThrow(/only knows/)
@@ -87,16 +120,28 @@ describe('search index', () => {
     expect(search(db, '"Angebot"').map((r) => r.msg_id)).toEqual(['m1'])
   })
 
-  it('drops the text from the index when a message is revoked', () => {
-    // The row stays — the plan keeps revoked messages and marks them — but the text must not
-    // remain findable.
+  it('keeps a message deleted for everyone in the index (ADR 0013)', () => {
     const db = fresh()
     insertChat(db)
     insertMessage(db, 'm1', 'Geheim')
     db.prepare("UPDATE messages SET revoked = 1 WHERE id = 'm1'").run()
 
+    expect(search(db, '"Geheim"').map((r) => r.msg_id)).toEqual(['m1'])
+  })
+
+  it('indexes, once, the deleted messages an older archive left out of the index', () => {
+    // An archive at version 3, where a revoke took the text out of the index.
+    const db = openMemory()
+    registerFunctions(db)
+    for (const migration of MIGRATIONS.filter((m) => m.version <= 3)) db.exec(migration.sql)
+    db.pragma('user_version = 3')
+    insertChat(db)
+    insertMessage(db, 'm1', 'Geheim')
+    db.prepare("UPDATE messages SET revoked = 1 WHERE id = 'm1'").run()
     expect(search(db, '"Geheim"')).toEqual([])
-    expect(db.prepare("SELECT count(*) AS n FROM messages WHERE id = 'm1'").get()).toEqual({ n: 1 })
+
+    migrate(db)
+    expect(search(db, '"Geheim"').map((r) => r.msg_id)).toEqual(['m1'])
   })
 
   it('indexes media filenames as their own source', () => {

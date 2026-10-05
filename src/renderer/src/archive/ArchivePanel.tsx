@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ArchiveChat, type ArchiveHit, type ArchiveMessage } from '../api'
+import { HelpLink } from '../help/help-ui'
 import { pageDirection, scrollTopAfterPrepend, visibleRange } from './virtual-list'
 import { BackfillPanel } from '../components/BackfillPanel'
 import type { HitPreview, NameHit } from '../../../workers/archive/repository'
@@ -38,9 +39,14 @@ function MessageRow({ message }: { message: ArchiveMessage }): React.JSX.Element
       <div className="text-xs text-wa-muted">
         {message.fromMe ? 'Du' : (message.senderJid ?? 'Unbekannt')} · {formatWhen(message.ts)}
         {message.edited ? ' · bearbeitet' : ''}
+        {/* Deleted for everyone: kept as it was, and marked (ADR 0013). */}
+        {message.revoked ? ' · für alle gelöscht' : ''}
       </div>
-      <div className={`line-clamp-2 text-sm ${message.revoked ? 'italic text-wa-muted' : ''}`}>
-        {message.revoked ? 'Diese Nachricht wurde gelöscht.' : (message.body ?? '(Anhang)')}
+      <div
+        className={`line-clamp-2 text-sm ${message.revoked && !message.body ? 'italic text-wa-muted' : ''}`}
+      >
+        {message.body ??
+          (message.revoked && !message.mediaId ? 'Diese Nachricht wurde gelöscht.' : '(Anhang)')}
       </div>
     </li>
   )
@@ -316,7 +322,8 @@ function HitRow({
               className={m.id === hit.msgId ? 'py-0.5 text-wa-text' : 'py-0.5 text-wa-muted'}
             >
               <span className="tabular-nums">{formatWhen(m.ts)}</span>{' '}
-              {m.revoked ? <em>gelöscht</em> : (m.body ?? '(Anhang)')}
+              {m.body ?? (m.revoked ? <em>gelöscht</em> : '(Anhang)')}
+              {m.revoked && m.body ? <em> (für alle gelöscht)</em> : null}
             </li>
           ))}
         </ol>
@@ -903,6 +910,9 @@ export function ArchivePanel(): React.JSX.Element {
                 </button>
               )
             })}
+            <span className="ml-auto self-center">
+              <HelpLink topic="suchen">Suchtipps</HelpLink>
+            </span>
             {(query.includes('hat:') || query.includes('quelle:')) && (
               <button
                 type="button"

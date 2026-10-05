@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type ArchiveChat, type BackfillState } from '../api'
+import { BACKFILL_PAUSES, BACKFILL_REASONS } from '../status-texts'
+import { HelpLink } from '../help/help-ui'
 
 /**
  * The backfill's progress, deliberately without a progress bar (PLAN.md Phase 5).
@@ -18,26 +20,6 @@ function formatDate(ts: number | undefined): string {
     month: '2-digit',
     year: 'numeric',
   })
-}
-
-/**
- * The bridge's reasons, in words. A raw 'empty-after-open' in the failure list is a clue for
- * whoever wrote it and nothing at all for the person reading the panel.
- */
-const REASON_TEXT: Record<string, string> = {
-  'chat-not-found': 'Chat in WhatsApp nicht gefunden.',
-  'module-unresolved':
-    'WatIs? findet die Stelle nicht mehr, an der WhatsApp ältere Nachrichten nachlädt — meist nach einem Update von WhatsApp Web.',
-  'function-missing':
-    'WhatsApp Web bietet das Nachladen an dieser Stelle nicht mehr an — meist nach einem Update.',
-  'could-not-open': 'Der Chat ließ sich nicht öffnen.',
-  'empty-after-open':
-    'Der Chat wurde geöffnet, WhatsApp gab aber keine einzige Nachricht heraus. Das ist kein leerer Chat, sondern ein Problem an der Schnittstelle.',
-}
-
-const PAUSE_TEXT: Record<'bridge' | 'in-use', string> = {
-  bridge: 'Wartet: keine Verbindung zu WhatsApps Interna.',
-  'in-use': 'Wartet auf Leerlauf — das Nachladen öffnet Chats und würde dir dazwischenfunken.',
 }
 
 export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.Element {
@@ -131,7 +113,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
         Das Nachladen öffnet jeden Chat der Reihe nach und bittet WhatsApp um eine Seite ältere
         Nachrichten — so, wie du selbst nach oben scrollen würdest. Geöffnete Chats gelten danach
         als gelesen. <em>Von vorn</em> holt auch die Chats noch einmal, die schon als fertig gelten;
-        bereits Gespeichertes bleibt dabei unangetastet.
+        bereits Gespeichertes bleibt dabei unangetastet. <HelpLink topic="nachladen" />
       </p>
 
       {state?.running === false && state.chats.length === 0 && (
@@ -163,7 +145,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
       </p>
 
       {state?.current && <p className="text-wa-muted">Gerade: {state.current}</p>}
-      {!state?.running && state?.pauseReason && <p>{PAUSE_TEXT[state.pauseReason]}</p>}
+      {!state?.running && state?.pauseReason && <p>{BACKFILL_PAUSES[state.pauseReason]}</p>}
 
       {failed.length > 0 && (
         <details>
@@ -174,7 +156,7 @@ export function BackfillPanel({ chats }: { chats: ArchiveChat[] }): React.JSX.El
             {failed.map((c) => (
               <li key={c.chatId}>
                 {c.chatId}:{' '}
-                {REASON_TEXT[(c.lastError ?? '').split(':')[0] ?? ''] ??
+                {BACKFILL_REASONS[(c.lastError ?? '').split(':')[0] ?? ''] ??
                   c.lastError ??
                   'unbekannter Fehler'}
                 {/* The raw reason and its shape, kept verbatim and selectable: it is the thing

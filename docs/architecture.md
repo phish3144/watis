@@ -118,3 +118,23 @@ Ergebnis, gegen das hier ausdrücklich entworfen wurde.
 Alles OS-Spezifische liegt hinter `platform/`. Jede Windows-Implementierung bekommt im selben Commit
 eine macOS-Implementierung oder einen dokumentierten Stub; der macOS-Build in CI bleibt grün.
 Feature-Code ruft nie direkt eine Windows-API auf.
+
+## Im Browser
+
+Die Browser-Erweiterung ist kein zweites Produkt, sondern eine zweite Hülle um denselben Kern:
+dieselbe Bridge (`src/bridge/`), dasselbe Repository mit Schema, Migrationen und Suche
+(`src/workers/archive/`), dieselben Inhalts-Engines. Was sich unterscheidet, steckt in
+`src/extension/`:
+
+| Desktop                       | Browser                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| Electron-Main                 | Hintergrund (Service Worker bzw. Event Page): Badge, Benachrichtigungen |
+| Preload                       | Relay (Content Script, ISOLATED world)                                  |
+| `utilityProcess` „archive"    | unsichtbarer Frame im WhatsApp-Tab mit einem Worker                     |
+| better-sqlite3 auf der Platte | SQLite-WASM (`opfs-sahpool`) im privaten Speicher der Erweiterung       |
+| `blobs/` auf der Platte       | `blobs/` in OPFS, gleiches Layout                                       |
+| Renderer-Panel                | eigenes Panel: Seitenleiste oder Tab                                    |
+
+Die Schnittstelle dazwischen ist `src/workers/archive/sql.ts`. Die Integrationstests laufen gegen
+beide Engines. Begründung und Messungen: [ADR 0010](decisions/0010-browser-erweiterung.md),
+[`extension-spike.md`](extension-spike.md).

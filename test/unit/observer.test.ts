@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  messageEvents,
   observe,
   snapshot,
   toChatRow,
@@ -398,5 +399,53 @@ describe('the MsgKey fix reaches everything that carries one', () => {
       t: 1,
     })
     expect(row?.id).toBe('true_49@g.us_ABC_7@c.us')
+  })
+})
+
+describe('attachments become media rows', () => {
+  const image = message({
+    type: 'image',
+    body: undefined,
+    caption: 'Rechnung',
+    filehash: 'aGFzaA==',
+    mimetype: 'image/jpeg',
+    size: 48_213,
+  })
+
+  it('yields the message and its media row, linked both ways', () => {
+    const events = messageEvents(image)
+    expect(events.map((e) => e.kind)).toEqual(['message', 'media'])
+    const [msg, media] = events
+    expect(msg?.kind === 'message' && msg.row.mediaId).toBe('aGFzaA==')
+    expect(media?.row).toMatchObject({
+      id: 'aGFzaA==',
+      msgId: 'false_c1@g.us_ABC',
+      chatId: 'c1@g.us',
+      mime: 'image/jpeg',
+      size: 48_213,
+      status: 'pending',
+    })
+  })
+
+  it('yields only the message when there is nothing attached', () => {
+    expect(messageEvents(message()).map((e) => e.kind)).toEqual(['message'])
+  })
+
+  it('emits the media row live, and counts the image once in the snapshot tally', () => {
+    const { page, msgs } = fakePage(undefined, fakeCollection([image]))
+    const live: MirrorEvent[] = []
+    observe(page, (e) => live.push(e))
+    msgs.emit('add', image)
+    expect(live.map((e) => e.kind)).toEqual(['message', 'media'])
+
+    const tally = {
+      chat: { models: 0, mapped: 0 },
+      contact: { models: 0, mapped: 0 },
+      message: { models: 0, mapped: 0 },
+      messages: { noId: 0, noChatId: 0, noTs: 0 },
+    }
+    const batches = [...snapshot(page, 200, tally)]
+    expect(batches.flat().map((e) => e.kind)).toEqual(['message', 'media'])
+    expect(tally.message).toEqual({ models: 1, mapped: 1 })
   })
 })

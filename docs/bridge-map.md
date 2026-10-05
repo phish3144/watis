@@ -18,18 +18,75 @@ vorhanden, und `moduleRaid` entfällt.
 lädt nichts nach und liefert kein `undefined`. Jeder Aufruf ist deshalb gekapselt — ein blinder Aufruf
 würde die Exception in einem WhatsApp-Stackframe auslösen.
 
-## Noch nicht verifiziert
+## Medien holen – `WAWebDownloadManager` (Login-Seite von 2.3000.1049110567, 2026-10-02)
 
-| Modul                  | Pfad               | Verlangt                    | Wofür        | Stand                                                      |
-| ---------------------- | ------------------ | --------------------------- | ------------ | ---------------------------------------------------------- |
-| `WAWebDownloadManager` | `.downloadManager` | `downloadAndMaybeDecrypt()` | Medien holen | **aus der Doku, nicht gegen ein laufendes Bundle geprüft** |
+| Modul                                    | Pfad / Export                                                                                                                          | Wofür                                       | Stand                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| `WAWebDownloadManager`                   | `.downloadManager.downloadAndMaybeDecrypt(opts)`                                                                                       | Bytes holen und entschlüsseln (ArrayBuffer) | Login-Seite geprüft; angemeldet erreicht, siehe unten     |
+| `WAWebMmsMediaTypes`                     | `getMsgMediaType`, `mediaTypeToMsgTypeSupportedByAllowlist`, `getValidMimeTypes`                                                       | `type` bestimmen, Mimetype vorab prüfen     | Login-Seite geprüft; Pflicht fürs Medienholen             |
+| `WAWebStartMediaDownloadQpl`             | `.startMediaDownloadQpl({ entryPoint: 'MediaDownload' })`                                                                              | Objekt für `downloadQpl`                    | optional; fehlt es, nimmt die Bridge einen Platzhalter    |
+| `WAWebMediaInMemoryBlobCache`            | `.InMemoryMediaBlobCache.get(filehash)`                                                                                                | bereits entschlüsselte Medien, ohne Netz    | optional                                                  |
+| `WAWebMediaGetDownloadOriginForMsg`      | der Export ist die Funktion                                                                                                            | `downloadOrigin`                            | optional                                                  |
+| Nachrichtenmodell (`WAWebMsgCollection`) | `filehash`, `directPath`, `staticUrl`, `encFilehash`, `mediaKey`, `mediaKeyTimestamp`, `mimetype`, `isViewOnce`, `mediaData.mediaBlob` | Argumente                                   | angemeldet erreicht; ein vollständiger Download steht aus |
 
-Jede andere Signatur in diesem Dokument wurde gegen das laufende Bundle geprüft. Diese nicht — sie
-steht deshalb in `OPTIONAL`: Löst sie nicht auf, schaltet sich das Medienholen ab und der Rest läuft
-weiter. Vor dem Smoke-Test gilt sie als unbelegt.
+**Was 2026-10-02 passierte.** In einer angemeldeten Sitzung scheiterte jeder Abruf – Video wie
+Sprachnachricht – mit `Cannot read properties of undefined (reading 'addAnnotations')`. Der Downloader
+liest seit dieser Version als Erstes `downloadQpl` (ein Messobjekt für WhatsApps
+Performance-Tracing) und ruft darauf `addAnnotations` auf. Die Bridge übergab es nicht. Damit ist auch
+belegt, dass Modul und Nachrichtenfelder in einer angemeldeten Sitzung bis zu diesem Punkt auflösen.
 
-Die Operation liest: Sie holt Bytes, die der Client der Nutzerin ohnehin referenziert, und entschlüsselt
-sie mit dem Schlüssel, der bereits in der Nachricht steht. Sie sendet nichts und markiert nichts.
+**Das Argument** – ein einziges, flaches Objekt (der Downloader kopiert es flach):
+
+- `downloadQpl`: WhatsApps eigenes Objekt aus `startMediaDownloadQpl`, wenn es die bekannten Methoden
+  hat. Sonst ein Platzhalter mit allen neun (`addAnnotations`, `addPoint`, `start`, `isActive`,
+  `getQPLAttrs`, `endSuccess`, `endFail`, `endFailWithError`, `endCancel`). Ein Platzhalter mit nur
+  zwei Methoden, wie ihn andere Projekte nutzen, scheitert, sobald WhatsApp im Worker entschlüsselt.
+- `type`: aus `getMsgMediaType(msg)`, **nicht** `msg.type` (falsch bei GIFs und Kanalmedien).
+- `mimetype`: wörtlich aus der Nachricht. Ohne ihn scheitern alle Typen außer Dokumenten an einer
+  exakten, groß-/kleinschreibungsgenauen Liste („Unexpected mimetype application/octet-stream").
+- `filehash`, `directPath` (oder `staticUrl`), bei verschlüsselten Typen `encFilehash` und `mediaKey`.
+- Für WhatsApps Metriken: `mediaKeyTimestamp`, `downloadOrigin`, `mode` (`auto` im Hintergrund,
+  `manual` nur auf Klick; landet in der Medien-URL), `userDownloadAttemptCount: 0`, `isViewOnce:
+false`, `signal` (eigener Abbruch nach 120 s).
+- Nie: `partialVideoOpts`, `progressiveJpegOpts`, `isPreload`, `shouldSequenceDownload`.
+- Aufgerufen als Methode des `downloadManager` (mit `this`).
+
+**Reihenfolge:** erst `InMemoryMediaBlobCache.get`, dann `mediaData.mediaBlob.getBlob()` (nicht
+`forceToBlob`, das verändert WhatsApps Objekt), dann der Download. Vorher übersprungen, mit Grund in
+der Medienzeile: View-once, ein Mimetype, den die Liste nicht hält, SVG-Dokumente, fehlende Schlüssel
+oder Pfade. So löst die Bridge nie WhatsApps eigene Fehlerberichte (`sendLogs`) aus, die auf diesen
+Fehlerpfaden des Downloaders liegen. `MediaNotFoundError` (404) heißt „nicht mehr auf dem Server“:
+übersprungen, nicht wiederholt.
+
+**Warum read-only.** Der Downloader liest den Cache, holt per GET von den Medienservern, entschlüsselt,
+prüft lokal und legt den Klartext in WhatsApps eigenen Medien-Cache. Er ruft nie `downloadManager.rmr`
+auf (die Bitte an den Server, ein Medium neu hochzuladen), schickt keine Lese- oder Abspielquittung und
+verändert weder Nachricht noch Medienobjekt. Abspielquittungen entstehen nur im Player. Wie bei einem
+Klick zählt WhatsApp den Download in seinen eigenen Metriken.
+
+**Verboten**, weil sie etwas an den Server schicken können oder WhatsApps sichtbaren Zustand ändern:
+`Msg.forceDownloadMediaEvenIfExpensive`, `Msg.downloadMedia` mit `downloadEvenIfExpensive: true`,
+`WAWebFileSaverDownloadData.getMsgDownloadData`, `downloadManager.rmr`, `InMemoryMediaBlobCache.put`,
+`markWhetherOnServer`. `Msg.downloadMedia` ohne diese Option ist nicht entschieden und nicht im Code.
+
+**Geprüft:** 2026-10-02 auf der Login-Seite von 2.3000.1049110567 (ohne Konto): Modulnamen und
+Exporte, die Reihenfolge, in der der Downloader sein Argument liest (`downloadOrigin`, `downloadQpl`,
+`partialVideoOpts`, `type`, `mimetype`, dann `addAnnotations`), die Mimetype-Liste, die Verträglichkeit
+des Platzhalters mit `serializeQplForBridge`. Null Netzanfragen. Die nachgebaute Seite der E2E-Tests
+bildet diesen Vertrag nach und lässt die alte Bridge daran scheitern. **Offen:** je eine
+Sprachnachricht, ein Video, ein Bild und ein Dokument in einer angemeldeten Sitzung, danach nichts in
+`logs/outgoing.log`, kein Chat als gelesen, keine Sprachnachricht als abgespielt markiert.
+
+Bereits gescheiterte Medien setzt die Schema-Migration 3 einmal zurück auf `pending`.
+
+**Medienzeilen (2026-10-02).** Bis zu diesem Datum legte die Bridge für Anhänge **keine** Zeile in
+`media` an: `messages.media_id` wurde aus `filehash` gesetzt, aber ohne passenden Eintrag fand der
+Medien-Fetcher nie etwas im Zustand `pending`, und es wurde nie eine Datei geholt — im Desktop wie im
+Browser. `observer.ts` leitet jetzt aus jeder Nachricht mit `filehash` eine Medienzeile ab
+(`toMediaRow`): `id = filehash`, dazu `mimetype`, `size`, `filename`. Es sind dieselben Felder, die
+`downloadMedia` am selben Modell schon liest. Gegen eine angemeldete Sitzung geprüft ist das nicht;
+fehlt ein Feld, bleibt die Spalte leer und die Abrufregeln greifen auf Dateiname bzw. „unbekannter Typ"
+zurück.
 
 ## Wie der Code in die Seite kommt
 

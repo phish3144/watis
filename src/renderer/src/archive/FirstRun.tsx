@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { ArchiveStats } from '@shared/ipc/archive-protocol'
 import type { BridgeReady } from '../../../bridge/protocol'
+import { HelpLink } from '../help/help-ui'
 
 /**
  * One line on why the archive is still empty, shown only while it is.
@@ -56,7 +57,8 @@ export function FirstRun(): React.JSX.Element | null {
         <p>
           <strong className="text-wa-accent">Das Mitschreiben läuft.</strong> Jede Nachricht, die ab
           jetzt ankommt, bleibt hier — auch wenn WhatsApp sie irgendwann nicht mehr zeigt. Was schon
-          geladen ist, holt <em>Jetzt übernehmen</em> sofort herein.
+          geladen ist, holt <em>Jetzt übernehmen</em> sofort herein.{' '}
+          <HelpLink topic="erste-schritte" />
         </p>
       )}
 
@@ -64,7 +66,8 @@ export function FirstRun(): React.JSX.Element | null {
         <p>
           <strong className="text-wa-danger">Es wird gerade nichts mitgeschrieben.</strong> WatIs?
           kommt an WhatsApps Innenleben nicht heran — typischerweise nach einem Update von WhatsApp
-          Web. WhatsApp selbst läuft normal weiter; nur das Archiv wächst nicht.
+          Web. WhatsApp selbst läuft normal weiter; nur das Archiv wächst nicht.{' '}
+          <HelpLink topic="probleme" />
         </p>
       )}
 

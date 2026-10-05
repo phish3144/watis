@@ -70,10 +70,10 @@ export function meanConfidence(lines: readonly ExtractedLine[]): number | undefi
 export const MAX_TEXT_BYTES = 2 * 1024 * 1024
 
 export function extractPlainText(content: string, maxBytes = MAX_TEXT_BYTES): Extraction {
-  const truncated = Buffer.byteLength(content, 'utf8') > maxBytes
-  const text = truncated
-    ? Buffer.from(content, 'utf8').subarray(0, maxBytes).toString('utf8')
-    : content
+  // TextEncoder rather than Buffer, so the browser extension's index runs the same code.
+  const bytes = new TextEncoder().encode(content)
+  const truncated = bytes.length > maxBytes
+  const text = truncated ? new TextDecoder().decode(bytes.subarray(0, maxBytes)) : content
   return {
     source: 'text',
     text,

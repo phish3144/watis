@@ -1,6 +1,7 @@
 import { MAX_BATCH } from '@shared/ipc/archive-protocol'
 import { RingBuffer } from '@shared/ipc/ring-buffer'
 import type { MirrorRow } from '@shared/model/rows'
+import { unref } from '@shared/timers'
 
 /**
  * The spine between the bridge and the archive worker (PLAN.md §3.1).
@@ -36,7 +37,7 @@ export class Importer {
   readonly #send: Send
   readonly #batchSize: number
   readonly #flushIntervalMs: number
-  #timer: NodeJS.Timeout | undefined
+  #timer: ReturnType<typeof setInterval> | undefined
   #written = 0
   #failedBatches = 0
   #lastError: string | undefined
@@ -59,7 +60,7 @@ export class Importer {
   start(): void {
     if (this.#timer) return
     this.#timer = setInterval(() => void this.drain(), this.#flushIntervalMs)
-    this.#timer.unref?.()
+    unref(this.#timer)
   }
 
   /**

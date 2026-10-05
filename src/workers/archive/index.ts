@@ -1,13 +1,13 @@
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type Database from 'better-sqlite3'
-import { parseArchiveRequest, type ArchiveStats } from '@shared/ipc/archive-protocol'
-import { parseQuery } from '@shared/search/query'
+import { parseArchiveRequest } from '@shared/ipc/archive-protocol'
 import { connectToHost } from '../shared/host-channel'
 import { openArchive } from './db'
 import { ArchiveRepository } from './repository'
 import { BlobStore } from './blob-store'
 import { runExport, runBackup, saveMedia } from './backup'
+import { serveRepository } from './serve'
 
 /**
  * The archive worker: SQLite (WAL), FTS5 and export.
@@ -34,53 +34,10 @@ async function handle(payload: unknown): Promise<unknown> {
   if (!request) throw new Error('malformed archive request')
   if (!db || !repo) throw new Error('archive is not open')
 
+  const served = serveRepository(repo, request)
+  if (served.handled) return served.value
+
   switch (request.op) {
-    case 'import': {
-      // Order matters: chats and contacts first, so a message arriving in the same batch as its
-      // chat still resolves, and media last, because its search document reads the message's
-      // timestamp.
-      const written =
-        repo.upsertChats(request.chats ?? []) +
-        repo.upsertContacts(request.contacts ?? []) +
-        repo.upsertMessages(request.messages ?? []) +
-        repo.upsertMedia(request.media ?? [])
-      return { written }
-    }
-    case 'search':
-      return {
-        hits: repo.search(parseQuery(request.query), request.limit, request.offset, request.order),
-      }
-    case 'messagesPage':
-      return {
-        messages: repo.messagesPage({
-          chatId: request.chatId,
-          limit: request.limit,
-          ...(request.before ? { before: request.before } : {}),
-          ...(request.after ? { after: request.after } : {}),
-        }),
-      }
-    case 'context':
-      return { messages: repo.contextAround(request.msgId, request.radius) }
-    case 'hitPreviews':
-      return { previews: repo.hitPreviews(request.hits, request.terms) }
-    case 'gallery':
-      return { items: repo.gallery(request) }
-    case 'jumpToDate':
-      return { cursor: repo.firstMessageOnOrAfter(request.chatId, request.ts) ?? null }
-    case 'months':
-      return { months: repo.monthsWithMessages(request.chatId) }
-    case 'names':
-      return { names: repo.findChatsAndContacts(request.query, request.limit) }
-    case 'chats':
-      return { chats: repo.chats(request.limit) }
-    case 'saveSyncState':
-      return { written: repo.saveSyncState(request.rows) }
-    case 'syncState':
-      return { rows: repo.syncState(request.chatId) }
-    case 'resetBackfill':
-      return { reset: repo.resetBackfill() }
-    case 'stats':
-      return repo.stats() satisfies ArchiveStats
     case 'storeBlob': {
       if (!blobs) throw new Error('the blob store is not open')
       const quota = blobs.quota(repo.stats().databaseBytes)
@@ -98,11 +55,6 @@ async function handle(payload: unknown): Promise<unknown> {
       repo.attachBlob(request.mediaId, ref.sha256, ref.size)
       return { stored: true, sha256: ref.sha256, size: ref.size }
     }
-    case 'markMedia':
-      repo.markMedia(request.mediaId, request.status)
-      return { ok: true }
-    case 'pendingMedia':
-      return { media: repo.pendingMedia(request.limit) }
     case 'blobPath': {
       if (!blobs) return { path: null }
       const row = repo.mediaById(request.mediaId)
@@ -110,15 +62,6 @@ async function handle(payload: unknown): Promise<unknown> {
       const path = blobs.pathFor(row.sha256, row.mime, row.filename)
       return { path: (await blobs.has(row.sha256, row.mime, row.filename)) ? path : null }
     }
-    case 'addReminder':
-      return { id: repo.addReminder(request.msgId, request.dueTs, request.note) }
-    case 'reminders':
-      return { reminders: repo.reminders(request.includeDone) }
-    case 'dueReminders':
-      return { reminders: repo.dueReminders(request.nowTs) }
-    case 'completeReminder':
-      repo.completeReminder(request.id)
-      return { ok: true }
     case 'saveMedia': {
       if (!blobs) throw new Error('the blob store is not open')
       return saveMedia(repo, blobs, request)
@@ -137,6 +80,8 @@ async function handle(payload: unknown): Promise<unknown> {
       // VACUUM INTO writes a defragmented copy without locking out readers for the duration.
       repo.snapshot(request.toFile)
       return { ok: true }
+    default:
+      throw new Error(`unhandled archive request ${request.op}`)
   }
 }
 

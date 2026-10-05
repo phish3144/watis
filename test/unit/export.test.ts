@@ -53,12 +53,18 @@ describe('toText', () => {
     expect(out).toContain('<Anhang: Rechnung.pdf>')
   })
 
-  it('marks a revoked message rather than exporting an empty line', () => {
+  it('keeps the text of a message deleted for everyone, marked (ADR 0013)', () => {
     const out = toText(
       chat([{ id: 'm1', chatId: 'c1', ts: at(2026, 1, 2, 8, 30), body: 'weg', revoked: true }]),
     )
+    expect(out).toContain(': weg (für alle gelöscht)')
+  })
+
+  it('marks a deleted message the archive never had the text of, rather than an empty line', () => {
+    const out = toText(
+      chat([{ id: 'm1', chatId: 'c1', ts: at(2026, 1, 2, 8, 30), body: null, revoked: true }]),
+    )
     expect(out).toContain('Diese Nachricht wurde gelöscht.')
-    expect(out).not.toContain('weg')
   })
 
   it('falls back to the jid when no name is known', () => {
@@ -102,6 +108,12 @@ describe('toHtml', () => {
     )
     expect(html).not.toContain('<script>alert(1)')
     expect(html).toContain('&lt;script&gt;')
+  })
+
+  it('keeps the text of a message deleted for everyone and marks it', () => {
+    const html = toHtml(chat([{ id: 'm1', chatId: 'c1', ts: 1, body: 'weg', revoked: true }]))
+    expect(html).toContain('<div class="body">weg</div>')
+    expect(html).toContain('<span class="tag">für alle gelöscht</span>')
   })
 
   it('escapes the chat name in the title', () => {

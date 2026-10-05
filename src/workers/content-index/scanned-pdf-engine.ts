@@ -6,7 +6,6 @@ import {
   type ExtractedLine,
   type ExtractionHint,
 } from './engine'
-import type { TesseractEngine } from './ocr-engine'
 
 /**
  * Text recognition for PDFs that carry no text layer (PLAN.md Phase 7, ADR 0005 C).
@@ -32,10 +31,10 @@ export class ScannedPdfEngine implements Engine {
   readonly name = 'tesseract-on-rendered-pdf'
   readonly source = 'ocr' as const
 
-  readonly #ocr: TesseractEngine
+  readonly #ocr: Engine
   readonly #render: PageRenderer
 
-  constructor(ocr: TesseractEngine, render: PageRenderer) {
+  constructor(ocr: Engine, render: PageRenderer) {
     this.#ocr = ocr
     this.#render = render
   }
@@ -71,7 +70,7 @@ export class ScannedPdfEngine implements Engine {
     for (const image of rendered) {
       // A data URL rather than a temporary file: tesseract.js accepts one, and writing every page
       // of every scanned document to disk to read it straight back would be work for nothing.
-      const result = await this.#ocr.extract(`data:image/png;base64,${image.data}`)
+      const result = await this.#ocr.extract(`data:image/png;base64,${image.data}`, 'image/png')
       for (const line of result.lines) {
         // The page number is what makes a hit in a hundred-page scan useful.
         lines.push({ ...line, page: image.page })
