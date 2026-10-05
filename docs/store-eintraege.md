@@ -65,8 +65,9 @@ nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (sieh
 6. **Prüfergebnis lesen.** Erwartbar sind einige **Warnungen**, keine Fehler:
    - `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`: Die Angabe zur Datensammlung versteht Firefox erst ab
      140, WatIs? läuft ab 128. Harmlos; ältere Versionen ignorieren die Angabe.
-   - Hinweise etwa auf `innerHTML` oder `eval` in Dateien unter `ocr/`, `whisper/` oder in
-     `assets/pdf-*.js`: Das ist Code von Tesseract, whisper.cpp und pdf.js, unverändert übernommen.
+   - Hinweise auf `innerHTML`, `Function` oder `import` in `assets/` und `ocr/`: Das sind React,
+     pdf.js, Tesseract und deren Hilfsbibliotheken. Die Notiz für die Prüfer (Text G) erklärt jede
+     einzelne Warnung.
 7. **Quelltext:** Die Frage, ob Code erzeugt oder gebündelt wurde, mit **Ja** beantworten und die
    **Source code (zip)** derselben Version hochladen. Die Prüfer bauen damit nach; der Build ist
    reproduzierbar (Anleitung für sie: [`BUILDING.md`](../BUILDING.md)).
@@ -388,6 +389,16 @@ The extension never sends, deletes or marks messages as read.
 
 SOURCE AND BUILD
 https://github.com/phish3144/watis – build instructions in BUILDING.md: npm ci && npm run build:extension (Node 24). The build is reproducible. Our own code is bundled with Vite and not minified. The minified files in ocr/ and whisper/ and the WebAssembly are copied unmodified from the npm packages tesseract.js 7.0.0, tesseract.js-core 7.0.0, pdfjs-dist 6.3.289, @transcribe/shout 1.0.7 and @sqlite.org/sqlite-wasm 3.53.4-build2, as pinned in package-lock.json.
+
+VALIDATOR WARNINGS (14 warnings, no errors)
+No warning points at code that is fetched from anywhere: every file named is inside the package, and our own code uses no eval, no Function constructor and no innerHTML.
+- data_collection_permissions with strict_min_version 128 (desktop and Android): Firefox 128 to 139 ignore the key. The extension collects nothing, so no consent screen is needed there either.
+- assets/whisper-*.js, import(): our code loads whisper/shout.wasm.js, a file in the package, through runtime.getURL.
+- assets/panel-*.js, innerHTML (2x): React DOM's handling of dangerouslySetInnerHTML. Our code never uses dangerouslySetInnerHTML.
+- assets/archive-worker-*.js, Function: regenerator-runtime's fallback for environments without globalThis. It is never reached.
+- assets/pdf-*.js, Function, activeXDocument.write, iframeDocument.write: core-js polyfills inside pdfjs-dist's legacy build, for global-object detection and an old Internet Explorer fallback. They are never reached in Firefox.
+- assets/pdf-*.js, import(): pdf.js's fake-worker loader. We always hand pdf.js a real worker (GlobalWorkerOptions.workerPort).
+- ocr/worker.min.js, Function (2x), and ocr/pdf.worker.min.mjs, Function and import(): unmodified files from tesseract.js 7.0.0 and pdfjs-dist 6.3.289.
 ```
 
 ---
