@@ -250,7 +250,7 @@ export const HELP: readonly HelpArticle[] = [
         steps: [
           'Die neue ZIP herunterladen.',
           'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
-          'Auf der Erweiterungsseite (chrome://extensions bzw. edge://extensions) bei WatIs? auf den runden Pfeil **Neu laden** klicken.',
+          'Auf der Erweiterungsseite bei WatIs? neu laden: in Chrome (chrome://extensions) der runde Pfeil **Neu laden**, in Edge (edge://extensions) **Erneut laden**.',
         ],
       },
       { h: 'Firefox' },
@@ -260,7 +260,7 @@ export const HELP: readonly HelpArticle[] = [
       { h: 'Nie' },
       {
         list: [
-          '**Entfernen** löscht das Archiv – in jedem Browser. Für ein Update reicht **Neu laden**.',
+          '**Entfernen** löscht das Archiv – in jedem Browser. Für ein Update reicht **Neu laden** (in Edge **Erneut laden**).',
           'In einen **anderen Ordner** entpacken: Chrome und Edge halten das für eine zweite Erweiterung und zeigen ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
       },

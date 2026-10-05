@@ -125,7 +125,8 @@ Bis die Erweiterung in den Stores steht, wird sie selbst gebaut (`npm ci && npm 
 oder als Artefakt `browser-extension` aus einem CI-Lauf genommen:
 
 - **Chrome / Edge:** `chrome://extensions` bzw. `edge://extensions` öffnen, **Entwicklermodus** an,
-  **Entpackte Erweiterung laden** und `out/extension/chromium` wählen.
+  **Entpackte Erweiterung laden** (Edge: **Entpackte Dateien laden**) und `out/extension/chromium`
+  wählen.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
   `out/extension/firefox/manifest.json` wählen. Temporär heißt: Nach einem Neustart von Firefox ist
   es weg, bis es auf addons.mozilla.org signiert ist.
