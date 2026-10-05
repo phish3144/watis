@@ -90,6 +90,16 @@ export class OpfsBlobStore {
     await writeAll((await dir.getFileHandle(name, { create: true })) as WorkerFileHandle, bytes)
   }
 
+  /** Reads a file at a path relative to the OPFS root — an import the panel put there. */
+  async readFile(path: string): Promise<Uint8Array> {
+    const parts = path.split('/')
+    const name = parts.pop()
+    if (!name) throw new Error(`not a file path: ${path}`)
+    let dir = await navigator.storage.getDirectory()
+    for (const part of parts) dir = await dir.getDirectoryHandle(part)
+    return new Uint8Array(await (await (await dir.getFileHandle(name)).getFile()).arrayBuffer())
+  }
+
   /** Whether the file for this path is present and non-empty. */
   async has(path: string): Promise<boolean> {
     const parts = path.split('/')

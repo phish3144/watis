@@ -1,6 +1,7 @@
 import sqlite3InitModule, { type SAHPoolUtil, type Sqlite3Static } from '@sqlite.org/sqlite-wasm'
 import { parseArchiveRequest } from '@shared/ipc/archive-protocol'
 import { migrate, registerFunctions } from '../../workers/archive/migrate'
+import { LATEST_VERSION } from '../../workers/archive/schema'
 import { ArchiveRepository } from '../../workers/archive/repository'
 import { serveRepository } from '../../workers/archive/serve'
 import { wrap, type WasmDatabase } from '../../workers/archive/sqlite-wasm'
@@ -53,22 +54,35 @@ async function open(): Promise<void> {
     return
   }
   try {
-    db = wrap(sqlite3, new pool.OpfsSAHPoolDb(DATABASE))
-    db.pragma('journal_mode = TRUNCATE')
-    db.pragma('synchronous = NORMAL')
-    db.pragma('foreign_keys = ON')
-    registerFunctions(db)
-    migrate(db)
-    repo = new ArchiveRepository(db)
     blobs = await OpfsBlobStore.open()
-    index = new IndexLoop(db, (level, message) => {
-      post({ type: 'log', level, message })
-    })
-    index.start()
+    openDatabase()
     post({ type: 'opened', ok: true })
   } catch (error) {
     post({ type: 'opened', ok: false, busy: false, error: String(error) })
   }
+}
+
+function openDatabase(): void {
+  if (!sqlite3 || !pool) throw new Error('the storage pool is not installed')
+  db = wrap(sqlite3, new pool.OpfsSAHPoolDb(DATABASE))
+  db.pragma('journal_mode = TRUNCATE')
+  db.pragma('synchronous = NORMAL')
+  db.pragma('foreign_keys = ON')
+  registerFunctions(db)
+  migrate(db)
+  repo = new ArchiveRepository(db)
+  index = new IndexLoop(db, (level, message) => {
+    post({ type: 'log', level, message })
+  })
+  index.start()
+}
+
+function closeDatabase(): void {
+  index?.stop()
+  index = undefined
+  repo = undefined
+  db?.close()
+  db = undefined
 }
 
 async function usedBytes(): Promise<number> {
@@ -137,6 +151,72 @@ async function exportDatabase(): Promise<unknown> {
   return { path, bytes: bytes.length }
 }
 
+/** The tables that make a file an archive of ours, not just any SQLite database. */
+const ARCHIVE_TABLES = ['chats', 'messages', 'media']
+
+/**
+ * Puts a backup's database in place of this one (restore.ts). The panel has copied it into an
+ * ordinary OPFS file first; this side does what only the owner of the storage pool can do.
+ *
+ * Nothing is replaced until the file has proven itself: it is opened under another name first and
+ * must be an archive of ours, in a schema this build can migrate. The current database is kept in
+ * memory meanwhile, and goes straight back if the new one does not open.
+ */
+async function importDatabase(path: string): Promise<unknown> {
+  if (!sqlite3 || !pool || !blobs) throw new Error('archive is not open')
+  const bytes = await blobs.readFile(path)
+  if (new TextDecoder().decode(bytes.subarray(0, 16)) !== 'SQLite format 3\u0000') {
+    throw new Error('not an SQLite database')
+  }
+  // The desktop runs in WAL mode; this storage cannot. A backup is a complete file without a
+  // -wal next to it, so marking it as a rollback-journal database is all it takes.
+  if (bytes[18] === 2) bytes[18] = 1
+  if (bytes[19] === 2) bytes[19] = 1
+
+  const probeName = '/restore-probe.sqlite'
+  await pool.importDb(probeName, bytes)
+  let tables: string[]
+  let version: number
+  try {
+    const probe = new pool.OpfsSAHPoolDb(probeName)
+    try {
+      tables = probe.selectValues("SELECT name FROM sqlite_master WHERE type = 'table'") as string[]
+      version = Number(probe.selectValue('PRAGMA user_version'))
+    } finally {
+      probe.close()
+    }
+  } finally {
+    pool.unlink(probeName)
+  }
+  if (!ARCHIVE_TABLES.every((table) => tables.includes(table))) {
+    throw new Error('not a WatIs? archive')
+  }
+  if (version > LATEST_VERSION) {
+    throw new Error(`archive schema is version ${String(version)}, newer than this build`)
+  }
+
+  // Requests already running finish against the database they started on.
+  await Promise.allSettled([...running])
+  const previous = pool.exportFile(DATABASE)
+  closeDatabase()
+  try {
+    await pool.importDb(DATABASE, bytes)
+    openDatabase()
+  } catch (error) {
+    await pool.importDb(DATABASE, previous)
+    openDatabase()
+    throw error
+  }
+  return repo?.stats()
+}
+
+/**
+ * Requests wait while the database is being swapped: a batch from the live mirror arriving in
+ * that second goes to the new database rather than failing against a closed one.
+ */
+let swapping: Promise<unknown> = Promise.resolve()
+const running = new Set<Promise<unknown>>()
+
 scope.onmessage = (event) => {
   const message = event.data
   switch (message.type) {
@@ -148,8 +228,11 @@ scope.onmessage = (event) => {
       if (message.quotaBytes) quotaBytes = message.quotaBytes
       if (message.indexPaused !== undefined) index?.setPaused(message.indexPaused)
       return
-    case 'request':
-      handle(message.payload).then(
+    case 'request': {
+      const job = swapping.then(() => handle(message.payload))
+      running.add(job)
+      void job.catch(() => undefined).finally(() => running.delete(job))
+      job.then(
         (value) => {
           post({ type: 'reply', id: message.id, reply: { ok: true, value } satisfies Reply })
         },
@@ -158,8 +241,22 @@ scope.onmessage = (event) => {
         },
       )
       return
+    }
+    case 'import': {
+      const job = swapping.then(() => importDatabase(message.path))
+      swapping = job.catch(() => undefined)
+      job.then(
+        (value) => {
+          post({ type: 'reply', id: message.id, reply: { ok: true, value } })
+        },
+        (error: unknown) => {
+          post({ type: 'reply', id: message.id, reply: { ok: false, error: String(error) } })
+        },
+      )
+      return
+    }
     case 'export':
-      exportDatabase().then(
+      swapping.then(exportDatabase).then(
         (value) => {
           post({ type: 'reply', id: message.id, reply: { ok: true, value } })
         },

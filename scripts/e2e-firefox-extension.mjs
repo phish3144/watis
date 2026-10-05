@@ -190,12 +190,19 @@ try {
       statusCode: 200,
       reasonPhrase: 'OK',
       headers,
-      body: { type: 'string', value: page },
+      // As UTF-8 bytes, not as a string: Firefox 140 ESR encodes a string body one byte per
+      // character, so every umlaut on the fake page arrived as U+FFFD and only there.
+      body: { type: 'base64', value: Buffer.from(page, 'utf8').toString('base64') },
     })
   })
 
+  // WATIS_FIREFOX_ZIP installs the packed ZIP instead of the build folder: the file somebody
+  // downloads and picks under about:debugging, so a fault in the packing shows up here too.
+  const zip = process.env.WATIS_FIREFOX_ZIP
   await call('webExtension.install', {
-    extensionData: { type: 'path', path: join(root, 'out', 'extension', 'firefox') },
+    extensionData: zip
+      ? { type: 'archivePath', path: zip }
+      : { type: 'path', path: join(root, 'out', 'extension', 'firefox') },
   })
   // The extension opens its panel in a tab on first install. That tab is a full extension page,
   // and the one place this script can use browser.* the way the panel does.
@@ -366,6 +373,39 @@ try {
     if (names.filter((name) => name.startsWith('blobs/')).length < 3) {
       throw new Error(`media missing: ${names.join(', ')}`)
     }
+  })
+  await check('a backup database goes back into the archive in the WhatsApp tab', async () => {
+    // The panel's file picker cannot be driven here (no input.setFiles in extension pages), so the
+    // database comes from an export of this archive. What has to hold is the worker's part: the
+    // archive is replaced, not merged, in the frame that owns it.
+    const send = (message) =>
+      evaluate(
+        panel,
+        `browser.tabs.query({ url: 'https://web.whatsapp.com/*' }).then(([tab]) =>
+           browser.tabs.sendMessage(tab.id, ${JSON.stringify(message)})
+         ).then((reply) => {
+           if (!reply.ok) throw new Error(reply.error)
+           return reply.value
+         })`,
+      )
+    const { path } = await send({ kind: 'export-database' })
+    await archive({
+      op: 'import',
+      messages: [
+        {
+          id: 'nur-lokal',
+          chatId: 'fam@g.us',
+          ts: Math.floor(Date.now() / 1000),
+          body: 'Nur hier und in keiner Sicherung',
+        },
+      ],
+    })
+    const localOnly = async () =>
+      (await archive({ op: 'search', query: 'Sicherung source:body', limit: 5 })).hits.length
+    if ((await localOnly()) !== 1) throw new Error('the local message did not arrive')
+    const counts = await send({ kind: 'import-database', path })
+    if (!(counts.messages > 0)) throw new Error(`restored ${JSON.stringify(counts)}`)
+    if ((await localOnly()) !== 0) throw new Error('the message that was only here survived')
   })
   // whisper.cpp needs a cross-origin isolated page. Firefox does not isolate its extension pages,
   // but it does isolate the archive frame in the WhatsApp tab, so that is where it runs (ADR 0012).

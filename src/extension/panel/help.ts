@@ -169,28 +169,28 @@ export const HELP: readonly HelpArticle[] = [
   {
     id: 'sprachnachrichten',
     title: 'Sprachnachrichten zum Nachlesen',
-    summary: 'Sprachnachrichten in Text umwandeln, ganz auf deinem Rechner.',
+    summary: 'Ein Klick macht aus einer Sprachnachricht Text, ganz auf deinem Rechner.',
     body: [
       {
-        p: 'Bei jeder Sprachnachricht im Archiv steht [[Transkribieren]]. Ein Klick macht daraus Text, der darunter erscheint und ab dann durchsuchbar ist.',
+        p: 'Unter jeder Sprachnachricht steht [[Transkribieren]]. Ein Klick macht daraus Text, der darunter erscheint und ab dann durchsuchbar ist. Ist die Sprachnachricht noch nicht im Archiv, holt WatIs? sie dabei gleich mit.',
       },
-      { h: 'Einmalig: das Sprachmodell' },
+      { h: 'Beim ersten Mal' },
       {
-        steps: [
-          '[[Einstellungen]] → [[Texterkennung und Transkription]] öffnen.',
-          'Bei [[Schnell]] ({size:base}, für klare Aufnahmen) oder [[Genau]] ({size:small}, auch bei Dialekt und Nebengeräuschen) auf [[Herunterladen]] klicken. Der Browser fragt dabei einmal, ob WatIs? die Datei von GitHub laden darf.',
+        p: 'Dafür braucht es einmalig ein Sprachmodell ({size:base}). Beim ersten Klick fragt WatIs? direkt an der Sprachnachricht nach: [[Laden und transkribieren]] lädt das Modell von GitHub und wandelt danach sofort um. Der Browser fragt dabei einmal, ob WatIs? die Datei von GitHub laden darf. Danach reicht immer ein Klick.',
+      },
+      { h: 'Einstellen, wenn du willst' },
+      {
+        list: [
+          'Unter [[Einstellungen]] → [[Texterkennung und Transkription]] gibt es neben [[Schnell]] ({size:base}, für klare Aufnahmen) auch [[Genau]] ({size:small}, auch bei Dialekt und Nebengeräuschen). Ist [[Schnell]] da, nimmt WatIs? dieses.',
           'Bei [[Sprache der Sprachnachrichten]] die Sprache wählen. Deutsch ist voreingestellt. [[Automatisch erkennen]] geht auch, dauert aber doppelt so lang.',
+          'Ist GitHub im Firmennetz gesperrt: dieselbe Modelldatei von woanders besorgen und bei [[Modell aus einer Datei]] über [[Datei wählen …]] öffnen. WatIs? prüft sie gegen dieselbe Prüfsumme.',
         ],
-      },
-      {
-        p: 'Ist GitHub im Firmennetz gesperrt: dieselbe Modelldatei von woanders besorgen und bei [[Modell aus einer Datei]] über [[Datei wählen …]] öffnen. WatIs? prüft sie gegen dieselbe Prüfsumme.',
       },
       {
         list: [
           'Die Umwandlung läuft **auf deinem Rechner**. Die Sprachnachricht geht nirgendwohin.',
           'Je nach Rechner dauert sie einige Sekunden bis zu einer Minute.',
           'In **Firefox** rechnet der WhatsApp-Tab. Er muss dafür offen sein.',
-          'Die Sprachnachricht muss im Archiv sein. Steht dort [[Laden]], erst laden.',
         ],
       },
     ],
@@ -219,8 +219,23 @@ export const HELP: readonly HelpArticle[] = [
       {
         p: '[[Als ZIP herunterladen]] legt die Sicherung in deinen Download-Ordner unter „WatIs/Sicherung“. Die erste ZIP enthält alles, jede weitere nur die neuen Medien seit der letzten; [[Alle Medien neu]] packt wieder alles ein. Große Archive kommen in mehreren Teilen von höchstens 1 GB.',
       },
+      { h: 'Zurückspielen' },
       {
-        note: 'Die Sicherung hat dasselbe Format wie die der Desktop-App: die Datenbank archive.sqlite und die Medien im Ordner blobs. Ein Zurückspielen in die Erweiterung gibt es noch nicht.',
+        p: 'Nach dem Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung von WatIs? beginnt das Archiv leer. So kommt es zurück:',
+      },
+      {
+        steps: [
+          '[[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]]',
+          '[[Aus einem Ordner …]] wählt den Sicherungsordner (Chrome und Edge). [[ZIP-Dateien wählen …]] nimmt die ZIP-Sicherungen – **alle auf einmal markieren**, denn jede nach der ersten enthält nur die neuen Medien.',
+          'WatIs? sagt, von wann die Sicherung ist und wie viele Medien sie enthält. [[Zurückspielen]] klicken.',
+        ],
+      },
+      {
+        list: [
+          'Die Sicherung **ersetzt** das Archiv in diesem Browser. Was WhatsApp Web gerade zeigt, holt WatIs? danach von selbst wieder dazu.',
+          'Medien, die hier schon liegen, bleiben, und kommen nicht doppelt.',
+          'Auch eine Sicherung der Desktop-App lässt sich so zurückspielen – sie hat dasselbe Format: die Datenbank archive.sqlite und die Medien im Ordner blobs.',
+        ],
       },
     ],
     related: ['aktualisieren', 'datenschutz'],
@@ -235,7 +250,7 @@ export const HELP: readonly HelpArticle[] = [
         steps: [
           'Die neue ZIP herunterladen.',
           'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
-          'Auf der Erweiterungsseite (chrome://extensions bzw. edge://extensions) bei WatIs? auf den runden Pfeil **Neu laden** klicken.',
+          'Auf der Erweiterungsseite bei WatIs? neu laden: in Chrome (chrome://extensions) der runde Pfeil **Neu laden**, in Edge (edge://extensions) **Erneut laden**.',
         ],
       },
       { h: 'Firefox' },
@@ -245,7 +260,7 @@ export const HELP: readonly HelpArticle[] = [
       { h: 'Nie' },
       {
         list: [
-          '**Entfernen** löscht das Archiv – in jedem Browser. Für ein Update reicht **Neu laden**.',
+          '**Entfernen** löscht das Archiv – in jedem Browser. Für ein Update reicht **Neu laden** (in Edge **Erneut laden**).',
           'In einen **anderen Ordner** entpacken: Chrome und Edge halten das für eine zweite Erweiterung und zeigen ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
       },

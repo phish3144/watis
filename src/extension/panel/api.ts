@@ -65,6 +65,7 @@ async function toArchive(message: unknown): Promise<Reply> {
   const kind = (message as { kind: string }).kind
   if (kind === 'archive') return host.request((message as { request: unknown }).request)
   if (kind === 'export-database') return host.exportDatabase()
+  if (kind === 'import-database') return host.importDatabase((message as { path: string }).path)
   return { ok: false, error: 'Dafür muss WhatsApp Web offen sein.' }
 }
 
@@ -90,6 +91,17 @@ export async function transcribeInTab(mediaId: string, path: string): Promise<st
   if (tab?.id === undefined) throw new Error(t('transcription.needTab'))
   const reply = await sendToTab<Reply>(tab.id, { kind: 'transcribe', mediaId, path })
   return unwrap(reply ?? { ok: false, error: 'Der WhatsApp-Tab antwortet nicht.' }) as string
+}
+
+/** Puts the database at this OPFS path in place of the archive; answers the new counts. */
+export async function importDatabaseFile(
+  path: string,
+): Promise<{ messages: number; chats: number; media: number }> {
+  return unwrap(await toArchive({ kind: 'import-database', path })) as {
+    messages: number
+    chats: number
+    media: number
+  }
 }
 
 /**

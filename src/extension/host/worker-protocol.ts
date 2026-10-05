@@ -7,6 +7,8 @@ export type ToWorker =
   | { type: 'configure'; quotaBytes?: number; indexPaused?: boolean }
   | { type: 'request'; id: number; payload: unknown }
   | { type: 'export'; id: number }
+  /** Put the database at this OPFS path in place of the archive (restore.ts). */
+  | { type: 'import'; id: number; path: string }
 
 export type FromWorker =
   | { type: 'opened'; ok: true }

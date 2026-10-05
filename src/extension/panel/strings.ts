@@ -151,6 +151,27 @@ const de = {
   'backup.error.noFolder': 'Erst einen Sicherungsordner wählen.',
   'backup.error.permission': 'Ohne Schreibrecht für den Ordner geht es nicht.',
   'backup.error.download': 'Download abgebrochen: {error}',
+
+  'restore.title': 'Sicherung zurückspielen',
+  'restore.hint':
+    'Holt das Archiv aus einer Sicherung zurück: aus dem Sicherungsordner, aus den ZIP-Dateien (alle auf einmal wählen) oder aus der Sicherung der Desktop-App.',
+  'restore.folder': 'Aus einem Ordner …',
+  'restore.zip': 'ZIP-Dateien wählen …',
+  'restore.reading': 'Sicherung wird gelesen …',
+  'restore.confirm':
+    'Sicherung vom {when} mit {media} Medien. Sie ersetzt das Archiv in diesem Browser ({current} Nachrichten). Medien, die hier schon liegen, bleiben.',
+  'restore.confirm.empty':
+    'Sicherung vom {when} mit {media} Medien. Das Archiv in diesem Browser ist noch leer.',
+  'restore.go': 'Zurückspielen',
+  'restore.cancel': 'Abbrechen',
+  'restore.running': 'Wird zurückgespielt … {files} Dateien, {bytes}',
+  'restore.done':
+    'Zurückgespielt: {messages} Nachrichten in {chats} Chats, {copied} Medien neu. Was WhatsApp Web gerade zeigt, kommt gleich dazu.',
+  'restore.error.noDatabase': 'In dieser Auswahl ist keine Sicherung (es fehlt archive.sqlite).',
+  'restore.error.notZip': '„{name}“ ist keine lesbare ZIP-Datei.',
+  'restore.error.notArchive': 'Das ist keine Sicherung von WatIs?.',
+  'restore.error.newer':
+    'Die Sicherung stammt aus einer neueren Version von WatIs?. Erst die Erweiterung aktualisieren.',
   'settings.storage': 'Belegt: {used} von {limit}',
   'settings.quota': 'Speichergrenze',
 
@@ -200,7 +221,13 @@ const de = {
   'transcription.fromFile.hint':
     'Falls GitHub im Firmennetz gesperrt ist: dieselbe Datei von woanders, geprüft gegen dieselbe Prüfsumme.',
   'transcription.imported': 'Modell übernommen.',
-  'transcription.needModel': 'Erst unter Einstellungen ein Sprachmodell laden.',
+  'transcription.needModel':
+    'Es ist kein Sprachmodell mehr da. „Transkribieren“ bietet es wieder zum Laden an.',
+  'transcription.offer':
+    'Für ein Transkript braucht WatIs? einmalig ein Sprachmodell ({size}, von GitHub). Es bleibt auf diesem Rechner.',
+  'transcription.offer.go': 'Laden und transkribieren',
+  'transcription.offer.cancel': 'Abbrechen',
+  'transcription.downloading': 'Sprachmodell wird geladen … {percent} %',
   'transcription.needTab': 'In Firefox transkribiert der WhatsApp-Tab – bitte WhatsApp Web öffnen.',
   'transcription.firefox': 'In Firefox rechnet der WhatsApp-Tab – er muss dafür offen sein.',
   'transcription.error.permission': 'Ohne Erlaubnis für den Download von GitHub geht es nicht.',

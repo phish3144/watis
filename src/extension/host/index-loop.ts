@@ -56,6 +56,14 @@ export class IndexLoop {
     else this.wake()
   }
 
+  /** For good: the database it reads is about to be closed. */
+  stop(): void {
+    this.#paused = true
+    if (this.#timer !== undefined) clearTimeout(this.#timer)
+    this.#timer = undefined
+    this.#runner.stop()
+  }
+
   /** A new blob arrived; look sooner than the idle pass would. */
   wake(): void {
     this.#schedule(1_000)

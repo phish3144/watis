@@ -3,7 +3,7 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [0.8.0] — 2026-10-05
 
 ### Hinzugefügt
 
@@ -16,16 +16,22 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   WhatsApp, breit als eigener Tab. Treffer nennen Chat und Absender statt Telefonnummern.
 - **Texterkennung und PDF-Text im Browser**, auch für eingescannte PDFs. Alles im Paket, nichts aus
   dem Netz.
-- **Sprachnachrichten transkribieren**, auf Klick, mit whisper.cpp lokal im Browser. Das Transkript
-  ist sofort durchsuchbar. Die Sprache ist einstellbar, Deutsch voreingestellt. Das Modell (57 MB
-  oder 181 MB) wird einmalig auf Klick geladen und geprüft, oder von der Platte genommen, wenn GitHub
-  gesperrt ist ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
+- **Sprachnachrichten transkribieren**, mit einem Klick auf „Transkribieren“ unter der
+  Sprachnachricht, mit whisper.cpp lokal im Browser. Eine Sprachnachricht, die noch nicht im Archiv
+  ist, wird dabei geholt. Beim ersten Mal bietet der Knopf das Sprachmodell an (57 MB, „Genau“ mit
+  181 MB in den Einstellungen) und lädt es erst nach einem zweiten Klick, geprüft gegen eine
+  Prüfsumme, oder von der Platte, wenn GitHub gesperrt ist. Das Transkript ist sofort durchsuchbar.
+  Die Sprache ist einstellbar, Deutsch voreingestellt
+  ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
 - **Medien dauerhaft sichern**: Abrufregeln für Bilder, Dokumente, Sprachnachrichten und Videos als
   Einstellung. Die Sicherung des Browser-Archivs geht in einen gewählten Ordner (Chrome, Edge), der
   auch ein OneDrive- oder Nextcloud-Ordner sein darf, oder als ZIP. Sie hat dasselbe Format wie die
   Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
   ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
-
+- **Sicherung zurückspielen** in der Browser-Erweiterung: aus dem Sicherungsordner oder aus allen
+  ZIP-Sicherungen zusammen, auch eine Sicherung der Desktop-App. Damit kommt das Archiv nach dem
+  Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung
+  zurück ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 - **Hilfe eingebaut**, in der Desktop-App und in der Browser-Erweiterung: ein Reiter **Hilfe** mit
   kurzen Artikeln, die ohne Netz funktionieren, ein **?** neben jedem Abschnitt der Einstellungen
   und **Mehr dazu** an den Statuszeilen. Die Meldung oben im Panel sagt jetzt auch, was zu tun ist.
@@ -45,6 +51,10 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
 - **Anhänge wurden nie ins Archiv geholt.** Die Bridge legte für Anhänge keine Medienzeile an, und
   der Medienabruf fand deshalb nie etwas zu tun, im Desktop wie im Browser. Jetzt entsteht für jede
   Nachricht mit Anhang eine Zeile, live wie beim Übernehmen.
+- **Lizenztexte vollständig.** Die Desktop-App und die Browser-Erweiterung legen jetzt die
+  vollständigen Lizenz- und Copyright-Texte aller mitgelieferten Bibliotheken bei, auch der
+  Bibliotheken, die in der Texterkennung und in whisper.cpp stecken (`THIRD_PARTY_NOTICES.txt`).
+  Bisher stand dort nur eine Liste mit Namen.
 
 ## [0.7.1] — 2026-09-13
 

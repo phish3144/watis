@@ -2759,10 +2759,10 @@
               <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-mic" /></svg></div>
               <h3>Sprachnachrichten zum Nachlesen</h3>
               <p>
-                <strong>Im Browser</strong> wird eine Sprachnachricht auf Klick zu Text, mit
+                <strong>Im Browser</strong> wird eine Sprachnachricht mit einem Klick zu Text, mit
                 whisper.cpp auf deinem Rechner, und ist danach durchsuchbar wie jede andere Nachricht.
-                Das Sprachmodell wird einmalig geladen (57 oder 181 MB), nur wenn du es willst, und
-                vor dem ersten Einsatz gegen eine Prüfsumme geprüft. Ist GitHub im Firmennetz
+                Beim ersten Mal fragt WatIs? direkt an der Nachricht, ob es das Sprachmodell laden darf
+                (57 MB, genauer 181 MB), und prüft es gegen eine Prüfsumme. Ist GitHub im Firmennetz
                 gesperrt, geht dieselbe Datei auch von der Platte.
               </p>
               <div class="visual" aria-hidden="true">
@@ -3043,7 +3043,8 @@
               <p>
                 Das Archiv gehört dort zum <strong>Browserprofil</strong>: Abmelden, Cache leeren und
                 Updates übersteht es, das Entfernen der Erweiterung oder ein zurückgesetztes
-                Firmenprofil nicht – darum die Sicherung. Kein Tray, kein Autostart, keine
+                Firmenprofil nicht – darum die Sicherung, die sich dort auch wieder zurückspielen
+                lässt. Kein Tray, kein Autostart, keine
                 Direktantwort, kein Nachladen älterer Nachrichten, kein Export als JSON/HTML/TXT. In
                 Firefox geht keine Sicherung in einen Ordner, nur als ZIP, und zum Transkribieren muss
                 der WhatsApp-Tab offen sein. In den Stores steht die Erweiterung noch nicht; in
@@ -3328,7 +3329,7 @@
                             Spalte.
                           </li>
                           <li>
-                            <strong>Laden:</strong> oben auf <em>Entpackte Erweiterung laden</em>
+                            <strong>Laden:</strong> oben auf <em>Entpackte Dateien laden</em>
                             klicken, den Ordner <code>Dokumente\WatIs</code> wählen,
                             <em>Ordner auswählen</em>.
                           </li>
@@ -3394,7 +3395,8 @@
                           mit <em>Alle extrahieren …</em> in <strong>denselben Ordner</strong>
                           <code>Dokumente\WatIs</code> entpacken; fragt Windows, dann
                           <em>Dateien im Ziel ersetzen</em>. Danach auf der Erweiterungsseite bei
-                          WatIs? auf den runden Pfeil (<em>Neu laden</em>) klicken.
+                          WatIs? neu laden: in Chrome der runde Pfeil (<em>Neu laden</em>), in Edge
+                          <em>Erneut laden</em>.
                         </li>
                         <li>
                           <strong>Firefox:</strong> die neue ZIP wie links über
@@ -3411,7 +3413,7 @@
                       <ul>
                         <li>
                           <strong><em>Entfernen</em> löscht das Archiv</strong>, in jedem Browser.
-                          Für ein Update reicht <em>Neu laden</em>.
+                          Für ein Update reicht <em>Neu laden</em> (in Edge <em>Erneut laden</em>).
                         </li>
                         <li>
                           <strong>Ein anderer Ordner ist eine andere Erweiterung.</strong> Entpackst
@@ -3420,9 +3422,10 @@
                         </li>
                       </ul>
                       <p>
-                        Vor allem Größeren: <em>Einstellungen → Sicherung</em>. Ist der
-                        Entwicklermodus ausgegraut, hat die IT ihn gesperrt – dann geht es erst über
-                        die Stores.
+                        Vor allem Größeren: <em>Einstellungen → Sicherung</em>. Unter
+                        <em>Sicherung zurückspielen</em> kommt das Archiv daraus wieder zurück, auch
+                        in einen anderen Browser. Ist der Entwicklermodus ausgegraut, hat die IT ihn
+                        gesperrt – dann geht es erst über die Stores.
                       </p>
                     </div>
                   </div>

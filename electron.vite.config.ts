@@ -2,12 +2,59 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import type { Plugin } from 'vite'
+import {
+  SQLITE,
+  TESSERACT_COMPONENTS,
+  collectPackages,
+  mit,
+  writeNotices,
+} from './scripts/third-party-notices.mjs'
 
 const shared = resolve(__dirname, 'src/shared')
 const platform = resolve(__dirname, 'src/platform')
 
+/** Every npm package bundled into main, preload or renderer: their licence files stay behind. */
+const bundled = new Set<string>()
+
+/**
+ * Writes out/THIRD_PARTY_NOTICES.txt once the renderer, the last of the three builds, is done. The
+ * dependencies that stay in node_modules carry their own licence files into the package; this file
+ * has the rest — what the bundles took in, and what tesseract.js-core and @transcribe/shout contain
+ * without listing it. electron-builder.yml puts it next to app.asar.
+ */
+function notices(): Plugin {
+  return {
+    name: 'watis-third-party-notices',
+    apply: 'build',
+    closeBundle() {
+      writeNotices({
+        root: __dirname,
+        file: resolve(__dirname, 'out/THIRD_PARTY_NOTICES.txt'),
+        product: 'WatIs? (desktop app)',
+        packages: bundled,
+        extras: [
+          SQLITE,
+          {
+            name: 'whisper.cpp (inside @transcribe/shout)',
+            licence: 'MIT',
+            text: mit('Copyright (c) 2023-2024 The ggml authors'),
+          },
+          ...TESSERACT_COMPONENTS,
+          {
+            name: 'OpenAI Whisper model weights (downloaded on request, not part of this package)',
+            licence: 'MIT',
+            text: mit('Copyright (c) 2022 OpenAI'),
+          },
+        ],
+      })
+    },
+  }
+}
+
 export default defineConfig({
   main: {
+    plugins: [collectPackages(bundled)],
     resolve: { alias: { '@shared': shared, '@platform': platform } },
     build: {
       externalizeDeps: true,
@@ -25,6 +72,7 @@ export default defineConfig({
     },
   },
   preload: {
+    plugins: [collectPackages(bundled)],
     resolve: { alias: { '@shared': shared } },
     build: {
       externalizeDeps: true,
@@ -40,7 +88,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), collectPackages(bundled), notices()],
     resolve: {
       alias: { '@shared': shared, '@renderer': resolve(__dirname, 'src/renderer/src') },
     },

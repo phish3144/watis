@@ -84,6 +84,27 @@ sie neu zu erteilen braucht eine Nutzergeste. Eine automatische Sicherung ginge 
 die Berechtigung noch steht. Das ist ein möglicher nächster Schritt, kein Versprechen. Am Desktop
 gibt es die zeitgesteuerte Sicherung in einen Ordner schon (Phase 6).
 
+### 5. Zurückspielen (2026-10-05)
+
+Eine Sicherung, die nicht zurückkommt, sichert nichts. In der Erweiterung holt **„Sicherung
+zurückspielen“** sie wieder herein: aus dem Sicherungsordner (Chrome, Edge) oder aus den
+ZIP-Sicherungen. Diese werden **alle zusammen** gewählt, weil jede nach der ersten nur die neuen
+Medien trägt; die Medien sind ihre Vereinigung, die Datenbank die neueste nach `BACKUP.json`. Weil
+das Format dasselbe ist, geht auch eine Sicherung der Desktop-App.
+
+- **Ersetzen, nicht zusammenführen.** Die Datenbank der Sicherung tritt an die Stelle des Archivs.
+  Zusammenführen hieße, zwei Archive Tabelle für Tabelle zu vereinen, samt Suchindex und Triggern –
+  viel Raum für leise Fehler. Was dabei verloren gehen könnte, ist klein: Was WhatsApp Web gerade
+  zeigt, wird nach dem Zurückspielen sofort wieder übernommen.
+- **Erst prüfen, dann tauschen.** Der Archiv-Worker öffnet die Datei unter anderem Namen und
+  verlangt die Tabellen eines WatIs?-Archivs in einem Schema, das dieser Stand migrieren kann. Die
+  bisherige Datenbank bleibt währenddessen im Speicher und kommt zurück, wenn die neue nicht öffnet.
+  Anfragen, die in dieser Sekunde eintreffen, warten.
+- **Medien zuerst, die Datenbank zuletzt.** So zeigt das Archiv nie auf Dateien, die noch kopiert
+  werden. Was schon da ist, bleibt; die Dateien sind nach ihrem Inhalt benannt.
+- **Nur, was ins Format gehört.** Aus einer Sicherung wird nur `archive.sqlite` gelesen und nur, was
+  dem Pfadmuster `blobs/<aa>/<bb>/<sha256>.<ext>` entspricht, geschrieben.
+
 ## Größenordnung
 
 Fotos: einige hundert Kilobyte. Sprachnachrichten: rund 100 KB pro Minute. Videos: einige Megabyte

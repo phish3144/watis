@@ -2,6 +2,7 @@ import { ext, isFirefox } from '../ext'
 import { MODEL_DOWNLOAD_ORIGINS } from '../manifest'
 import {
   canRunHere,
+  installedModels,
   MODEL_RELEASE,
   MODELS,
   modelDir,
@@ -24,6 +25,32 @@ export { DEFAULT_MODEL, installedModels, MODELS, type ModelKey } from '../whispe
  * GitHub is out of reach — a company proxy, say — the same file can be picked from disk instead;
  * it is held to the same checksum.
  */
+
+/**
+ * The model the button under a voice message offers the first time: the small, fast one. It is
+ * downloaded in seconds and transcribes a few times faster; "Genau" stays one setting away, and
+ * once it is here it is the one used (whisper.ts prefers the default when both are).
+ */
+export const FIRST_MODEL: ModelKey = 'base'
+
+let modelState: Promise<boolean> | undefined
+
+/**
+ * Whether a speech model is here, asked once and remembered: a chat with forty voice messages
+ * renders forty buttons, and each of them needs the answer before it is clicked. Getting, taking
+ * or removing a model forgets it.
+ */
+export function modelReady(): Promise<boolean> {
+  modelState ??= installedModels().then(
+    (list) => list.length > 0,
+    () => false,
+  )
+  return modelState
+}
+
+function forgetModelState(): void {
+  modelState = undefined
+}
 
 /** Whether voice messages can be transcribed in this browser at all. */
 export function transcriptionSupported(): boolean {
@@ -114,6 +141,7 @@ export async function downloadModel(
     throw error
   }
   await promote(dir, key)
+  forgetModelState()
 }
 
 /**
@@ -130,6 +158,7 @@ export async function importModel(file: File): Promise<ModelKey> {
   await writable.write(file)
   await writable.close()
   await promote(dir, key)
+  forgetModelState()
   return key
 }
 
@@ -137,4 +166,5 @@ export async function deleteModel(key: ModelKey): Promise<void> {
   unload(key)
   const dir = await modelDir()
   await dir?.removeEntry(MODELS[key].file).catch(() => undefined)
+  forgetModelState()
 }

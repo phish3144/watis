@@ -125,7 +125,8 @@ Bis die Erweiterung in den Stores steht, wird sie selbst gebaut (`npm ci && npm 
 oder als Artefakt `browser-extension` aus einem CI-Lauf genommen:
 
 - **Chrome / Edge:** `chrome://extensions` bzw. `edge://extensions` öffnen, **Entwicklermodus** an,
-  **Entpackte Erweiterung laden** und `out/extension/chromium` wählen.
+  **Entpackte Erweiterung laden** (Edge: **Entpackte Dateien laden**) und `out/extension/chromium`
+  wählen.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
   `out/extension/firefox/manifest.json` wählen. Temporär heißt: Nach einem Neustart von Firefox ist
   es weg, bis es auf addons.mozilla.org signiert ist.
@@ -144,12 +145,15 @@ WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigene
 
 Das Archiv liegt **im Browserprofil**. Abmelden, Cache leeren und Updates überlebt es, das Entfernen
 der Erweiterung nicht. Deshalb gibt es unter Einstellungen die **Sicherung**, in einen Ordner
-(Chrome, Edge) oder als ZIP. Sie hat dasselbe Format wie die Sicherung der Desktop-App
+(Chrome, Edge) oder als ZIP, und **Sicherung zurückspielen** holt sie in ein leeres oder neues
+Browserprofil zurück, auch eine Sicherung der Desktop-App. Sie hat dasselbe Format wie die Sicherung der Desktop-App
 ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
-Für die Transkription wird einmalig ein Sprachmodell geladen, 57 MB („Schnell") oder 181 MB
-(„Genau"), nur auf Klick und gegen eine hinterlegte Prüfsumme geprüft. Ist GitHub im Firmennetz
-gesperrt, nimmt die Erweiterung dieselbe Datei auch von der Platte
+Transkribieren ist ein Klick auf **Transkribieren** unter der Sprachnachricht; eine, die noch nicht
+im Archiv ist, wird dabei geholt. Beim ersten Mal bietet der Knopf das Sprachmodell an, 57 MB
+(„Schnell"), und lädt es erst nach einem zweiten Klick, gegen eine hinterlegte Prüfsumme geprüft.
+„Genau" (181 MB) lässt sich in den Einstellungen dazuholen. Ist GitHub im Firmennetz gesperrt, nimmt
+die Erweiterung dieselbe Datei auch von der Platte
 ([ADR 0012](docs/decisions/0012-ocr-und-transkription-im-browser.md)).
 
 Im Browser gibt es kein Tray, keinen Autostart, keine Direktantwort, kein Nachladen älterer

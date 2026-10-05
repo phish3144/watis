@@ -263,6 +263,19 @@ ext.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
       return respond(askFrame((id) => ({ id, kind: 'fetch-media', mediaId: message.mediaId })))
     case 'export-database':
       return respond(askFrame((id) => ({ id, kind: 'export-database' }), 300_000))
+    case 'import-database':
+      return respond(
+        askFrame((id) => ({ id, kind: 'import-database', path: message.path }), 300_000).then(
+          (reply) => {
+            // What WhatsApp holds right now may be newer than the backup: take it over again.
+            if (reply.ok) {
+              snapshotDone = false
+              scheduleSnapshot()
+            }
+            return reply
+          },
+        ),
+      )
     case 'transcribe':
       // A long voice message on a slow machine takes minutes; the frame answers when it is done.
       return respond(
