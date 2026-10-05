@@ -17,7 +17,11 @@ import { fakeWhatsAppHeaders, fakeWhatsAppPage, type FakeFile } from './fake-wha
  */
 
 const root = resolve(__dirname, '..', '..')
-const extensionDir = join(root, 'out', 'extension', 'chromium')
+/**
+ * The unpacked extension. WATIS_EXTENSION_DIR points at a folder the release ZIP was extracted
+ * into, the way somebody installs it by hand — so a fault in the packing shows up here too.
+ */
+const extensionDir = process.env.WATIS_EXTENSION_DIR ?? join(root, 'out', 'extension', 'chromium')
 const fixture = (name: string): string =>
   readFileSync(join(root, 'test', 'fixtures', name)).toString('base64')
 const IMAGE = 'ZmFrZS1yZWNobnVuZw=='

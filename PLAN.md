@@ -724,7 +724,9 @@ Client anmeldet, wäre ein Protokoll-Client mit Cloud ([ADR 0010](docs/decisions
 - [ ] Dauer einer Transkription auf einem echten Arbeitsplatzrechner messen. In der Cloud-VM der
       Entwicklung waren es 33–75 s für 4 s Sprache, und das ist kein Maßstab
 - [ ] Eine Sicherung zurück in die Erweiterung spielen
-- [ ] Edge eigens prüfen. Bisher gilt es als Chromium, gemessen ist es nicht
+- [x] Edge eigens prüfen: Microsoft Edge 154 (Linux-Build) besteht alle 20 E2E-Prüfungen, geladen
+      aus der entpackten Release-ZIP (2026-10-05). Die deutschen Knöpfe heißen dort anders als in
+      Chrome: „Entpackte Dateien laden“ und „Erneut laden“
 
 **DoD:** In Chrome, Edge und Firefox spiegelt die Erweiterung WhatsApp Web lückenlos ins Archiv,
 findet ein Wort aus einer Nachricht, einem Foto, einem PDF und einer transkribierten Sprachnachricht,

@@ -190,12 +190,19 @@ try {
       statusCode: 200,
       reasonPhrase: 'OK',
       headers,
-      body: { type: 'string', value: page },
+      // As UTF-8 bytes, not as a string: Firefox 140 ESR encodes a string body one byte per
+      // character, so every umlaut on the fake page arrived as U+FFFD and only there.
+      body: { type: 'base64', value: Buffer.from(page, 'utf8').toString('base64') },
     })
   })
 
+  // WATIS_FIREFOX_ZIP installs the packed ZIP instead of the build folder: the file somebody
+  // downloads and picks under about:debugging, so a fault in the packing shows up here too.
+  const zip = process.env.WATIS_FIREFOX_ZIP
   await call('webExtension.install', {
-    extensionData: { type: 'path', path: join(root, 'out', 'extension', 'firefox') },
+    extensionData: zip
+      ? { type: 'archivePath', path: zip }
+      : { type: 'path', path: join(root, 'out', 'extension', 'firefox') },
   })
   // The extension opens its panel in a tab on first install. That tab is a full extension page,
   // and the one place this script can use browser.* the way the panel does.
