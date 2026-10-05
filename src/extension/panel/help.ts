@@ -219,8 +219,23 @@ export const HELP: readonly HelpArticle[] = [
       {
         p: '[[Als ZIP herunterladen]] legt die Sicherung in deinen Download-Ordner unter „WatIs/Sicherung“. Die erste ZIP enthält alles, jede weitere nur die neuen Medien seit der letzten; [[Alle Medien neu]] packt wieder alles ein. Große Archive kommen in mehreren Teilen von höchstens 1 GB.',
       },
+      { h: 'Zurückspielen' },
       {
-        note: 'Die Sicherung hat dasselbe Format wie die der Desktop-App: die Datenbank archive.sqlite und die Medien im Ordner blobs. Ein Zurückspielen in die Erweiterung gibt es noch nicht.',
+        p: 'Nach dem Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung von WatIs? beginnt das Archiv leer. So kommt es zurück:',
+      },
+      {
+        steps: [
+          '[[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]]',
+          '[[Aus einem Ordner …]] wählt den Sicherungsordner (Chrome und Edge). [[ZIP-Dateien wählen …]] nimmt die ZIP-Sicherungen – **alle auf einmal markieren**, denn jede nach der ersten enthält nur die neuen Medien.',
+          'WatIs? sagt, von wann die Sicherung ist und wie viele Medien sie enthält. [[Zurückspielen]] klicken.',
+        ],
+      },
+      {
+        list: [
+          'Die Sicherung **ersetzt** das Archiv in diesem Browser. Was WhatsApp Web gerade zeigt, holt WatIs? danach von selbst wieder dazu.',
+          'Medien, die hier schon liegen, bleiben, und kommen nicht doppelt.',
+          'Auch eine Sicherung der Desktop-App lässt sich so zurückspielen – sie hat dasselbe Format: die Datenbank archive.sqlite und die Medien im Ordner blobs.',
+        ],
       },
     ],
     related: ['aktualisieren', 'datenschutz'],

@@ -144,7 +144,8 @@ WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigene
 
 Das Archiv liegt **im Browserprofil**. Abmelden, Cache leeren und Updates überlebt es, das Entfernen
 der Erweiterung nicht. Deshalb gibt es unter Einstellungen die **Sicherung**, in einen Ordner
-(Chrome, Edge) oder als ZIP. Sie hat dasselbe Format wie die Sicherung der Desktop-App
+(Chrome, Edge) oder als ZIP, und **Sicherung zurückspielen** holt sie in ein leeres oder neues
+Browserprofil zurück, auch eine Sicherung der Desktop-App. Sie hat dasselbe Format wie die Sicherung der Desktop-App
 ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
 Transkribieren ist ein Klick auf **Transkribieren** unter der Sprachnachricht; eine, die noch nicht

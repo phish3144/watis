@@ -723,7 +723,10 @@ Client anmeldet, wäre ein Protokoll-Client mit Cloud ([ADR 0010](docs/decisions
 - [ ] Lasttest nach §3.1 gegen die WASM-Engine
 - [ ] Dauer einer Transkription auf einem echten Arbeitsplatzrechner messen. In der Cloud-VM der
       Entwicklung waren es 33–75 s für 4 s Sprache, und das ist kein Maßstab
-- [ ] Eine Sicherung zurück in die Erweiterung spielen
+- [x] Eine Sicherung zurück in die Erweiterung spielen: aus dem Sicherungsordner oder aus allen
+      ZIP-Sicherungen zusammen, auch eine der Desktop-App. Medien zuerst, die Datenbank zuletzt; der
+      Archiv-Worker prüft sie unter anderem Namen, bevor er tauscht, und fällt bei einem Fehler auf die
+      alte zurück ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md))
 - [x] Edge eigens prüfen: Microsoft Edge 154 (Linux-Build) besteht alle 20 E2E-Prüfungen, geladen
       aus der entpackten Release-ZIP (2026-10-05). Die deutschen Knöpfe heißen dort anders als in
       Chrome: „Entpackte Dateien laden“ und „Erneut laden“

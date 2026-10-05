@@ -374,6 +374,39 @@ try {
       throw new Error(`media missing: ${names.join(', ')}`)
     }
   })
+  await check('a backup database goes back into the archive in the WhatsApp tab', async () => {
+    // The panel's file picker cannot be driven here (no input.setFiles in extension pages), so the
+    // database comes from an export of this archive. What has to hold is the worker's part: the
+    // archive is replaced, not merged, in the frame that owns it.
+    const send = (message) =>
+      evaluate(
+        panel,
+        `browser.tabs.query({ url: 'https://web.whatsapp.com/*' }).then(([tab]) =>
+           browser.tabs.sendMessage(tab.id, ${JSON.stringify(message)})
+         ).then((reply) => {
+           if (!reply.ok) throw new Error(reply.error)
+           return reply.value
+         })`,
+      )
+    const { path } = await send({ kind: 'export-database' })
+    await archive({
+      op: 'import',
+      messages: [
+        {
+          id: 'nur-lokal',
+          chatId: 'fam@g.us',
+          ts: Math.floor(Date.now() / 1000),
+          body: 'Nur hier und in keiner Sicherung',
+        },
+      ],
+    })
+    const localOnly = async () =>
+      (await archive({ op: 'search', query: 'Sicherung source:body', limit: 5 })).hits.length
+    if ((await localOnly()) !== 1) throw new Error('the local message did not arrive')
+    const counts = await send({ kind: 'import-database', path })
+    if (!(counts.messages > 0)) throw new Error(`restored ${JSON.stringify(counts)}`)
+    if ((await localOnly()) !== 0) throw new Error('the message that was only here survived')
+  })
   // whisper.cpp needs a cross-origin isolated page. Firefox does not isolate its extension pages,
   // but it does isolate the archive frame in the WhatsApp tab, so that is where it runs (ADR 0012).
   if (existsSync(whisperModel)) {

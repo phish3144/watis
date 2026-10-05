@@ -29,6 +29,10 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
   ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
+- **Sicherung zurückspielen** in der Browser-Erweiterung: aus dem Sicherungsordner oder aus allen
+  ZIP-Sicherungen zusammen, auch eine Sicherung der Desktop-App. Damit kommt das Archiv nach dem
+  Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung
+  zurück ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 - **Hilfe eingebaut**, in der Desktop-App und in der Browser-Erweiterung: ein Reiter **Hilfe** mit
   kurzen Artikeln, die ohne Netz funktionieren, ein **?** neben jedem Abschnitt der Einstellungen
   und **Mehr dazu** an den Statuszeilen. Die Meldung oben im Panel sagt jetzt auch, was zu tun ist.

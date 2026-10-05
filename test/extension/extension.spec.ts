@@ -443,6 +443,63 @@ test('a ZIP backup lands in the downloads, and the next one carries only new med
   ).toBeVisible({ timeout: 60_000 })
 })
 
+test('ZIP backups go back in: the database is replaced, the media come back', async () => {
+  test.setTimeout(120_000)
+  // Both ZIPs of the test before: the first carries every medium, the second only the newer
+  // database. Picked together, they have to make one whole archive.
+  // The two most recent downloads; Playwright stores them under its own names, not ours.
+  const zips = await inExtension(async () =>
+    (await chrome.downloads.search({ orderBy: ['-startTime'], limit: 2, state: 'complete' })).map(
+      (download) => download.filename,
+    ),
+  )
+  expect(zips.length).toBeGreaterThanOrEqual(2)
+
+  // What is not in the backup: a message only this archive knows, and a picture gone from storage.
+  await archive({
+    op: 'import',
+    messages: [
+      {
+        id: 'nur-lokal',
+        chatId: 'fam@g.us',
+        ts: Math.floor(Date.now() / 1000),
+        body: 'Nur hier und in keiner Sicherung',
+      },
+    ],
+  })
+  const localOnly = async (): Promise<number> =>
+    (await archive<{ hits: unknown[] }>({ op: 'search', query: 'Sicherung source:body', limit: 5 }))
+      .hits.length
+  expect(await localOnly()).toBe(1)
+  await panel.evaluate(async (path) => {
+    let dir = await navigator.storage.getDirectory()
+    const parts = path.split('/')
+    const name = parts.pop() ?? ''
+    for (const part of parts) dir = await dir.getDirectoryHandle(part)
+    await dir.removeEntry(name)
+  }, OPFS_IMAGE_PATH)
+  expect((await archive<{ path: string | null }>({ op: 'blobPath', mediaId: IMAGE })).path).toBe(
+    null,
+  )
+
+  await panel.getByLabel('ZIP-Dateien wählen …').setInputFiles(zips)
+  await expect(
+    panel.getByText(/Sicherung vom .+ mit [3-9] Medien\. Sie ersetzt das Archiv in diesem Browser/),
+  ).toBeVisible({ timeout: 30_000 })
+  await panel.getByRole('button', { name: 'Zurückspielen' }).click()
+  await expect(panel.getByText(/Zurückgespielt: \d+ Nachrichten in \d+ Chats/)).toBeVisible({
+    timeout: 60_000,
+  })
+
+  // Replaced, not merged: the message that was only here is gone. The picture is back, and what
+  // the backup held — a transcript among it — is found as before.
+  expect(await localOnly()).toBe(0)
+  expect((await archive<{ path: string | null }>({ op: 'blobPath', mediaId: IMAGE })).path).toBe(
+    OPFS_IMAGE_PATH,
+  )
+  expect(await hitMedia('kitchen source:transcript')).toContain(VOICE)
+})
+
 test('a file WhatsApp will not hand over says why, in plain German, with a way to the help', async () => {
   await panel.reload()
   await panel.getByRole('button', { name: 'Medien', exact: true }).first().click()

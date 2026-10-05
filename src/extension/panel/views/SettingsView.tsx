@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Settings, SettingsPatch } from '@shared/settings'
 import { version } from '../api'
 import {
@@ -12,6 +12,14 @@ import {
   type BackupState,
 } from '../backup'
 import type { PanelStatus } from '../hooks'
+import {
+  currentMessages,
+  restore,
+  sourceFromFolder,
+  sourceFromZips,
+  type RestoreProgress,
+  type RestoreSource,
+} from '../restore'
 import { bytes, count, when } from '../format'
 import { DownloadIcon } from '../icons'
 import { t } from '../strings'
@@ -376,6 +384,7 @@ function ArchiveCard({
         }
       />
       <BackupRows />
+      <RestoreRows />
     </Card>
   )
 }
@@ -501,5 +510,148 @@ function BackupRows(): React.JSX.Element {
         </p>
       </div>
     </>
+  )
+}
+
+/**
+ * Putting a backup back (restore.ts): pick it, see what it is and what it replaces, then confirm.
+ * Nothing is touched before the confirmation.
+ */
+function RestoreRows(): React.JSX.Element {
+  const folderSupported = folderBackupSupported()
+  const input = useRef<HTMLInputElement>(null)
+  const [source, setSource] = useState<RestoreSource | undefined>(undefined)
+  const [current, setCurrent] = useState<number | undefined>(undefined)
+  const [reading, setReading] = useState(false)
+  const [progress, setProgress] = useState<RestoreProgress | undefined>(undefined)
+  const [message, setMessage] = useState<string | undefined>(undefined)
+  const busy = reading || progress !== undefined
+
+  const fail = (e: unknown): void => {
+    // Closing the folder picker is not an error worth a red line.
+    if (e instanceof DOMException && e.name === 'AbortError') return
+    setMessage(t('common.error', { error: e instanceof Error ? e.message : String(e) }))
+  }
+
+  const pick = (open: () => Promise<RestoreSource>): void => {
+    setMessage(undefined)
+    setSource(undefined)
+    setReading(true)
+    open()
+      .then(async (found) => {
+        setCurrent(await currentMessages())
+        setSource(found)
+      })
+      .catch(fail)
+      .finally(() => {
+        setReading(false)
+        if (input.current) input.current.value = ''
+      })
+  }
+
+  const run = (): void => {
+    if (!source) return
+    setMessage(undefined)
+    setProgress({ files: 0, bytes: 0 })
+    restore(source, setProgress)
+      .then((done) => {
+        setMessage(
+          t('restore.done', {
+            messages: count(done.messages),
+            chats: count(done.chats),
+            copied: count(done.copied),
+          }),
+        )
+      })
+      .catch(fail)
+      .finally(() => {
+        setProgress(undefined)
+        setSource(undefined)
+      })
+  }
+
+  const whenMade = source ? when(Math.floor(source.createdAt.getTime() / 1000)) : ''
+  return (
+    <div className="mt-4 space-y-2 border-t border-wa-hairline pt-3">
+      <SettingRow label={t('restore.title')} hint={t('restore.hint')} control={null} />
+      <div className="flex flex-wrap items-center gap-2">
+        {folderSupported && (
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => {
+              pick(sourceFromFolder)
+            }}
+          >
+            {t('restore.folder')}
+          </Button>
+        )}
+        <input
+          ref={input}
+          type="file"
+          multiple
+          accept=".zip,application/zip"
+          aria-label={t('restore.zip')}
+          className="hidden"
+          onChange={(event) => {
+            const files = [...(event.target.files ?? [])]
+            if (files.length > 0) {
+              pick(() => sourceFromZips(files))
+            }
+          }}
+        />
+        <Button
+          variant="ghost"
+          disabled={busy}
+          onClick={() => {
+            input.current?.click()
+          }}
+        >
+          {t('restore.zip')}
+        </Button>
+      </div>
+
+      {source && !progress && (
+        <div className="space-y-2 rounded-xl bg-wa-accent-soft px-3 py-2 text-xs leading-snug">
+          <p>
+            {current
+              ? t('restore.confirm', {
+                  when: whenMade,
+                  media: count(source.media.length),
+                  current: count(current),
+                })
+              : t('restore.confirm.empty', { when: whenMade, media: count(source.media.length) })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={run}>
+              {t('restore.go')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSource(undefined)
+              }}
+            >
+              {t('restore.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {(busy || message) && (
+        <p className="text-xs leading-snug text-wa-muted">
+          {reading ? (
+            t('restore.reading')
+          ) : progress ? (
+            <>
+              <Spinner />{' '}
+              {t('restore.running', { files: count(progress.files), bytes: bytes(progress.bytes) })}
+            </>
+          ) : (
+            message
+          )}
+        </p>
+      )}
+    </div>
   )
 }

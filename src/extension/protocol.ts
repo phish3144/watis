@@ -31,6 +31,8 @@ export type HostRequest =
   | { kind: 'fetch-media'; mediaId: string }
   /** Copy the database out of OPFS, for a backup the user downloads. */
   | { kind: 'export-database' }
+  /** Put a restored backup's database, copied to this OPFS path, in place of the archive. */
+  | { kind: 'import-database'; path: string }
   /**
    * Transcribe a voice message in the WhatsApp tab's archive frame — Firefox's only cross-origin
    * isolated extension page, and so its only place for whisper.cpp (ADR 0012).

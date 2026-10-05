@@ -76,6 +76,9 @@ async function answer(message: ToFrame): Promise<void> {
     case 'export-database':
       send({ id: message.id, kind: 'reply', reply: await host.exportDatabase() })
       return
+    case 'import-database':
+      send({ id: message.id, kind: 'reply', reply: await host.importDatabase(message.path) })
+      return
     case 'transcribe':
       send({
         id: message.id,

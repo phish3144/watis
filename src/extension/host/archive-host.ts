@@ -126,6 +126,13 @@ export class ArchiveHost {
     return this.#ask((id) => ({ type: 'export', id }))
   }
 
+  /** Replaces the archive with the database at this OPFS path, a restored backup (restore.ts). */
+  importDatabase(path: string): Promise<Reply> {
+    if (!this.#worker || !this.#owner)
+      return Promise.resolve({ ok: false, error: 'not the archive' })
+    return this.#ask((id) => ({ type: 'import', id, path }))
+  }
+
   // --- ownership --------------------------------------------------------------------------------
 
   #open(): void {
