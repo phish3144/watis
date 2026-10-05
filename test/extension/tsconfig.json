@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "chrome"]
   },
-  "include": ["./**/*", "../../playwright.extension.config.ts"]
+  "include": ["./**/*", "../../playwright.extension.config.ts", "../../playwright.store.config.ts"]
 }

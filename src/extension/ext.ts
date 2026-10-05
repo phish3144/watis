@@ -12,8 +12,13 @@ declare const browser: typeof chrome | undefined
 
 export const ext: typeof chrome = typeof browser !== 'undefined' ? browser : chrome
 
-/** True in Firefox. Used only where the two genuinely differ, never to pick a code path by habit. */
-export const isFirefox: boolean = typeof browser !== 'undefined'
+/**
+ * True in Firefox. Used only where the two genuinely differ, never to pick a code path by habit.
+ *
+ * Not `typeof browser`: Chromium has begun to offer `browser` as well (Edge 154 does), and there it
+ * made WatIs? take Edge for Firefox. Only Firefox serves extensions from `moz-extension:`.
+ */
+export const isFirefox: boolean = ext.runtime.getURL('').startsWith('moz-extension:')
 
 /**
  * Sends to the other extension contexts and treats "nobody is listening" as an ordinary answer.

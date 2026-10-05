@@ -1,7 +1,14 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { tokenizeHelp } from '@shared/help/content'
+import { ext, isFirefox } from '../ext'
 import { bytes } from './format'
-import { helpArticle, type HelpTopic } from './help'
+import {
+  helpArticle,
+  type HelpBrowser,
+  type HelpContext,
+  type HelpInstall,
+  type HelpTopic,
+} from './help'
 import { HelpIcon } from './icons'
 import { t } from './strings'
 import { MODELS } from '../whisper'
@@ -59,6 +66,50 @@ export function HelpLink({
       {children ?? t('help.more')}
     </button>
   )
+}
+
+/** The browser the panel runs in. Every Chromium browser but Edge reads the Chrome text. */
+function currentBrowser(): HelpBrowser {
+  if (isFirefox) return 'firefox'
+  const brands =
+    (navigator as Navigator & { userAgentData?: { brands: { brand: string }[] } }).userAgentData
+      ?.brands ?? []
+  return brands.some((b) => b.brand === 'Microsoft Edge') || navigator.userAgent.includes(' Edg/')
+    ? 'edge'
+    : 'chrome'
+}
+
+/**
+ * How WatIs? was installed. `management.getSelf` needs no permission; "development" is the unpacked
+ * folder (Chrome, Edge) or the temporary add-on (Firefox), anything else came from a store or the
+ * IT. Unknown counts as the ZIP: that text is the one with more to do, never the wrong promise.
+ */
+let installKind: Promise<HelpInstall> | undefined
+function currentInstall(): Promise<HelpInstall> {
+  installKind ??= (async (): Promise<HelpInstall> => {
+    try {
+      const self = await (ext.management as typeof ext.management | undefined)?.getSelf()
+      return self && self.installType !== 'development' ? 'store' : 'manual'
+    } catch {
+      return 'manual'
+    }
+  })()
+  return installKind
+}
+
+/** Where the panel runs, for the parts of the help that differ (help.ts); undefined for a moment. */
+export function useHelpContext(): HelpContext | undefined {
+  const [install, setInstall] = useState<HelpInstall | undefined>(undefined)
+  useEffect(() => {
+    let alive = true
+    void currentInstall().then((kind) => {
+      if (alive) setInstall(kind)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+  return install ? { browser: currentBrowser(), install } : undefined
 }
 
 /** Model sizes come from the model list, so the help never quotes a size the download does not have. */

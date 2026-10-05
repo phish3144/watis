@@ -193,7 +193,7 @@ const de = {
   'settings.index.transcription.hint':
     'Auf Klick an einer Sprachnachricht. Braucht einmalig ein Sprachmodell, das du hier herunterlädst.',
   'transcription.unsupported':
-    'Geht in diesem Browser nicht: Whisper braucht geteilten Speicher, den er Erweiterungen nicht gibt. In Chrome, Edge und Firefox geht es.',
+    'Geht in diesem Browser nicht: Whisper braucht geteilten Speicher, den er Erweiterungen nicht gibt.',
   'transcription.model.base': 'Schnell',
   'transcription.model.base.hint': 'Für klare Aufnahmen · {size}',
   'transcription.model.small': 'Genau',
@@ -228,8 +228,8 @@ const de = {
   'transcription.offer.go': 'Laden und transkribieren',
   'transcription.offer.cancel': 'Abbrechen',
   'transcription.downloading': 'Sprachmodell wird geladen … {percent} %',
-  'transcription.needTab': 'In Firefox transkribiert der WhatsApp-Tab – bitte WhatsApp Web öffnen.',
-  'transcription.firefox': 'In Firefox rechnet der WhatsApp-Tab – er muss dafür offen sein.',
+  'transcription.needTab': 'Hier transkribiert der WhatsApp-Tab – bitte WhatsApp Web öffnen.',
+  'transcription.firefox': 'Hier rechnet der WhatsApp-Tab – er muss dafür offen sein.',
   'transcription.error.permission': 'Ohne Erlaubnis für den Download von GitHub geht es nicht.',
   'transcription.error.download': 'Download fehlgeschlagen ({status}).',
   'transcription.error.storage': 'Kein Speicherplatz für das Modell verfügbar.',
@@ -269,7 +269,7 @@ const de = {
   'welcome.step1': 'WhatsApp Web öffnen und wie gewohnt anmelden.',
   'welcome.step2': 'Das Archiv füllt sich von selbst, solange der Tab offen ist.',
   'welcome.step3': 'Über das WatIs?-Symbol in der Symbolleiste suchen.',
-  'welcome.permission': 'Firefox braucht noch deine Erlaubnis für web.whatsapp.com.',
+  'welcome.permission': 'Der Browser braucht noch deine Erlaubnis für web.whatsapp.com.',
   'welcome.grant': 'Erlauben',
   'welcome.dismiss': 'Verstanden',
   'welcome.guide': 'Kurze Einführung lesen',

@@ -529,3 +529,25 @@ test('the help opens from the navigation and from the "?" beside a setting', asy
   await expect(panel.getByRole('heading', { name: 'Sicherung', exact: true })).toBeVisible()
   await expect(panel.getByText('Jetzt sichern').first()).toBeVisible()
 })
+
+test('files saved from WhatsApp Web are sorted into a folder per chat', async () => {
+  // The background renames them as they start (onDeterminingFilename), in Chrome and Edge alike.
+  // Edge 154 offers Firefox's `browser` global too; telling the two apart by it once switched this
+  // off there.
+  const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
+  expect(await worker.evaluate(() => chrome.downloads.onDeterminingFilename.hasListeners())).toBe(
+    true,
+  )
+})
+
+test('the help shows the steps for this browser and this install, and names no other browser', async () => {
+  // Loaded unpacked, so updating means a new ZIP; and only this browser's extensions page.
+  const edge = await panel.evaluate(() => navigator.userAgent.includes(' Edg/'))
+  await panel.getByRole('button', { name: 'Hilfe', exact: true }).click()
+  await panel.getByRole('button', { name: /Aktualisieren/ }).click()
+  const article = panel.getByRole('article')
+  await expect(article).toContainText(edge ? 'edge://extensions' : 'chrome://extensions')
+  await expect(article).toContainText('denselben Ordner')
+  const text = await article.innerText()
+  expect(text).not.toMatch(edge ? /Chrome|chrome:\/\/|Firefox/ : /Edge|edge:\/\/|Firefox/)
+})

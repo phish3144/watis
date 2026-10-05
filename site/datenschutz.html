@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Datenschutzerklärung für WatIs? – Browser-Erweiterung, Desktop-App und diese Website."
+    />
+    <meta name="theme-color" content="#f4f7f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#07100e" media="(prefers-color-scheme: dark)" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E7C6F'/%3E%3Cpath d='M5 6h14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7.5L7 19l.8-4H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z' fill='white'/%3E%3C/svg%3E"
+    />
+    <title>Datenschutz – WatIs?</title>
+    <script>
+      // The theme chosen on the landing page, before the first paint.
+      try {
+        const theme = localStorage.getItem('watis-theme')
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
+    <style>
+      :root {
+        --sans:
+          system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue',
+          Arial, sans-serif;
+        --bg: #f4f7f5;
+        --surface: #ffffff;
+        --ink: #0c1815;
+        --muted: #55665f;
+        --line: rgba(12, 24, 21, 0.1);
+        --accent: #0e7c6f;
+        --accent-soft: rgba(14, 124, 111, 0.1);
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #07100e;
+          --surface: #0f1a17;
+          --ink: #e6efec;
+          --muted: #93a59e;
+          --line: rgba(230, 239, 236, 0.12);
+          --accent: #2dd4bf;
+          --accent-soft: rgba(45, 212, 191, 0.12);
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #07100e;
+        --surface: #0f1a17;
+        --ink: #e6efec;
+        --muted: #93a59e;
+        --line: rgba(230, 239, 236, 0.12);
+        --accent: #2dd4bf;
+        --accent-soft: rgba(45, 212, 191, 0.12);
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.6 var(--sans);
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 16px 64px;
+      }
+      a {
+        color: var(--accent);
+      }
+      .back {
+        display: inline-block;
+        margin-bottom: 24px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      h1 {
+        font-size: clamp(28px, 6vw, 40px);
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 21px;
+        margin: 40px 0 8px;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 24px 0 4px;
+      }
+      p,
+      li {
+        color: var(--ink);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .summary {
+        background: var(--accent-soft);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin: 24px 0;
+      }
+      .summary p {
+        margin: 0;
+      }
+      address {
+        font-style: normal;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 16px;
+      }
+      code {
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./">← WatIs?</a>
+      <h1>Datenschutzerklärung</h1>
+      <p class="muted">
+        Für die Browser-Erweiterung, die Desktop-App und diese Website. Stand: 5. Oktober 2026
+      </p>
+
+      <div class="summary">
+        <p>
+          <strong>Kurz gesagt:</strong> WatIs? schickt nichts an uns oder an Dritte. Es gibt kein
+          Konto, keinen Server, keine Telemetrie, keine Werbung und keine Cookies. Was WatIs?
+          speichert, liegt nur auf deinem Gerät.
+        </p>
+      </div>
+
+      <h2>Verantwortlich</h2>
+      <address>
+        Finn Bach<br />
+        <a href="mailto:fibach@pm.me">fibach@pm.me</a>
+      </address>
+      <p>
+        WatIs? ist ein privates Open-Source-Projekt unter der MIT-Lizenz. Der vollständige Quelltext
+        steht auf <a href="https://github.com/phish3144/watis">github.com/phish3144/watis</a>.
+        WatIs? ist kein offizielles WhatsApp-Produkt und steht in keiner Verbindung zu Meta.
+      </p>
+
+      <h2>Browser-Erweiterung</h2>
+
+      <h3>Welche Daten die Erweiterung verarbeitet</h3>
+      <p>
+        Die Erweiterung liest auf <code>web.whatsapp.com</code> mit, was WhatsApp Web in deinem
+        Browser ohnehin anzeigt: Nachrichten, Chat- und Kontaktnamen, Telefonnummern, Zeitpunkte und
+        Anhänge wie Bilder, Dokumente und Sprachnachrichten. Daraus baut sie ein durchsuchbares
+        Archiv. Texterkennung in Bildern und PDFs und die Transkription von Sprachnachrichten laufen
+        ebenfalls auf deinem Gerät.
+      </p>
+
+      <h3>Wo die Daten liegen</h3>
+      <p>
+        Ausschließlich im Speicher der Erweiterung in deinem Browserprofil. Die Erweiterung
+        überträgt keine dieser Daten an uns oder an Dritte. Entfernst du die Erweiterung, löscht der
+        Browser das Archiv.
+      </p>
+      <p>
+        Eine Sicherung entsteht nur, wenn du sie selbst anstößt: in einen Ordner, den du wählst,
+        oder als Datei in deinen Downloads. Liegt dieser Ordner in einem Cloud-Speicher wie OneDrive
+        oder Nextcloud, gelten für die Kopie dort die Bedingungen dieses Anbieters.
+      </p>
+
+      <h3>Netzwerkzugriffe</h3>
+      <ul>
+        <li>
+          <strong>web.whatsapp.com</strong> und die Medienserver von WhatsApp: Anhänge holt die
+          Erweiterung über WhatsApp Web selbst, auf demselben Weg wie ein Klick auf „Herunterladen“.
+        </li>
+        <li>
+          <strong>GitHub</strong>, nur wenn du für die Transkription ein Sprachmodell lädst und
+          zustimmst. Dabei erhält GitHub, Inc. wie bei jedem Download deine IP-Adresse; siehe die
+          <a
+            href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement"
+            >Datenschutzerklärung von GitHub</a
+          >.
+        </li>
+      </ul>
+      <p>Sonst stellt die Erweiterung keine Verbindungen her.</p>
+
+      <h3>Wozu die Berechtigungen dienen</h3>
+      <ul>
+        <li>
+          <strong>Zugriff auf web.whatsapp.com</strong>: Nachrichten und Anhänge für das Archiv
+          lesen.
+        </li>
+        <li>
+          <strong>Speicher, unbegrenzter Speicher</strong>: das Archiv und die Medien lokal ablegen.
+        </li>
+        <li>
+          <strong>Benachrichtigungen</strong>: neue Nachrichten melden; in den Einstellungen
+          abschaltbar.
+        </li>
+        <li><strong>Downloads</strong>: Sicherungen und gespeicherte Anhänge als Datei ablegen.</li>
+        <li><strong>Seitenleiste</strong>: das Panel neben WhatsApp Web zeigen.</li>
+        <li>
+          <strong>GitHub (optional)</strong>: das Sprachmodell laden. Der Browser fragt dich vorher.
+        </li>
+      </ul>
+
+      <h3>Nachrichten anderer Personen</h3>
+      <p>
+        Dein Archiv enthält auch, was andere dir geschrieben haben. Es bleibt auf deinem Gerät.
+        Gibst du eine Sicherung oder einen Export weiter, gibst du auch diese Nachrichten weiter.
+      </p>
+
+      <h2>Desktop-App</h2>
+      <p>
+        Für die Desktop-App gilt dasselbe. Sie zeigt WhatsApp Web in einem eigenen Fenster und legt
+        das Archiv nur auf deinem Rechner ab, unter Windows im Ordner
+        <code>%LOCALAPPDATA%\watis</code>. Zusätzlich fragt sie bei GitHub Releases nach, ob es eine
+        neue Version gibt, und lädt Updates von dort. Dabei erhält GitHub deine IP-Adresse.
+      </p>
+
+      <h2>Diese Website</h2>
+      <p>
+        Diese Seite liegt bei GitHub Pages, einem Dienst der GitHub, Inc., USA. Beim Aufruf
+        verarbeitet GitHub technisch notwendige Daten, darunter deine IP-Adresse, um die Seite
+        auszuliefern und vor Missbrauch zu schützen; siehe die
+        <a
+          href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement"
+          >Datenschutzerklärung von GitHub</a
+        >. Wir selbst erhalten diese Daten nicht.
+      </p>
+      <p>
+        Die Seite setzt keine Cookies, nutzt keine Analyse- oder Werbedienste und lädt keine
+        Schriften oder Skripte von fremden Servern. Wählst du hell oder dunkel, merkt sich dein
+        Browser diese Wahl lokal (<code>localStorage</code>); sie wird nicht übertragen.
+      </p>
+
+      <h2>Deine Rechte</h2>
+      <p>
+        Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der
+        Verarbeitung, Datenübertragbarkeit und Widerspruch. Weil WatIs? keine Daten an uns
+        überträgt, liegen bei uns keine Daten über dich. Du kannst dich außerdem bei einer
+        Datenschutz-Aufsichtsbehörde beschweren.
+      </p>
+
+      <h2>Änderungen</h2>
+      <p>
+        Ändert sich, was WatIs? verarbeitet oder wohin es Verbindungen aufbaut, ändert sich diese
+        Erklärung im selben Zug. Frühere Fassungen stehen in der
+        <a href="https://github.com/phish3144/watis/commits/HEAD/site/datenschutz.html"
+          >Versionsgeschichte</a
+        >.
+      </p>
+    </main>
+  </body>
+</html>

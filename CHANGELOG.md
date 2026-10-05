@@ -3,6 +3,24 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Hinzugefügt
+
+- **Datenschutzerklärung** auf der Landing Page, für die Erweiterung, die Desktop-App und die Seite
+  selbst. Die Stores verlangen sie.
+
+### Geändert
+
+- **Die Hilfe der Erweiterung zeigt nur, was für dich gilt:** die Schritte deines Browsers und, je
+  nachdem, ob WatIs? aus einem Store oder aus der ZIP kommt, wie Updates ankommen.
+
+### Behoben
+
+- **In Edge hielt sich die Erweiterung für Firefox.** Edge 154 bietet dasselbe `browser`-Objekt wie
+  Firefox, und daran hatte WatIs? Firefox erkannt. Folge: Gespeicherte Anhänge landeten in Edge
+  nicht im Ordner `WhatsApp/<Chat>`. Jetzt entscheidet die Adresse der Erweiterung.
+
 ## [0.8.0] — 2026-10-05
 
 ### Hinzugefügt
