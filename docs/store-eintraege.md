@@ -76,17 +76,19 @@ nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (sieh
    - Adresse (Slug): `watis`
    - Zusammenfassung: [Text A](#text-a--kurzbeschreibung)
    - Beschreibung: [Text B](#text-b--beschreibung) (Englisch zusätzlich: [Text C](#text-c--english-description))
-   - Kategorien (höchstens zwei): **Social & Communication** und **Search Tools** (in der deutschen
-     Oberfläche entsprechend übersetzt)
-   - Support-E-Mail: die Store-Adresse aus „Vorher“
-   - Support-Website: `https://github.com/phish3144/watis/issues`
+   - Kategorien: **Suchwerkzeuge** und **Tauschen und Veröffentlichen** (englisch: Search Tools,
+     Social & Communication)
+   - E-Mail-Adresse für Hilfestellungen: die Store-Adresse aus „Vorher“
+   - Hilfeseite: `https://github.com/phish3144/watis/issues`
    - Homepage: `https://phish3144.github.io/watis/`
    - Lizenz: **MIT**
    - „Experimentell“ und „Erfordert Bezahlung“: nicht anhaken
-   - Datenschutzerklärung: verlangt Firefox nur, wenn Daten das Gerät verlassen. Sie steht trotzdem
-     am Ende der Beschreibung (Text B).
-9. **Anmerkungen für Prüfer:** [Text G](#text-g--notes-for-reviewers).
-10. **Einreichen.** Firefox signiert und veröffentlicht automatisch, meist innerhalb von 24 Stunden.
+   - „Dieses Add-on hat eine Datenschutzrichtlinie“: nicht anhaken. Firefox verlangt sie nur, wenn
+     Daten das Gerät verlassen; der Link steht am Ende der Beschreibung (Text B). Angehakt müsste der
+     ganze Text ein zweites Mal hinein.
+9. **Anmerkungen für Kontrolleure:** [Text G](#text-g--notes-for-reviewers). Er enthält die
+   Bauanleitung, die Firefox für den Quelltext verlangt.
+10. **Version übermitteln.** Firefox signiert und veröffentlicht automatisch, meist innerhalb von 24 Stunden.
     Eine Prüfung durch Menschen kann auch später noch kommen.
 11. **Screenshots nachtragen:** In der Verwaltung des Add-ons unter „Eintrag bearbeiten“ die fünf
     Screenshots hochladen (1280×800, Reihenfolge wie die Dateinamen).
