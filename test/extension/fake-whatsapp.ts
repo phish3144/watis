@@ -46,14 +46,28 @@ export interface FakeFile {
   base64: string
 }
 
+/** A chat with plain text messages, for pictures of a fuller archive (store-assets.ts). */
+export interface DemoChat {
+  id: string
+  name: string
+  isGroup?: boolean
+  /** Group members who write in it, added as contacts. */
+  members?: { id: string; name: string }[]
+  messages: { body: string; minutesAgo: number; fromMe?: boolean; from?: string }[]
+}
+
 /** Each file is attached to one message in Anna's chat; the fake downloader hands back its bytes. */
-export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
+export function fakeWhatsAppPage(
+  files: readonly FakeFile[],
+  demo: readonly DemoChat[] = [],
+): string {
   return `<!doctype html>
 <html lang="de">
 <head><meta charset="utf-8"><title>WhatsApp</title>
 <script nonce="${NONCE}">
 (() => {
   const files = ${JSON.stringify(files)}
+  const demo = ${JSON.stringify(demo)}
   const collection = (models) => {
     const handlers = new Map()
     return {
@@ -95,6 +109,14 @@ export function fakeWhatsAppPage(files: readonly FakeFile[]): string {
       from: { _serialized: '4915550000001@c.us' },
     })),
   ])
+  for (const chat of demo) {
+    chats.getModelsArray().push({ id: { _serialized: chat.id }, name: chat.name, isGroup: chat.isGroup === true, t: now - Math.min(...chat.messages.map((m) => m.minutesAgo)) * 60 })
+    const people = chat.isGroup ? chat.members || [] : [{ id: chat.id, name: chat.name }]
+    for (const person of people) contacts.getModelsArray().push({ id: { _serialized: person.id }, name: person.name, pushname: person.name.split(' ')[0], userid: person.id.split('@')[0] })
+    chat.messages.forEach((m, i) => {
+      messages.getModelsArray().push({ id: key('D' + i, chat.id, m.fromMe === true), t: now - m.minutesAgo * 60, type: 'chat', body: m.body, from: { _serialized: m.fromMe ? 'me@c.us' : m.from || chat.id } })
+    })
+  }
 
   const allowed = {
     image: ['image/jpeg', 'image/png', 'image/webp'],

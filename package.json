@@ -46,6 +46,7 @@
     "pack:extension": "node scripts/build-extension.mjs --pack",
     "test:extension": "npm run build:extension && playwright test -c playwright.extension.config.ts",
     "test:extension:firefox": "npm run build:extension && node scripts/e2e-firefox-extension.mjs",
+    "store:assets": "npm run build:extension && playwright test -c playwright.store.config.ts",
     "models:fetch": "node scripts/mirror-whisper-models.mjs"
   },
   "dependencies": {
