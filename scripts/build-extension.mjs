@@ -18,6 +18,14 @@ import { build } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { zipDirectory } from './lib/zip.mjs'
+import {
+  SQLITE,
+  TESSERACT_COMPONENTS,
+  bsd3,
+  collectPackages,
+  mit,
+  writeNotices,
+} from './third-party-notices.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'out', 'extension')
@@ -27,6 +35,8 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 const alias = { '@shared': join(root, 'src', 'shared') }
 const define = { 'process.env.NODE_ENV': JSON.stringify('production') }
+/** Every npm package that ends up in one of the bundles, for the licence notices. */
+const bundled = new Set()
 
 /** Imports a dependency-free TypeScript module by transpiling it in memory. */
 async function importTs(file) {
@@ -53,10 +63,10 @@ await build({
   root: join(root, 'src', 'extension'),
   base: './',
   logLevel: 'warn',
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), collectPackages(bundled)],
   resolve: { alias },
   define,
-  worker: { format: 'es' },
+  worker: { format: 'es', plugins: () => [collectPackages(bundled)] },
   build: {
     outDir: stage,
     emptyOutDir: false,
@@ -88,6 +98,7 @@ for (const [entry, fileName] of scripts) {
   await build({
     configFile: false,
     logLevel: 'warn',
+    plugins: [collectPackages(bundled)],
     resolve: { alias },
     define,
     build: {
@@ -137,10 +148,9 @@ for (const size of [16, 32, 48, 128]) {
 //    is fetched from a CDN at run time (CLAUDE.md, "Datenschutz und Netz").
 const ocr = join(stage, 'ocr')
 mkdirSync(join(ocr, 'lang'), { recursive: true })
-cpSync(
-  join(root, 'node_modules', 'tesseract.js', 'dist', 'worker.min.js'),
-  join(ocr, 'worker.min.js'),
-)
+for (const file of ['worker.min.js', 'worker.min.js.LICENSE.txt']) {
+  cpSync(join(root, 'node_modules', 'tesseract.js', 'dist', file), join(ocr, file))
+}
 cpSync(
   join(root, 'node_modules', 'tesseract.js-core', 'tesseract-core-simd-lstm.wasm.js'),
   join(ocr, 'tesseract-core-simd-lstm.wasm.js'),
@@ -164,21 +174,54 @@ cpSync(
   join(root, 'node_modules', '@transcribe', 'shout', 'src', 'shout', 'shout.wasm.js'),
   join(stage, 'whisper', 'shout.wasm.js'),
 )
-writeFileSync(
-  join(stage, 'THIRD_PARTY_NOTICES.txt'),
-  [
-    'WatIs? includes the following third-party software, unmodified:',
-    '',
-    'SQLite (public domain) and @sqlite.org/sqlite-wasm (Apache-2.0)',
-    'tesseract.js and tesseract.js-core (Apache-2.0); Tesseract OCR and its language data (Apache-2.0)',
-    'PDF.js / pdfjs-dist (Apache-2.0)',
-    'whisper.cpp (MIT), @transcribe/shout and @transcribe/transcriber (MIT)',
-    'React and react-dom (MIT), zod (MIT)',
-    '',
-    'The Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0',
-    '',
-  ].join('\n'),
-)
+
+// The licence texts of all of it: the packages the bundles took in, the files copied above, and what
+// those files contain without being packages of their own.
+writeNotices({
+  root,
+  file: join(stage, 'THIRD_PARTY_NOTICES.txt'),
+  product: 'WatIs? (browser extension)',
+  packages: new Set([
+    ...bundled,
+    'tesseract.js',
+    'tesseract.js-core',
+    // Inside tesseract.js's prebuilt worker (its source map lists them).
+    'base64-js',
+    'bmp-js',
+    'idb-keyval',
+    'is-url',
+    'regenerator-runtime',
+    'wasm-feature-detect',
+    'zlibjs',
+    'pdfjs-dist',
+    '@transcribe/shout',
+    '@sqlite.org/sqlite-wasm',
+  ]),
+  extras: [
+    SQLITE,
+    {
+      name: "buffer (inside tesseract.js's worker)",
+      licence: 'MIT',
+      text: mit('Copyright (c) Feross Aboukhadijeh, and other contributors.'),
+    },
+    {
+      name: "ieee754 (inside tesseract.js's worker)",
+      licence: 'BSD-3-Clause',
+      text: bsd3('Copyright 2008 Fair Oaks Labs, Inc.'),
+    },
+    {
+      name: 'whisper.cpp (inside @transcribe/shout)',
+      licence: 'MIT',
+      text: mit('Copyright (c) 2023-2024 The ggml authors'),
+    },
+    ...TESSERACT_COMPONENTS,
+    {
+      name: 'OpenAI Whisper model weights (downloaded on request, not part of this package)',
+      licence: 'MIT',
+      text: mit('Copyright (c) 2022 OpenAI'),
+    },
+  ],
+})
 
 // 7. One manifest per browser. Firefox gets a copy of the same files.
 const { buildManifest } = await importTs('src/extension/manifest.ts')

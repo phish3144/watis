@@ -52,6 +52,10 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
 - **Anhänge wurden nie ins Archiv geholt.** Die Bridge legte für Anhänge keine Medienzeile an, und
   der Medienabruf fand deshalb nie etwas zu tun, im Desktop wie im Browser. Jetzt entsteht für jede
   Nachricht mit Anhang eine Zeile, live wie beim Übernehmen.
+- **Lizenztexte vollständig.** Die Desktop-App und die Browser-Erweiterung legen jetzt die
+  vollständigen Lizenz- und Copyright-Texte aller mitgelieferten Bibliotheken bei, auch der
+  Bibliotheken, die in der Texterkennung und in whisper.cpp stecken (`THIRD_PARTY_NOTICES.txt`).
+  Bisher stand dort nur eine Liste mit Namen.
 
 ## [0.7.1] — 2026-09-13
 

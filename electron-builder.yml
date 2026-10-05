@@ -28,6 +28,9 @@ extraResources:
   - from: resources
     to: .
     filter: ['**/*']
+  # The licence texts of what the bundles took in (electron.vite.config.ts), readable next to app.asar.
+  - from: out/THIRD_PARTY_NOTICES.txt
+    to: THIRD_PARTY_NOTICES.txt
 
 files:
   - out/**
