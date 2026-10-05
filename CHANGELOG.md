@@ -3,7 +3,7 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [0.8.0] — 2026-10-05
 
 ### Hinzugefügt
 
@@ -28,7 +28,6 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   auch ein OneDrive- oder Nextcloud-Ordner sein darf, oder als ZIP. Sie hat dasselbe Format wie die
   Sicherung der Desktop-App, und jedes Mal kommt nur Neues dazu
   ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
-
 - **Sicherung zurückspielen** in der Browser-Erweiterung: aus dem Sicherungsordner oder aus allen
   ZIP-Sicherungen zusammen, auch eine Sicherung der Desktop-App. Damit kommt das Archiv nach dem
   Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung
