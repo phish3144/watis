@@ -205,8 +205,10 @@ Store installiert hat, liest dort auch nichts über ZIP-Dateien und Entwicklermo
    - Screenshots: `1-suche.png` bis `5-hilfe.png`
    - Search terms (höchstens sieben): `chat archive`, `message search`, `full-text search`, `OCR`,
      `voice message transcription`, `backup`, `local archive`
-8. **Anmerkungen für die Zertifizierung:** [Text G](#text-g--notes-for-reviewers). Edge verlangt
-   ausdrücklich ein Testkonto **oder** eine Begründung, warum es keines gibt; Text G enthält sie.
+8. **Publish → Submit your extension:** bei „Does a tester need credentials …“ **Yes** wählen. Ins
+   Feld „Notes for certification“ kommt [Text G für Edge](#text-g-für-edge). Edge lässt dort
+   höchstens 2.000 Zeichen zu und verlangt ausdrücklich ein Testkonto oder eine Begründung, warum es
+   keines gibt; der Text enthält sie und nennt keinen anderen Browser.
 9. **Veröffentlichen.** Die Prüfung dauert bis zu sieben Werktage.
 
 ---
@@ -404,6 +406,31 @@ No warning points at code that is fetched from anywhere: every file named is ins
 - assets/pdf-*.js, Function, activeXDocument.write, iframeDocument.write: core-js polyfills inside pdfjs-dist's legacy build, for global-object detection and an old Internet Explorer fallback. They are never reached in Firefox.
 - assets/pdf-*.js, import(): pdf.js's fake-worker loader. We always hand pdf.js a real worker (GlobalWorkerOptions.workerPort).
 - ocr/worker.min.js, Function (2x), and ocr/pdf.worker.min.mjs, Function and import(): unmodified files from tesseract.js 7.0.0 and pdfjs-dist 6.3.289.
+```
+
+### Text G für Edge
+
+Kürzer, weil Edge höchstens 2.000 Zeichen zulässt (dieser hat 1.319), und ohne andere Browser.
+
+```text
+WatIs? archives what the user sees in WhatsApp Web, locally, and makes it searchable.
+
+HOW TO TEST
+1. Install the extension.
+2. Open https://web.whatsapp.com and log in with any WhatsApp account (scan the QR code with a phone).
+3. Click the toolbar icon: the side panel opens. Search for a word from one of the chats.
+
+TEST ACCOUNT
+We cannot provide one: a WhatsApp account is bound to a phone number and to personal messages. Without logging in, the panel still opens and shows the empty archive, the settings and the built-in help. The repository contains end-to-end tests that run this exact package against a stand-in WhatsApp Web page.
+
+PRIVACY
+Nothing is transmitted: no server, no analytics, no account. All data stays in the extension's local storage. The only other network access is optional: on the user's click, the extension asks for the optional host permission for GitHub and downloads a speech model (weights, no code) from this project's releases.
+
+READ-ONLY
+The extension never sends, deletes or marks messages as read.
+
+SOURCE
+Open source (MIT): https://github.com/phish3144/watis. Build: npm ci && npm run build:extension (see BUILDING.md). Our code is bundled with Vite and not minified; the minified files in ocr/ and whisper/ are unmodified copies from tesseract.js, pdf.js and @transcribe/shout.
 ```
 
 ---
