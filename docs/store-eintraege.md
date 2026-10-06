@@ -193,15 +193,18 @@ Store installiert hat, liest dort auch nichts über ZIP-Dateien und Entwicklermo
    - Datennutzung: wie bei Chrome, [Text F](#text-f--datennutzung)
    - Datenschutzerklärung: `https://phish3144.github.io/watis/datenschutz.html`. Sie nennt bewusst
      keinen Browser: Edge verlangt, dass sie sich nicht auf andere Browser bezieht.
-7. **Store-Einträge → Deutsch:**
-   - Beschreibung: [Text B](#text-b--beschreibung). Edge verlangt 250 bis 10.000 Zeichen; Text B
-     nennt keinen anderen Browser.
-   - Logo: `logo-300x300.png`
-   - Kleine Werbekachel: `kachel-klein-440x280.png`
-   - Große Werbekachel: `kachel-gross-1400x560.png`
+7. **Store-Einträge:** Edge bietet nur **English (United States)** an, und „Add a language“ ist grau.
+   Das Paket hat keine eigenen Sprachdateien, also kennt Edge keine andere Sprache. Der Eintrag ist
+   deshalb englisch, und die Beschreibung sagt, dass die Oberfläche deutsch ist. In dieser Zeile
+   „Edit details“:
+   - Description: [Text C](#text-c--english-description). Er hat 250 bis 10.000 Zeichen und nennt
+     keinen anderen Browser.
+   - Extension logo: `logo-300x300.png`
+   - Small promotional tile: `kachel-klein-440x280.png`
+   - Large promotional tile: `kachel-gross-1400x560.png`
    - Screenshots: `1-suche.png` bis `5-hilfe.png`
-   - Suchbegriffe (höchstens sieben): `Chat-Archiv`, `Volltextsuche`, `Nachrichten suchen`,
-     `Texterkennung`, `Sprachnachrichten`, `Backup`, `Archiv`
+   - Search terms (höchstens sieben): `chat archive`, `message search`, `full-text search`, `OCR`,
+     `voice message transcription`, `backup`, `local archive`
 8. **Anmerkungen für die Zertifizierung:** [Text G](#text-g--notes-for-reviewers). Edge verlangt
    ausdrücklich ein Testkonto **oder** eine Begründung, warum es keines gibt; Text G enthält sie.
 9. **Veröffentlichen.** Die Prüfung dauert bis zu sieben Werktage.
