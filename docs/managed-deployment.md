@@ -1,6 +1,7 @@
 # WatIs? auf einem verwalteten Firmenrechner
 
-_Stand: 2026-08-30. Alle Zitate an diesem Tag gegen die verlinkten Primärquellen geprüft._
+_Stand: 2026-08-30. Alle Zitate an diesem Tag gegen die verlinkten Primärquellen geprüft. Der
+Abschnitt [Die Erweiterung per Richtlinie](#die-erweiterung-per-richtlinie) ist vom 2026-10-14._
 
 Dieses Dokument beantwortet eine einzige Frage: **Wie kommt WatIs? legitim auf einen Rechner, auf dem
 die IT bestimmt, was laufen darf?** Es ergänzt [`windows-signing.md`](windows-signing.md), das nur den
@@ -237,6 +238,44 @@ Hash-Pflege, Update-Integrität durch den Store garantiert, Berechtigungen im Ma
 Radius auf eine Origin begrenzt, Widerruf per Policy jederzeit möglich. Das ist das Argument, mit dem man
 an die IT herantritt.
 
+### Die Erweiterung per Richtlinie
+
+Seit Oktober 2026 steht WatIs? in allen drei Stores. Jeder Store hat seine eigene Kennung; Edge
+vergibt eine andere als der Chrome Web Store.
+
+| Browser | Store                                                                                                    | Kennung                            |
+| ------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Chrome  | [Chrome Web Store](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd)      | `egnfhalkjamlhhkpgpenamjdbfjikigd` |
+| Edge    | [Edge-Add-ons](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg) | `nhdchmgbjmkjkpgbignglgobimfabkdg` |
+| Firefox | [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/)                                 | `watis@phish3144.github.io`        |
+
+- **Freigeben**, damit die Nutzerin selbst installieren darf: in Chrome und Edge die Kennung in
+  `ExtensionInstallAllowlist`.
+- **Verteilen**, sodass der Browser WatIs? von selbst installiert und es sich nicht entfernen lässt:
+  `ExtensionInstallForcelist` mit
+  - Chrome: `egnfhalkjamlhhkpgpenamjdbfjikigd;https://clients2.google.com/service/update2/crx`
+  - Edge: `nhdchmgbjmkjkpgbignglgobimfabkdg;https://edge.microsoft.com/extensionwebstorebase/v1/crx`
+- **Firefox:** Richtlinie `ExtensionSettings`, per GPO oder `policies.json`. `"allowed"` statt
+  `"force_installed"` gibt nur frei.
+
+  ```json
+  {
+    "policies": {
+      "ExtensionSettings": {
+        "watis@phish3144.github.io": {
+          "installation_mode": "force_installed",
+          "install_url": "https://addons.mozilla.org/firefox/downloads/latest/watis/latest.xpi"
+        }
+      }
+    }
+  }
+  ```
+
+Updates kommen auch dann aus dem Store. Per Richtlinie installiert, meldet der Browser die
+Installationsart `admin`; WatIs? behandelt das wie eine Installation aus dem Store. **Streicht die IT
+die Kennung später aus der Liste, entfernt der Browser WatIs? – und mit ihm das Archiv.** Vorher
+sichern lassen (Einstellungen → Archiv und Sicherung).
+
 ---
 
 ## Prior Art — was der Markt sagt
@@ -275,6 +314,7 @@ an die IT herantritt.
 4. **Ticket stellen** – für die Client-Hülle, mit SBOM, Egress-Liste, Pfadliste, Hashes, Signaturplan und
    der ausdrücklichen Aussage, dass keine Archivierung fremder Nachrichten auf Firmenhardware
    stattfindet.
-5. Wird abgelehnt: **Erweiterung im Store veröffentlichen** und die ID zur Allowlist beantragen.
+5. Wird abgelehnt: **die Erweiterung freigeben lassen.** Sie steht in den Stores; beantragt wird nur
+   ihre Kennung für die Allowlist ([Die Erweiterung per Richtlinie](#die-erweiterung-per-richtlinie)).
    Funktional weniger, aber der Antrag ist klein und die Chance hoch.
 6. **Das Archiv aufs Privatgerät.** Dort trägt „persönliche Nutzung“, dort wird niemand Verantwortlicher.

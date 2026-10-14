@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="WatIs? – ein durchsuchbares Archiv für WhatsApp Web auf deinem eigenen Rechner. Als Erweiterung für Chrome, Edge und Firefox oder als App für Windows und Linux. Ohne Adminrechte, ohne Cloud."
+      content="WatIs? – ein durchsuchbares Archiv für WhatsApp Web auf deinem eigenen Rechner. Als Erweiterung aus den Stores von Chrome, Edge und Firefox oder als App für Windows und Linux. Ohne Adminrechte, ohne Cloud."
     />
     <meta name="theme-color" content="#f4f7f5" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#07100e" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content="WatIs? – Ab heute geht nichts mehr verloren." />
     <meta
       property="og:description"
-      content="Ein durchsuchbares Archiv für WhatsApp Web, lokal auf deinem Rechner. Im Browser, unter Windows und Linux."
+      content="Ein durchsuchbares Archiv für WhatsApp Web, lokal auf deinem Rechner. Als Erweiterung in den Stores von Chrome, Edge und Firefox, als App für Windows und Linux."
     />
     <link
       rel="icon"
@@ -2058,6 +2058,9 @@
         margin: 0;
         padding: 0;
         display: grid;
+        /* One column that may shrink below its content: a long command scrolls in its box instead of
+           widening the page. */
+        grid-template-columns: minmax(0, 1fr);
         gap: 1.125rem;
       }
 
@@ -2099,6 +2102,43 @@
         margin: 0.5rem 0 0;
         color: var(--muted);
         font-size: 0.9063rem;
+      }
+
+      .store-cta {
+        margin: 0 0 1.75rem;
+      }
+
+      .store-cta .step-note {
+        margin-top: 0.75rem;
+      }
+
+      /* The way without the store: there for whoever needs it, folded away for everybody else. */
+      .fallback {
+        margin-top: 1.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .fallback > summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+
+      .fallback > summary:hover {
+        color: var(--accent-ink);
+      }
+
+      .fallback[open] > summary {
+        margin-bottom: 1rem;
+      }
+
+      .fallback > .step-note:first-of-type {
+        margin: 0 0 1.25rem;
+      }
+
+      .fallback > ol + .step-note {
+        margin-top: 1.25rem;
       }
 
       .shell {
@@ -2214,6 +2254,20 @@
         padding-left: 1.125rem;
         display: grid;
         gap: 0.625rem;
+        color: var(--ink-2);
+      }
+
+      .update p {
+        margin: 1rem 0 0;
+        color: var(--ink-2);
+      }
+
+      .update h4 + p {
+        margin-top: 0;
+      }
+
+      .update ol.steps {
+        margin-top: 1rem;
         color: var(--ink-2);
       }
 
@@ -2525,7 +2579,7 @@
         <div class="wrap hero-grid">
           <div>
             <a class="pill" href="#installieren" data-open="os-browser">
-              <b>Neu</b> Jetzt auch für Chrome, Edge und Firefox
+              <b>Neu</b> In den Stores von Chrome, Edge und Firefox
               <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
             </a>
             <h1>Ab heute geht <span class="grad">nichts mehr verloren.</span></h1>
@@ -2536,8 +2590,9 @@
               gelöscht oder verschwindet es, steht es im Archiv noch.
             </p>
             <p class="lead-2">
-              Als Erweiterung für Chrome, Edge und Firefox oder als Programm für Windows und Linux.
-              Installation ohne Adminrechte. Alles bleibt auf deinem Rechner.
+              Als Erweiterung aus dem Store deines Browsers – Chrome, Edge oder Firefox – oder als
+              Programm für Windows und Linux. Installation ohne Adminrechte. Alles bleibt auf deinem
+              Rechner.
             </p>
             <div class="cta-row">
               <a class="btn btn-primary" href="#installieren" data-open="os-browser">
@@ -2655,7 +2710,7 @@
           <div class="how-step reveal">
             <div>
               <strong>Installieren</strong>
-              <span>Als Erweiterung im Browser oder als Programm – beides ohne Adminrechte.</span>
+              <span>Die Erweiterung aus dem Store deines Browsers oder das Programm – beides ohne Adminrechte.</span>
             </div>
           </div>
           <div class="how-step reveal" style="--d: 1">
@@ -2902,7 +2957,7 @@
             <div class="band-item">
               <svg class="icon" aria-hidden="true"><use href="#i-cloud-off" /></svg>
               <strong>Nichts geht raus</strong>
-              <span>Netzwerkverkehr nur zu WhatsApp und zu GitHub für Updates.</span>
+              <span>Netzwerkverkehr nur zu WhatsApp. Updates holt die App von GitHub, die Erweiterung dein Browser aus seinem Store.</span>
             </div>
             <div class="band-item">
               <svg class="icon" aria-hidden="true"><use href="#i-cpu" /></svg>
@@ -3047,8 +3102,10 @@
                 lässt. Kein Tray, kein Autostart, keine
                 Direktantwort, kein Nachladen älterer Nachrichten, kein Export als JSON/HTML/TXT. In
                 Firefox geht keine Sicherung in einen Ordner, nur als ZIP, und zum Transkribieren muss
-                der WhatsApp-Tab offen sein. In den Stores steht die Erweiterung noch nicht; in
-                Firefox lässt sie sich bis dahin nur bis zum nächsten Neustart laden. Wie lange eine
+                der WhatsApp-Tab offen sein. Nach einem Update der Erweiterung den WhatsApp-Tab einmal
+                neu laden, damit sie weiter mitschreibt. Wer bisher die ZIP-Fassung nutzt,
+                bringt sein Archiv in Chrome und Edge nur über die Sicherung in die Store-Fassung
+                (<a href="#umsteigen" data-open="os-browser">Umsteigen</a>). Wie lange eine
                 Transkription auf einem normalen Arbeitsplatzrechner dauert, ist noch nicht gemessen.
               </p>
             </article>
@@ -3104,7 +3161,16 @@
               <p>
                 AppLocker kann die Ausführung aus <code>%LOCALAPPDATA%</code> unterbinden, und unter
                 Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Erweiterungen
-                kann die IT ebenso sperren oder nur freigegebene zulassen. Und ein lokales Archiv
+                kann die IT ebenso sperren oder nur freigegebene zulassen. Weil WatIs? in den Stores
+                steht, kann sie es auch gezielt freigeben oder per Richtlinie verteilen: in Chrome und
+                Edge über <code>ExtensionInstallForcelist</code> mit der Store-Kennung (Chrome
+                <code>egnfhalkjamlhhkpgpenamjdbfjikigd</code>, Edge
+                <code>nhdchmgbjmkjkpgbignglgobimfabkdg</code>), in Firefox über
+                <code>ExtensionSettings</code> mit der Kennung <code>watis@phish3144.github.io</code>.
+                Wie, steht in
+                <a href="https://github.com/phish3144/watis/blob/HEAD/docs/managed-deployment.md"
+                  >docs/managed-deployment.md</a
+                >. Und ein lokales Archiv
                 privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur –
                 „läuft lokal“ heißt dort nicht „nur du kommst dran“.
               </p>
@@ -3127,7 +3193,7 @@
 
           <div class="downloads">
             <article class="card dl featured reveal" id="browser">
-              <span class="badge">Ohne Installation</span>
+              <span class="badge">Aus dem Store</span>
               <div class="dl-head">
                 <div class="card-icon"><svg class="icon" aria-hidden="true"><use href="#i-globe" /></svg></div>
                 <div>
@@ -3139,13 +3205,25 @@
                 <div><dt>Läuft in</dt><dd>web.whatsapp.com, als Erweiterung daneben</dd></div>
                 <div><dt>Deine Daten</dt><dd>im Browserprofil, privater Speicher der Erweiterung</dd></div>
                 <div><dt>Adminrechte</dt><dd>keine, nichts wird auf dem Rechner installiert</dd></div>
-                <div><dt>Stores</dt><dd>noch nicht – vorerst von Hand geladen</dd></div>
+                <div><dt>Updates</dt><dd>von selbst, über den Store</dd></div>
               </dl>
               <div class="dl-actions">
-                <a class="btn btn-primary" href="#installieren" data-open="os-browser">
+                <a class="btn btn-primary" data-store="chrome" href="https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd">
                   <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-                  Zur Anleitung
+                  Chrome Web Store
                 </a>
+                <a class="btn btn-ghost" data-store="edge" href="https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg">
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  Edge-Add-ons
+                </a>
+                <a class="btn btn-ghost" data-store="firefox" href="https://addons.mozilla.org/de/firefox/addon/watis/">
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  addons.mozilla.org
+                </a>
+                <a class="link-arrow" href="#installieren" data-open="os-browser"
+                  >Anleitung, Umstieg und <span class="nowrap"
+                    >ZIP-Fassung<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></span
+                ></a>
               </div>
             </article>
 
@@ -3246,8 +3324,8 @@
               <!-- ---------- browser ---------- -->
               <div class="tab-panel p-browser" id="im-browser">
                 <p class="install-intro">
-                  In den Stores von Chrome, Edge und Firefox steht WatIs? noch nicht. Bis dahin
-                  installierst du es einmal von Hand. Wähle deinen Browser:
+                  WatIs? steht in den Stores von Chrome, Edge und Firefox. Von dort installiert, bleibt
+                  es dauerhaft und aktualisiert sich selbst. Wähle deinen Browser:
                 </p>
                 <div class="install-cols">
                   <div>
@@ -3260,34 +3338,20 @@
                       <label for="tab-firefox">Firefox</label>
 
                       <div class="tab-panel panel-chrome">
+                        <div class="store-cta">
+                          <a
+                            class="btn btn-primary"
+                            href="https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd"
+                          >
+                            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                            Im Chrome Web Store
+                          </a>
+                        </div>
                         <ol class="steps">
                           <li>
-                            <strong>Herunterladen:</strong>
-                            <a
-                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
-                              >WatIs-Browser-Chrome-Edge.zip</a
-                            >
-                          </li>
-                          <li>
-                            <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die Datei
-                            → <em>Alle extrahieren …</em> → als Ziel <code>Dokumente\WatIs</code>
-                            eintragen → <em>Extrahieren</em>. Am Mac: Doppelklick auf die ZIP, den
-                            neuen Ordner nach <em>Dokumente</em> ziehen und in <code>WatIs</code>
-                            umbenennen.
-                            <p class="step-note">
-                              Diesen Ordner danach nicht verschieben und nicht löschen: Chrome lädt
-                              WatIs? bei jedem Start von dort.
-                            </p>
-                          </li>
-                          <li>
-                            <strong>Erweiterungen öffnen:</strong> <code>chrome://extensions</code>
-                            in die Adresszeile tippen und Enter drücken.
-                          </li>
-                          <li><strong>Entwicklermodus einschalten:</strong> der Schalter oben rechts.</li>
-                          <li>
-                            <strong>Laden:</strong> oben links auf
-                            <em>Entpackte Erweiterung laden</em> klicken, den Ordner
-                            <code>Dokumente\WatIs</code> wählen, <em>Ordner auswählen</em>.
+                            <strong>Hinzufügen:</strong> auf der Store-Seite
+                            <em>Zu Chrome hinzufügen</em> klicken und mit
+                            <em>Erweiterung hinzufügen</em> bestätigen.
                           </li>
                           <li>
                             <strong>Anheften:</strong> rechts neben der Adresszeile auf das
@@ -3299,39 +3363,79 @@
                             mit Suche, Chats, Medien und Einstellungen.
                           </li>
                         </ol>
+
+                        <details class="fallback">
+                          <summary>Ohne Store: von Hand aus der ZIP</summary>
+                          <p class="step-note">
+                            Nur, wenn du den Chrome Web Store nicht nutzen kannst. So geladen,
+                            aktualisiert sich WatIs? nicht von selbst, und Chrome hält es für eine
+                            andere Erweiterung als die aus dem Store, mit eigenem Archiv.
+                          </p>
+                          <ol class="steps">
+                            <li>
+                              <strong>Herunterladen:</strong>
+                              <a
+                                href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
+                                >WatIs-Browser-Chrome-Edge.zip</a
+                              >
+                            </li>
+                            <li>
+                              <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die
+                              Datei → <em>Alle extrahieren …</em> → als Ziel
+                              <code>Dokumente\WatIs</code> eintragen → <em>Extrahieren</em>. Am Mac:
+                              Doppelklick auf die ZIP, den neuen Ordner nach <em>Dokumente</em> ziehen
+                              und in <code>WatIs</code> umbenennen.
+                              <p class="step-note">
+                                Diesen Ordner danach nicht verschieben und nicht löschen: Chrome lädt
+                                WatIs? bei jedem Start von dort.
+                              </p>
+                            </li>
+                            <li>
+                              <strong>Erweiterungen öffnen:</strong> <code>chrome://extensions</code>
+                              in die Adresszeile tippen und Enter drücken.
+                            </li>
+                            <li>
+                              <strong>Entwicklermodus einschalten:</strong> der Schalter oben rechts.
+                              <p class="step-note">
+                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann bleibt der Chrome Web
+                                Store.
+                              </p>
+                            </li>
+                            <li>
+                              <strong>Laden:</strong> oben links auf
+                              <em>Entpackte Erweiterung laden</em> klicken, den Ordner
+                              <code>Dokumente\WatIs</code> wählen, <em>Ordner auswählen</em>.
+                            </li>
+                            <li><strong>Anheften und loslegen</strong> wie bei der Store-Fassung.</li>
+                          </ol>
+                          <p class="step-note">
+                            <strong>Aktualisieren:</strong> die neue ZIP mit
+                            <em>Alle extrahieren …</em> in <strong>denselben Ordner</strong>
+                            <code>Dokumente\WatIs</code> entpacken; fragt Windows, dann
+                            <em>Dateien im Ziel ersetzen</em>. Danach auf
+                            <code>chrome://extensions</code> bei WatIs? auf den runden Pfeil
+                            (<em>Neu laden</em>).
+                          </p>
+                        </details>
                       </div>
 
                       <div class="tab-panel panel-edge">
+                        <div class="store-cta">
+                          <a
+                            class="btn btn-primary"
+                            href="https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg"
+                          >
+                            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                            Bei Edge-Add-ons
+                          </a>
+                          <p class="step-note">
+                            Die Beschreibung im Store ist englisch, WatIs? selbst ist deutsch.
+                          </p>
+                        </div>
                         <ol class="steps">
                           <li>
-                            <strong>Herunterladen:</strong>
-                            <a
-                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
-                              >WatIs-Browser-Chrome-Edge.zip</a
-                            >
-                            – dieselbe Datei wie für Chrome.
-                          </li>
-                          <li>
-                            <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die Datei
-                            → <em>Alle extrahieren …</em> → als Ziel <code>Dokumente\WatIs</code>
-                            eintragen → <em>Extrahieren</em>.
-                            <p class="step-note">
-                              Diesen Ordner danach nicht verschieben und nicht löschen: Edge lädt
-                              WatIs? bei jedem Start von dort.
-                            </p>
-                          </li>
-                          <li>
-                            <strong>Erweiterungen öffnen:</strong> <code>edge://extensions</code> in
-                            die Adresszeile tippen und Enter drücken.
-                          </li>
-                          <li>
-                            <strong>Entwicklermodus einschalten:</strong> der Schalter in der linken
-                            Spalte.
-                          </li>
-                          <li>
-                            <strong>Laden:</strong> oben auf <em>Entpackte Dateien laden</em>
-                            klicken, den Ordner <code>Dokumente\WatIs</code> wählen,
-                            <em>Ordner auswählen</em>.
+                            <strong>Hinzufügen:</strong> auf der Store-Seite <em>Abrufen</em> klicken
+                            und mit <em>Erweiterung hinzufügen</em> bestätigen.
                           </li>
                           <li>
                             <strong>Anheften:</strong> rechts neben der Adresszeile auf das Puzzleteil
@@ -3341,47 +3445,125 @@
                           <li>
                             <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
                             und auf das WatIs?-Symbol klicken. Rechts öffnet sich die Seitenleiste.
-                            <p class="step-note">
-                              Fragt Edge beim Start, ob Erweiterungen im Entwicklermodus
-                              ausgeschaltet werden sollen: nicht ausschalten, das Fenster einfach
-                              schließen.
-                            </p>
                           </li>
                         </ol>
+
+                        <details class="fallback">
+                          <summary>Ohne Store: von Hand aus der ZIP</summary>
+                          <p class="step-note">
+                            Nur, wenn du die Edge-Add-ons nicht nutzen kannst. So geladen,
+                            aktualisiert sich WatIs? nicht von selbst, und Edge hält es für eine
+                            andere Erweiterung als die aus dem Store, mit eigenem Archiv.
+                          </p>
+                          <ol class="steps">
+                            <li>
+                              <strong>Herunterladen:</strong>
+                              <a
+                                href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Chrome-Edge.zip"
+                                >WatIs-Browser-Chrome-Edge.zip</a
+                              >
+                              – dieselbe Datei wie für Chrome.
+                            </li>
+                            <li>
+                              <strong>Entpacken, an einen festen Ort.</strong> Rechtsklick auf die
+                              Datei → <em>Alle extrahieren …</em> → als Ziel
+                              <code>Dokumente\WatIs</code> eintragen → <em>Extrahieren</em>.
+                              <p class="step-note">
+                                Diesen Ordner danach nicht verschieben und nicht löschen: Edge lädt
+                                WatIs? bei jedem Start von dort.
+                              </p>
+                            </li>
+                            <li>
+                              <strong>Erweiterungen öffnen:</strong> <code>edge://extensions</code>
+                              in die Adresszeile tippen und Enter drücken.
+                            </li>
+                            <li>
+                              <strong>Entwicklermodus einschalten:</strong> der Schalter in der linken
+                              Spalte.
+                              <p class="step-note">
+                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann bleiben die
+                                Edge-Add-ons.
+                              </p>
+                            </li>
+                            <li>
+                              <strong>Laden:</strong> oben auf <em>Entpackte Dateien laden</em>
+                              klicken, den Ordner <code>Dokumente\WatIs</code> wählen,
+                              <em>Ordner auswählen</em>.
+                            </li>
+                            <li>
+                              <strong>Anheften und loslegen</strong> wie bei der Store-Fassung.
+                              <p class="step-note">
+                                Fragt Edge beim Start, ob Erweiterungen im Entwicklermodus
+                                ausgeschaltet werden sollen: nicht ausschalten, das Fenster einfach
+                                schließen.
+                              </p>
+                            </li>
+                          </ol>
+                          <p class="step-note">
+                            <strong>Aktualisieren:</strong> die neue ZIP mit
+                            <em>Alle extrahieren …</em> in <strong>denselben Ordner</strong>
+                            <code>Dokumente\WatIs</code> entpacken; fragt Windows, dann
+                            <em>Dateien im Ziel ersetzen</em>. Danach auf
+                            <code>edge://extensions</code> bei WatIs? auf <em>Erneut laden</em>.
+                          </p>
+                        </details>
                       </div>
 
                       <div class="tab-panel panel-firefox">
+                        <div class="store-cta">
+                          <a class="btn btn-primary" href="https://addons.mozilla.org/de/firefox/addon/watis/">
+                            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                            Auf addons.mozilla.org
+                          </a>
+                        </div>
                         <ol class="steps">
                           <li>
-                            <strong>Herunterladen:</strong>
-                            <a
-                              href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Firefox.zip"
-                              >WatIs-Browser-Firefox.zip</a
-                            >
-                            – nicht entpacken.
+                            <strong>Hinzufügen:</strong> auf der Store-Seite
+                            <em>Zu Firefox hinzufügen</em> klicken und mit <em>Hinzufügen</em>
+                            bestätigen.
                           </li>
                           <li>
-                            <strong>Debugging-Seite öffnen:</strong>
-                            <code>about:debugging#/runtime/this-firefox</code> in die Adresszeile
-                            tippen und Enter drücken.
-                          </li>
-                          <li>
-                            <strong>Laden:</strong> auf <em>Temporäres Add-on laden …</em> klicken,
-                            die heruntergeladene ZIP wählen, <em>Öffnen</em>.
+                            <strong>Anheften:</strong> rechts neben der Adresszeile auf das
+                            Puzzleteil (<em>Erweiterungen</em>) klicken, bei WatIs? auf das Zahnrad
+                            und auf <em>An Symbolleiste anheften</em>.
                           </li>
                           <li>
                             <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
-                            und auf das WatIs?-Symbol in der Symbolleiste klicken. Links öffnet sich
-                            die Seitenleiste.
-                          </li>
-                          <li>
-                            <strong>Nach jedem Neustart von Firefox</strong> die Schritte 2 und 3
-                            wiederholen. Firefox nimmt Add-ons, die nicht über seinen Store kommen,
-                            beim Beenden wieder heraus. <strong>Dein Archiv bleibt dabei
-                            erhalten</strong> und ist nach dem Laden wieder da. Dieser Schritt
-                            entfällt, sobald WatIs? auf addons.mozilla.org steht.
+                            und auf das WatIs?-Symbol klicken. Links öffnet sich die Seitenleiste.
                           </li>
                         </ol>
+
+                        <details class="fallback">
+                          <summary>Ohne Store: vorübergehend aus der ZIP</summary>
+                          <p class="step-note">
+                            Nur, wenn addons.mozilla.org bei dir gesperrt ist. So geladen, nimmt
+                            Firefox WatIs? beim Beenden wieder heraus.
+                          </p>
+                          <ol class="steps">
+                            <li>
+                              <strong>Herunterladen:</strong>
+                              <a
+                                href="https://github.com/phish3144/watis/releases/latest/download/WatIs-Browser-Firefox.zip"
+                                >WatIs-Browser-Firefox.zip</a
+                              >
+                              – nicht entpacken.
+                            </li>
+                            <li>
+                              <strong>Debugging-Seite öffnen:</strong>
+                              <code>about:debugging#/runtime/this-firefox</code> in die Adresszeile
+                              tippen und Enter drücken.
+                            </li>
+                            <li>
+                              <strong>Laden:</strong> auf <em>Temporäres Add-on laden …</em> klicken,
+                              die heruntergeladene ZIP wählen, <em>Öffnen</em>.
+                            </li>
+                          </ol>
+                          <p class="step-note">
+                            <strong>Nach jedem Neustart von Firefox</strong> die Schritte 2 und 3
+                            wiederholen. <strong>Dein Archiv bleibt dabei erhalten</strong> und ist
+                            nach dem Laden wieder da. Eine neue Version lädst du genauso.
+                          </p>
+                        </details>
                       </div>
                     </div>
                   </div>
@@ -3391,18 +3573,52 @@
                       <h4>Im Browser aktualisieren</h4>
                       <ul>
                         <li>
-                          <strong>Chrome und Edge:</strong> die neue ZIP herunterladen und wie links
-                          mit <em>Alle extrahieren …</em> in <strong>denselben Ordner</strong>
-                          <code>Dokumente\WatIs</code> entpacken; fragt Windows, dann
-                          <em>Dateien im Ziel ersetzen</em>. Danach auf der Erweiterungsseite bei
-                          WatIs? neu laden: in Chrome der runde Pfeil (<em>Neu laden</em>), in Edge
-                          <em>Erneut laden</em>.
+                          <strong>Aus dem Store:</strong> nichts zu tun. Dein Browser holt neue
+                          Versionen von selbst, das Archiv bleibt. Zeigt WatIs? danach
+                          <em>Wartet auf WhatsApp</em>, den WhatsApp-Tab einmal neu laden.
                         </li>
                         <li>
-                          <strong>Firefox:</strong> die neue ZIP wie links über
-                          <em>Temporäres Add-on laden …</em> laden.
+                          <strong>Aus der ZIP geladen:</strong> aktualisiert sich nicht. Steig auf die
+                          Store-Fassung um (<a href="#umsteigen">so geht es</a>) oder lade die neue ZIP
+                          von Hand, wie unter „Ohne Store“ beschrieben.
                         </li>
                       </ul>
+                    </div>
+
+                    <div class="update" id="umsteigen">
+                      <h4>Von der ZIP-Fassung umsteigen</h4>
+                      <p>
+                        <strong>Chrome und Edge</strong> geben der Store-Fassung eine eigene Kennung.
+                        Sie beginnt deshalb mit einem leeren Archiv. So nimmst du deins mit:
+                      </p>
+                      <ol class="steps">
+                        <li>
+                          In der alten Fassung sichern:
+                          <em>Einstellungen → Archiv und Sicherung → Als ZIP herunterladen</em>. Hast
+                          du dort früher schon so gesichert, nimm <em>Alle Medien neu</em>, dann steckt
+                          alles in dieser einen Sicherung.
+                        </li>
+                        <li>WatIs? aus dem Store installieren.</li>
+                        <li>
+                          In der neuen Fassung:
+                          <em
+                            >Einstellungen → Archiv und Sicherung → Sicherung zurückspielen →
+                            ZIP-Dateien wählen …</em
+                          >, alle Teile der Sicherung auf einmal markieren, <em>Zurückspielen</em>.
+                        </li>
+                        <li>
+                          Findet die Suche deine alten Nachrichten, die alte Fassung entfernen: auf
+                          der Erweiterungsseite die mit <em>Neu laden</em> (in Edge
+                          <em>Erneut laden</em>). Erst dann, denn <em>Entfernen</em> löscht ihr
+                          Archiv. Den Ordner <code>Dokumente\WatIs</code> brauchst du danach nicht
+                          mehr.
+                        </li>
+                      </ol>
+                      <p>
+                        <strong>Firefox</strong> behält die Kennung: WatIs? von addons.mozilla.org
+                        installieren, und dein Archiv ist wieder da. Eine Sicherung vorher schadet
+                        trotzdem nicht.
+                      </p>
                     </div>
 
                     <div class="caution">
@@ -3413,19 +3629,19 @@
                       <ul>
                         <li>
                           <strong><em>Entfernen</em> löscht das Archiv</strong>, in jedem Browser.
-                          Für ein Update reicht <em>Neu laden</em> (in Edge <em>Erneut laden</em>).
+                          Für ein Update musst du nichts entfernen.
                         </li>
                         <li>
-                          <strong>Ein anderer Ordner ist eine andere Erweiterung.</strong> Entpackst
-                          du ein Update woandershin, zeigen Chrome und Edge ein leeres WatIs? an. Weg
-                          ist dein Archiv dann nicht: Lädst du wieder den alten Ordner, ist es zurück.
+                          <strong>In Chrome und Edge sind Store- und ZIP-Fassung zwei
+                          Erweiterungen</strong> mit je eigenem Archiv: erst umziehen, dann die alte
+                          entfernen. Bei der ZIP-Fassung ist auch ein anderer Ordner eine andere
+                          Erweiterung; lädst du wieder den alten Ordner, ist das Archiv zurück.
                         </li>
                       </ul>
                       <p>
-                        Vor allem Größeren: <em>Einstellungen → Sicherung</em>. Unter
+                        Vor allem Größeren: <em>Einstellungen → Archiv und Sicherung</em>. Unter
                         <em>Sicherung zurückspielen</em> kommt das Archiv daraus wieder zurück, auch
-                        in einen anderen Browser. Ist der Entwicklermodus ausgegraut, hat die IT ihn
-                        gesperrt – dann geht es erst über die Stores.
+                        in einen anderen Browser.
                       </p>
                     </div>
                   </div>
@@ -3598,7 +3814,9 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
                 dafür auf gar nichts mehr zu. Sitzung und Archiv bleiben unberührt – das beweist ein
                 Test bei jedem Commit. <strong>Unter Linux nur aus dem AppImage heraus</strong>, weil
                 der Updater genau diese eine Datei ersetzt; startest du einen entpackten Build, sagt die
-                App das und prüft gar nicht erst.
+                App das und prüft gar nicht erst. <strong>Die Browser-Erweiterung</strong> aktualisiert
+                dein Browser aus seinem Store, wie jede andere; aus der ZIP geladen, aktualisiert sie
+                sich nicht.
               </p>
             </article>
 
@@ -3613,7 +3831,9 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
                 des Updaters unter <code>~/.cache/watis-updater/</code> und, falls Autostart an war,
                 <code>~/.config/autostart/watis.desktop</code>. Das Archiv bleibt in beiden Fällen
                 liegen, bis du es selbst entfernst. <strong>Im Browser ist das anders:</strong> Wer
-                die Erweiterung entfernt, entfernt ihr Archiv mit. Vorher sichern.
+                die Erweiterung entfernt, entfernt ihr Archiv mit. Vorher sichern – auch beim
+                <a href="#umsteigen" data-open="os-browser">Umstieg von der ZIP-Fassung</a>, bevor du
+                die alte entfernst.
               </p>
             </article>
           </div>
@@ -3660,6 +3880,9 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
         <nav class="foot-links" aria-label="Weiteres">
           <a href="https://github.com/phish3144/watis">Quelltext</a>
           <a href="https://github.com/phish3144/watis/releases/latest">Versionen</a>
+          <a href="https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd">Chrome Web Store</a>
+          <a href="https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg">Edge-Add-ons</a>
+          <a href="https://addons.mozilla.org/de/firefox/addon/watis/">addons.mozilla.org</a>
           <a href="https://github.com/phish3144/watis/blob/HEAD/docs/backfill-findings.md">Warum 90 Tage</a>
           <a href="https://github.com/phish3144/watis/issues">Fehler melden</a>
           <a href="datenschutz.html">Datenschutz</a>
@@ -3676,16 +3899,22 @@ chmod +x ~/Applications/WatIs-x86_64.AppImage
           if (radio) radio.checked = true
         }
 
-        // The instructions for the browser this page is read in. Without script, Chrome's are open
-        // and the others one click away.
+        // The instructions for the browser this page is read in, and its store first among the
+        // three. Without script, Chrome's are open and the others one click away.
         const ua = navigator.userAgent
-        check(/Edg\//.test(ua) ? 'tab-edge' : /Firefox\//.test(ua) ? 'tab-firefox' : 'tab-chrome')
+        const browser = /Edg\//.test(ua) ? 'edge' : /Firefox\//.test(ua) ? 'firefox' : 'chrome'
+        check(`tab-${browser}`)
+        for (const link of document.querySelectorAll('[data-store]')) {
+          const mine = link.dataset.store === browser
+          link.classList.toggle('btn-primary', mine)
+          link.classList.toggle('btn-ghost', !mine)
+        }
 
         // A link that leads to the install steps opens the right tab on the way.
         for (const link of document.querySelectorAll('[data-open]')) {
           link.addEventListener('click', () => check(link.dataset.open))
         }
-        if (location.hash === '#im-browser' || location.hash === '#browser') check('os-browser')
+        if (['#im-browser', '#browser', '#umsteigen'].includes(location.hash)) check('os-browser')
 
         // Light or dark, remembered if the browser lets us.
         const toggle = document.querySelector('.theme-toggle')

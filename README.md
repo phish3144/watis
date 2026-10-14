@@ -2,8 +2,8 @@
 
 Ein Desktop-Client für WhatsApp Web mit lokalem Archiv, Volltextsuche und ordentlicher
 Desktop-Integration. Für Windows 10/11 und Linux (x64); macOS wird mitgebaut. Und als
-**Browser-Erweiterung für Chrome, Edge und Firefox**, für alle, die nichts installieren dürfen oder
-nur im Browser arbeiten ([Im Browser](#im-browser-chrome-edge-firefox)).
+**Browser-Erweiterung für Chrome, Edge und Firefox**, aus den Stores der drei Browser, für alle, die
+nichts installieren dürfen oder nur im Browser arbeiten ([Im Browser](#im-browser-chrome-edge-firefox)).
 
 > **Status: benutzbar, unsigniert.** Die Releases stehen unter
 > [Releases](https://github.com/phish3144/watis/releases). Der Installer ist noch nicht signiert –
@@ -121,18 +121,38 @@ Dieselbe Bridge, dasselbe Archiv und dieselbe Suche, als Erweiterung direkt in `
 Keine Installation auf dem Rechner, keine Adminrechte. Eine gehostete Web-Version gibt es nicht und
 kann es nicht geben ([ADR 0010](docs/decisions/0010-browser-erweiterung.md)).
 
-Bis die Erweiterung in den Stores steht, wird sie selbst gebaut (`npm ci && npm run build:extension`)
-oder als Artefakt `browser-extension` aus einem CI-Lauf genommen:
+Installiert wird sie aus dem Store des Browsers:
+
+| Browser | Store                                                                                                    | Kennung                            |
+| ------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Chrome  | [Chrome Web Store](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd)      | `egnfhalkjamlhhkpgpenamjdbfjikigd` |
+| Edge    | [Edge-Add-ons](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg) | `nhdchmgbjmkjkpgbignglgobimfabkdg` |
+| Firefox | [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/)                                 | `watis@phish3144.github.io`        |
+
+Von dort aktualisiert sie sich selbst. Danach den WhatsApp-Tab einmal neu laden, damit sie weiter
+mitschreibt. Eine neu installierte Erweiterung liegt zuerst unter dem Puzzleteil neben der
+Adresszeile; dort lässt sie sich an die Symbolleiste heften. Ihr Symbol öffnet das Panel neben
+WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigenen Tab. Auf verwalteten
+Rechnern kann die IT sie mit diesen Kennungen freigeben oder verteilen
+([`docs/managed-deployment.md`](docs/managed-deployment.md#die-erweiterung-per-richtlinie)).
+
+**Ohne Store** – selbst gebaut (`npm ci && npm run build:extension`, siehe [`BUILDING.md`](BUILDING.md)),
+als Release-Anhang `WatIs-Browser-Chrome-Edge.zip` / `WatIs-Browser-Firefox.zip` oder als Artefakt
+`browser-extension` aus einem CI-Lauf:
 
 - **Chrome / Edge:** `chrome://extensions` bzw. `edge://extensions` öffnen, **Entwicklermodus** an,
   **Entpackte Erweiterung laden** (Edge: **Entpackte Dateien laden**) und `out/extension/chromium`
-  wählen.
+  wählen. So geladen, aktualisiert sie sich nicht.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
   `out/extension/firefox/manifest.json` wählen. Temporär heißt: Nach einem Neustart von Firefox ist
-  es weg, bis es auf addons.mozilla.org signiert ist.
+  es weg; das Archiv bleibt.
 
-Dann WhatsApp Web öffnen und anmelden. Das Symbol in der Symbolleiste öffnet das Panel neben
-WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigenen Tab.
+**Von der ZIP-Fassung umsteigen:** Chrome und Edge geben der Store-Fassung eine eigene Kennung, sie
+beginnt also mit leerem Archiv. Deshalb in der alten Fassung unter **Einstellungen → Archiv und
+Sicherung** **Als ZIP herunterladen** (gab es schon ZIP-Sicherungen: **Alle Medien neu**), die
+Store-Fassung installieren, dort **Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen
+auf einmal und erst danach die alte Fassung entfernen – **Entfernen** löscht ihr Archiv. Firefox
+behält die Kennung `watis@phish3144.github.io`; dort bleibt das Archiv beim Umstieg erhalten.
 
 |                                     | Chrome, Edge | Firefox                          |
 | ----------------------------------- | ------------ | -------------------------------- |
@@ -146,7 +166,8 @@ WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigene
 Das Archiv liegt **im Browserprofil**. Abmelden, Cache leeren und Updates überlebt es, das Entfernen
 der Erweiterung nicht. Deshalb gibt es unter Einstellungen die **Sicherung**, in einen Ordner
 (Chrome, Edge) oder als ZIP, und **Sicherung zurückspielen** holt sie in ein leeres oder neues
-Browserprofil zurück, auch eine Sicherung der Desktop-App. Sie hat dasselbe Format wie die Sicherung der Desktop-App
+Browserprofil zurück oder beim Umstieg in die Store-Fassung. Auch eine Sicherung der Desktop-App
+lässt sich so zurückspielen; sie hat dasselbe Format
 ([ADR 0011](docs/decisions/0011-medien-dauerhaft-sichern.md)).
 
 Transkribieren ist ein Klick auf **Transkribieren** unter der Sprachnachricht; eine, die noch nicht
@@ -230,7 +251,8 @@ Wie das Ganze aufgebaut ist: [`docs/architecture.md`](docs/architecture.md).
   Warnung verschwindet ([`docs/code-signing-policy.md`](docs/code-signing-policy.md)).
 - **Im Browser** gehört das Archiv zum Browserprofil. Wird die Erweiterung entfernt oder das Profil
   zurückgesetzt, ist es weg. Eine Sicherung außerhalb des Browsers ist dort keine Kür. Auf
-  verwalteten Rechnern kann die IT Erweiterungen sperren oder nur freigegebene zulassen.
+  verwalteten Rechnern kann die IT Erweiterungen sperren oder nur freigegebene zulassen – WatIs?
+  lässt sich dort über seine Store-Kennung gezielt freigeben.
 - Nutzung auf eigenes Risiko.
 
 ## Lizenz
