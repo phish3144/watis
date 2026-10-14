@@ -276,7 +276,8 @@ auch, bräuchte aber API-Schlüssel als CI-Secrets und ist nicht entschieden.
   - Die Markenrichtlinien von WhatsApp verbieten fremden Produkten Namen, die eine Abwandlung oder
     lautliche Anlehnung an „WhatsApp“ sind.
   - „WatIs?“ kann so gelesen werden. Alle drei Stores haben den Namen angenommen; Meta kann aber
-    später eine Beschwerde einreichen. Ein neuer Name hieße neue Einträge mit neuen Kennungen.
+    später eine Beschwerde einreichen. Ein neuer Name ginge als neue Version in denselben
+    Einträgen; die Kennungen und damit die Archive der Nutzer blieben.
   - Die Texte hier nennen WhatsApp nur, um zu sagen, wofür WatIs? ist, und stellen klar, dass es
     keine Verbindung gibt. Die Bilder zeigen weder das WhatsApp-Logo noch den Namen.
 - **Ein Testkonto gibt es nicht.** Prüfer brauchen ein eigenes WhatsApp-Konto. Text G erklärt das.

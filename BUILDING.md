@@ -39,8 +39,9 @@ This writes two unpacked extensions:
 `npm run pack:extension` additionally zips both into `out/extension/watis-<version>-*.zip`; the
 release assets are those ZIPs renamed. The build is reproducible: two builds of the same commit
 produce identical files, so `diff -r` against an unpacked release asset shows no differences. A copy
-installed from a store also contains the files its store adds to sign it (such as `_metadata/` or
-`META-INF/`); everything else matches.
+installed from the Chrome Web Store or Edge Add-ons also has `_metadata/`, and its `manifest.json`
+gains the fields the store and the browser add, such as `update_url` and `key`. A copy from
+addons.mozilla.org adds `META-INF/` with the signature. Everything else matches.
 
 Everything happens in one script, `scripts/build-extension.mjs`, with comments for each step.
 

@@ -122,6 +122,6 @@ lädt. Es nutzt alle Kerne bis auf einen (höchstens sechs).
 
 - Paketgröße je Browser rund 17 MB, davon etwa 11 MB OCR und 1,5 MB whisper.cpp.
 - Das Release `whisper-models` muss einmal angelegt werden, bevor der Download-Knopf funktioniert.
-  Bis dahin geht nur der Weg über die Datei. _Erledigt: Es steht als Prerelease (PLAN.md Phase 10)._
+  Bis dahin geht nur der Weg über die Datei. _Erledigt, Stand 2026-10-14: Es steht als Prerelease (PLAN.md Phase 10)._
 - Die Desktop-App transkribiert weiterhin nicht (ADR 0008). Derselbe WASM-Weg ginge dort im Renderer
   und wäre die naheliegende Wahl, wenn das Thema dort wieder aufkommt.

@@ -92,11 +92,6 @@ ZIP-Sicherungen. Diese werden **alle zusammen** gewählt, weil jede nach der ers
 Medien trägt; die Medien sind ihre Vereinigung, die Datenbank die neueste nach `BACKUP.json`. Weil
 das Format dasselbe ist, geht auch eine Sicherung der Desktop-App.
 
-**Nachtrag (2026-10-14):** Derselbe Weg trägt den Umstieg aus einer von Hand geladenen Fassung in die
-aus dem Store. In Chrome und Edge hat die Store-Fassung eine andere Kennung und beginnt mit leerem
-Archiv ([ADR 0010](0010-browser-erweiterung.md), Nachtrag): in der alten **Als ZIP herunterladen**,
-in der neuen **Sicherung zurückspielen → ZIP-Dateien wählen …**, erst dann die alte entfernen.
-
 - **Ersetzen, nicht zusammenführen.** Die Datenbank der Sicherung tritt an die Stelle des Archivs.
   Zusammenführen hieße, zwei Archive Tabelle für Tabelle zu vereinen, samt Suchindex und Triggern –
   viel Raum für leise Fehler. Was dabei verloren gehen könnte, ist klein: Was WhatsApp Web gerade
@@ -109,6 +104,13 @@ in der neuen **Sicherung zurückspielen → ZIP-Dateien wählen …**, erst dann
   werden. Was schon da ist, bleibt; die Dateien sind nach ihrem Inhalt benannt.
 - **Nur, was ins Format gehört.** Aus einer Sicherung wird nur `archive.sqlite` gelesen und nur, was
   dem Pfadmuster `blobs/<aa>/<bb>/<sha256>.<ext>` entspricht, geschrieben.
+
+**Nachtrag (2026-10-14):** Derselbe Weg trägt den Umstieg aus einer von Hand geladenen Fassung in die
+aus dem Store. In Chrome und Edge hat die Store-Fassung eine andere Kennung und beginnt mit leerem
+Archiv ([ADR 0010](0010-browser-erweiterung.md), Nachtrag): in der alten **Als ZIP herunterladen**
+(gab es schon ZIP-Sicherungen: **Alle Medien neu**), den WhatsApp-Tab neu laden, in der neuen
+**Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen auf einmal, erst dann die alte
+entfernen.
 
 ## Größenordnung
 
@@ -123,4 +125,4 @@ Speichergrenze bleibt einstellbar.
   herunterladen", den Stand der letzten Sicherung und den Fortschritt.
 - Eine Wiederherstellung **in** die Erweiterung gibt es noch nicht. Die Sicherung ist lesbar
   (SQLite und Dateien) und hat das Desktop-Format. Das Zurückspielen ist ein eigener Schritt.
-  _Überholt: Seit 0.8.0 gibt es das Zurückspielen (Abschnitt 5)._
+  _Überholt am 2026-10-14: Seit 0.8.0 gibt es das Zurückspielen (Abschnitt 5)._

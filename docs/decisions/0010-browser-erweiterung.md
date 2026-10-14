@@ -29,14 +29,14 @@ Eine Erweiterung aus einer Codebasis, zwei Pakete: `out/extension/chromium` (Chr
 `out/extension/firefox`. Das Manifest entsteht pro Browser aus einer Beschreibung
 (`src/extension/manifest.ts`). Unterschiedlich sind nur drei Dinge:
 
-|                | Chrome, Edge        | Firefox                           |
-| -------------- | ------------------- | --------------------------------- |
-| Hintergrund    | Service Worker      | Event Page (`background.scripts`) |
-| Panel          | `side_panel`        | `sidebar_action`                  |
-| Add-on-Kennung | vom Store vergeben¹ | `watis@phish3144.github.io`       |
+|                | Chrome, Edge             | Firefox                           |
+| -------------- | ------------------------ | --------------------------------- |
+| Hintergrund    | Service Worker           | Event Page (`background.scripts`) |
+| Panel          | `side_panel`             | `sidebar_action`                  |
+| Add-on-Kennung | aus dem Store-Schlüssel¹ | `watis@phish3144.github.io`       |
 
-¹ Ursprünglich stand hier „aus dem Store-Schlüssel“. So ist es nicht gekommen, siehe
-[Nachtrag (2026-10-14)](#nachtrag-2026-10-14-verteilung-über-die-stores).
+¹ Überholt am 2026-10-14: Die Kennung vergibt jeder Store selbst, das Manifest hat keinen `key`.
+Siehe [Nachtrag (2026-10-14)](#nachtrag-2026-10-14-verteilung-über-die-stores).
 
 ### Wo was läuft
 
@@ -146,8 +146,10 @@ von Hand. Anleitung und Kennungen: [`docs/store-eintraege.md`](../store-eintraeg
   addons.mozilla.org.
 - **Updates** kommen aus dem Store, nach dessen Prüfung. Eine Fassung von Hand aktualisiert sich
   nicht. Die Hilfe unterscheidet beides über `management.getSelf().installType` und nennt nur den
-  eigenen Browser (Edge-Richtlinie 1.1.2). Nach einem Update muss ein offener WhatsApp-Tab neu
-  geladen werden, damit er wieder mit der Erweiterung spricht; Hilfe und Statuszeile sagen das.
+  eigenen Browser (Edge-Richtlinie 1.1.2). Nach der Installation und nach einem Update muss ein
+  offener WhatsApp-Tab neu geladen werden: Chrome und Edge setzen die Content Scripts nicht in Tabs,
+  die schon offen waren. Willkommenskarte, Hilfe und Statuszeile sagen das; von selbst neu geladen
+  wird der Tab nicht.
 - **Edge** ist inzwischen eigens geprüft: Microsoft Edge 154 besteht die E2E-Tests der Erweiterung
   (2026-10-05).
 - **Der Edge-Eintrag ist englisch**, weil das Paket keine `_locales` hat.
