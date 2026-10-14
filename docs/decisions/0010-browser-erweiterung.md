@@ -29,11 +29,14 @@ Eine Erweiterung aus einer Codebasis, zwei Pakete: `out/extension/chromium` (Chr
 `out/extension/firefox`. Das Manifest entsteht pro Browser aus einer Beschreibung
 (`src/extension/manifest.ts`). Unterschiedlich sind nur drei Dinge:
 
-|                | Chrome, Edge            | Firefox                           |
-| -------------- | ----------------------- | --------------------------------- |
-| Hintergrund    | Service Worker          | Event Page (`background.scripts`) |
-| Panel          | `side_panel`            | `sidebar_action`                  |
-| Add-on-Kennung | aus dem Store-Schlüssel | `watis@phish3144.github.io`       |
+|                | Chrome, Edge        | Firefox                           |
+| -------------- | ------------------- | --------------------------------- |
+| Hintergrund    | Service Worker      | Event Page (`background.scripts`) |
+| Panel          | `side_panel`        | `sidebar_action`                  |
+| Add-on-Kennung | vom Store vergeben¹ | `watis@phish3144.github.io`       |
+
+¹ Ursprünglich stand hier „aus dem Store-Schlüssel“. So ist es nicht gekommen, siehe
+[Nachtrag (2026-10-14)](#nachtrag-2026-10-14-verteilung-über-die-stores).
 
 ### Wo was läuft
 
@@ -125,3 +128,26 @@ tatsächlich wirkt, statt Schalter auszugrauen.
   (siehe [`docs/bridge-map.md`](../bridge-map.md)). Die E2E-Tests laufen gegen eine nachgebaute
   WhatsApp-Seite mit den echten Sicherheits-Headern, in Chromium (Playwright) und Firefox (WebDriver
   BiDi).
+
+## Nachtrag (2026-10-14): Verteilung über die Stores
+
+WatIs? 0.8.1 steht öffentlich auf addons.mozilla.org (seit 2026-10-08), im Chrome Web Store und bei
+Microsoft Edge Add-ons. Beide Chromium-Stores bekommen dieselbe Datei `WatIs-Browser-Chrome-Edge.zip`,
+addons.mozilla.org bekommt `WatIs-Browser-Firefox.zip`. Die Release-ZIPs bleiben für die Installation
+von Hand. Anleitung und Kennungen: [`docs/store-eintraege.md`](../store-eintraege.md).
+
+- **Drei Kennungen in Chromium.** Der Chrome Web Store vergibt `egnfhalkjamlhhkpgpenamjdbfjikigd`,
+  Edge Add-ons `nhdchmgbjmkjkpgbignglgobimfabkdg`, eine entpackte Fassung leitet ihre aus dem
+  Ordnerpfad ab. Das Manifest hat keinen `key`: Er könnte die entpackte Fassung nur an einen der
+  beiden Stores angleichen. Jede Kennung hat ihren eigenen Speicher, also ihr eigenes Archiv; der
+  Wechsel von der entpackten in die Store-Fassung geht über Sicherung und Zurückspielen
+  ([ADR 0011](0011-medien-dauerhaft-sichern.md), Abschnitt 5).
+- **Firefox** behält `watis@phish3144.github.io`, ob vorübergehend geladen oder aus
+  addons.mozilla.org.
+- **Updates** kommen aus dem Store, nach dessen Prüfung. Eine Fassung von Hand aktualisiert sich
+  nicht. Die Hilfe unterscheidet beides über `management.getSelf().installType` und nennt nur den
+  eigenen Browser (Edge-Richtlinie 1.1.2). Nach einem Update muss ein offener WhatsApp-Tab neu
+  geladen werden, damit er wieder mit der Erweiterung spricht; Hilfe und Statuszeile sagen das.
+- **Edge** ist inzwischen eigens geprüft: Microsoft Edge 154 besteht die E2E-Tests der Erweiterung
+  (2026-10-05).
+- **Der Edge-Eintrag ist englisch**, weil das Paket keine `_locales` hat.
