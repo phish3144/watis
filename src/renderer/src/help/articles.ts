@@ -404,7 +404,7 @@ export const HELP: readonly HelpArticle[] = [
         list: [
           '**Das Archiv bleibt leer:** Steht oben [[Schreibt mit]], kommen neue Nachrichten von selbst. [[Jetzt übernehmen]] holt sofort, was WhatsApp Web schon geladen hat.',
           '**Die Suche findet ein Foto nicht:** Die Texterkennung ist vielleicht noch nicht durch. Siehe [[Texterkennung]] unter [[Archiv]].',
-          '**Windows startet WatIs? nicht:** Bei einer SmartScreen-Warnung auf „Weitere Informationen“ und „Trotzdem ausführen“ klicken. Fehlt dieser Weiterklick, blockiert die Intelligente App-Steuerung; dann bleibt die Browser-Erweiterung.',
+          '**Windows startet WatIs? nicht:** Bei einer SmartScreen-Warnung auf „Weitere Informationen“ und „Trotzdem ausführen“ klicken. Fehlt dieser Weiterklick, blockiert die Intelligente App-Steuerung; dann bleibt die Browser-Erweiterung WatIs? – im Chrome Web Store, bei den Edge-Add-ons und auf addons.mozilla.org, ohne Installation auf dem Rechner und ohne Adminrechte.',
           '**Unter Linux startet das AppImage nicht** und meldet `libfuse.so.2`: mit `--appimage-extract-and-run` starten.',
           '**Etwas anderes:** unter [[Einstellungen]] → [[Status]] stehen die Versionen. Bitte mit diesen auf GitHub melden.',
         ],
@@ -420,7 +420,7 @@ export const HELP: readonly HelpArticle[] = [
       {
         list: [
           '**Nachrichten von vor der Installation** gibt es nur so weit, wie WhatsApp Web sie herausgibt – höchstens rund 90 Tage zurück.',
-          '**Sprachnachrichten und Videos** holt die Desktop-App nicht ins Archiv, und Sprachnachrichten werden hier nicht in Text umgewandelt. Die Browser-Erweiterung kann beides.',
+          '**Sprachnachrichten und Videos** holt die Desktop-App nicht ins Archiv, und Sprachnachrichten werden hier nicht in Text umgewandelt. Die Browser-Erweiterung kann beides; es gibt sie im Chrome Web Store, bei den Edge-Add-ons und auf addons.mozilla.org.',
           '**Word-Dateien** werden nicht durchsucht.',
           '**Zurück nach WhatsApp** spielt WatIs? nichts. Das Archiv ist eine Kopie für dich.',
           '**Nach Relevanz sortiert** braucht die Suche bei sehr häufigen Wörtern länger. Zeitlich sortiert bleibt sie schnell.',

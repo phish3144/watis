@@ -107,11 +107,23 @@ const ROW_OTHER_FOLDER: [string, string] = [
 ]
 const ROW_DEVELOPER_MODE: [string, string] = [
   'Der Entwicklermodus ist ausgegraut',
-  'Die IT hat ihn gesperrt. Dann geht es nur mit WatIs? aus dem Add-on-Store des Browsers.',
+  'Die IT hat ihn gesperrt. WatIs? aus dem Add-on-Store deines Browsers braucht ihn nicht, und die IT kann es dort freigeben. Wie du mit deinem Archiv umsteigst, steht unter „Aktualisieren, ohne etwas zu verlieren“.',
 ]
 const ROW_GONE_AFTER_RESTART: [string, string] = [
   'WatIs? ist nach dem Neustart weg',
-  'Die ZIP wieder über „Temporäres Add-on laden …" laden. Das Archiv ist noch da.',
+  'Die ZIP wieder über „Temporäres Add-on laden …" laden – das Archiv ist noch da. Von addons.mozilla.org installiert, bleibt WatIs? dauerhaft, und dein Archiv kommt mit.',
+]
+const ROW_NO_UPDATES: [string, string] = [
+  'WatIs? bekommt keine Updates',
+  'Selbst geladen, aktualisiert es sich nicht. Aus dem Add-on-Store deines Browsers kommen Updates von selbst – siehe „Aktualisieren, ohne etwas zu verlieren“.',
+]
+const ROW_AFTER_UPDATE: [string, string] = [
+  'Nach einem Update steht oben [[Wartet auf WhatsApp]]',
+  'Den WhatsApp-Tab einmal neu laden. Das Archiv ist unverändert.',
+]
+const ROW_STORE_EMPTY: [string, string] = [
+  'Das Archiv ist leer, obwohl WatIs? schon mitgeschrieben hat',
+  'Hattest du WatIs? vorher selbst geladen? Für den Browser ist das eine andere Erweiterung mit eigenem Archiv. Dort [[Als ZIP herunterladen]], hier [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]]. Das alte WatIs? erst danach entfernen.',
 ]
 
 export { SEARCH_SYNTAX }
@@ -129,7 +141,7 @@ export const HELP: readonly HelpArticle[] = [
         steps: [
           '**WhatsApp Web öffnen** und wie gewohnt anmelden.',
           'Den Tab offen lassen. Solange er offen ist, schreibt WatIs? mit. Oben steht dann [[Archiv läuft]].',
-          'Über das **WatIs?-Symbol** in der Symbolleiste öffnest du dieses Panel: Suche, Chats, Medien und Einstellungen.',
+          'Über das **WatIs?-Symbol** öffnest du dieses Panel: Suche, Chats, Medien und Einstellungen. Steht es nicht in der Symbolleiste, liegt es unter dem Puzzleteil neben der Adresszeile; dort lässt es sich anheften.',
         ],
       },
       {
@@ -138,8 +150,12 @@ export const HELP: readonly HelpArticle[] = [
       {
         note: 'Einmal einrichten lohnt sich: unter [[Einstellungen]] → [[Archiv und Sicherung]] eine Sicherung anlegen. Das Archiv liegt im Browser und ist weg, wenn die Erweiterung entfernt wird.',
       },
+      {
+        p: 'Du hast WatIs? selbst geladen, aus einer ZIP. So aktualisiert es sich nicht von selbst, aus dem Add-on-Store deines Browsers schon. Wie du umsteigst, ohne dein Archiv zu verlieren, steht unter „Aktualisieren, ohne etwas zu verlieren“.',
+        when: { install: 'manual' },
+      },
     ],
-    related: ['suchen', 'sicherung', 'datenschutz'],
+    related: ['suchen', 'sicherung', 'aktualisieren', 'datenschutz'],
   },
   {
     id: 'suchen',
@@ -300,7 +316,12 @@ export const HELP: readonly HelpArticle[] = [
       },
       { h: 'Zurückspielen' },
       {
-        p: 'Nach dem Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Wechsel auf eine andere Fassung von WatIs? beginnt das Archiv leer. So kommt es zurück:',
+        p: 'Nach dem Entfernen der Erweiterung, in einem neuen Browserprofil oder beim Umstieg vom selbst geladenen WatIs? auf das aus dem Add-on-Store beginnt das Archiv leer – für den Browser sind die beiden zwei verschiedene Erweiterungen. So kommt es zurück:',
+        when: CHROMIUM,
+      },
+      {
+        p: 'Nach dem Entfernen der Erweiterung oder in einem neuen Browserprofil beginnt das Archiv leer. So kommt es zurück:',
+        when: FIREFOX,
       },
       {
         when: CHROMIUM,
@@ -338,6 +359,45 @@ export const HELP: readonly HelpArticle[] = [
         when: { install: 'store' },
       },
       {
+        p: 'Steht nach einem Update oben [[Wartet auf WhatsApp]], obwohl WhatsApp Web offen ist: den WhatsApp-Tab einmal neu laden. Dann schreibt WatIs? weiter mit.',
+        when: { install: 'store' },
+      },
+      {
+        p: 'Selbst geladen, aktualisiert sich WatIs? nicht von selbst. Aus dem Add-on-Store deines Browsers schon: Einmal umsteigen, danach kommen neue Versionen von allein.',
+        when: { install: 'manual' },
+      },
+      { h: 'In den Chrome Web Store umsteigen', when: { browser: ['chrome'], install: 'manual' } },
+      {
+        when: { browser: ['chrome'], install: 'manual' },
+        steps: [
+          'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
+          'WatIs? im **Chrome Web Store** suchen und **Zu Chrome hinzufügen**. Für Chrome ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Findet die Suche dort deine alten Nachrichten, unter chrome://extensions dieses WatIs? entfernen – das mit dem runden Pfeil **Neu laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
+        ],
+      },
+      { h: 'Zu den Edge-Add-ons umsteigen', when: { browser: ['edge'], install: 'manual' } },
+      {
+        when: { browser: ['edge'], install: 'manual' },
+        steps: [
+          'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
+          'WatIs? bei den **Edge-Add-ons** suchen und **Abrufen**. Für Edge ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Findet die Suche dort deine alten Nachrichten, unter edge://extensions dieses WatIs? entfernen – das mit **Erneut laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
+        ],
+      },
+      { h: 'Auf addons.mozilla.org umsteigen', when: { browser: ['firefox'], install: 'manual' } },
+      {
+        when: { browser: ['firefox'], install: 'manual' },
+        steps: [
+          'Sicherheitshalber sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]].',
+          'Firefox beenden und wieder starten. Dieses WatIs? ist danach weg, sein Archiv nicht.',
+          'WatIs? auf **addons.mozilla.org** suchen und **Zu Firefox hinzufügen**. Es ist dieselbe Erweiterung: Dein Archiv ist wieder da, und ab jetzt übersteht WatIs? jeden Neustart und aktualisiert sich selbst.',
+          'Ist das Archiv doch leer: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]].',
+        ],
+      },
+      { h: 'Ohne Store aktualisieren', when: { install: 'manual' } },
+      {
         when: { browser: ['chrome'], install: 'manual' },
         steps: [
           'Die neue ZIP herunterladen.',
@@ -354,7 +414,7 @@ export const HELP: readonly HelpArticle[] = [
         ],
       },
       {
-        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig. Dein Archiv bleibt dabei erhalten. Aus addons.mozilla.org installiert, bleibt WatIs? dagegen dauerhaft und aktualisiert sich selbst.',
+        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig. Dein Archiv bleibt dabei erhalten.',
         when: { browser: ['firefox'], install: 'manual' },
       },
       { h: 'Nie' },
@@ -364,20 +424,22 @@ export const HELP: readonly HelpArticle[] = [
       },
       {
         list: [
-          '**Entfernen** löscht das Archiv. Für ein Update reicht **Neu laden**.',
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Neu laden**. Beim Umstieg in den Chrome Web Store dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist.',
           'In einen **anderen Ordner** entpacken: Chrome hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
         when: { browser: ['chrome'], install: 'manual' },
       },
       {
         list: [
-          '**Entfernen** löscht das Archiv. Für ein Update reicht **Erneut laden**.',
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Erneut laden**. Beim Umstieg zu den Edge-Add-ons dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist.',
           'In einen **anderen Ordner** entpacken: Edge hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
         when: { browser: ['edge'], install: 'manual' },
       },
       {
-        list: ['**Entfernen** löscht das Archiv. Für ein Update reicht es, die neue ZIP zu laden.'],
+        list: [
+          '**Entfernen** löscht das Archiv. Für ein Update reicht es, die neue ZIP zu laden, und zum Umstieg auf addons.mozilla.org ein Neustart von Firefox.',
+        ],
         when: { browser: ['firefox'], install: 'manual' },
       },
     ],
@@ -398,6 +460,10 @@ export const HELP: readonly HelpArticle[] = [
         ],
       },
       {
+        p: 'Neue Versionen lädt dein Browser selbst aus seinem Add-on-Store, wie bei jeder Erweiterung. WatIs? schickt dabei nichts mit.',
+        when: { install: 'store' },
+      },
+      {
         note: 'Das Archiv ist nicht verschlüsselt. Auf einem Firmenrechner kann die IT darauf zugreifen. Und es enthält Nachrichten anderer Leute – auch gelöschte und „verschwindende“, sobald sie einmal angekommen sind.',
       },
     ],
@@ -415,15 +481,21 @@ export const HELP: readonly HelpArticle[] = [
       { generated: 'status' },
       { h: 'Typische Fälle' },
       {
-        table: [ROW_OTHER_FOLDER, ROW_MEDIA, ROW_TRANSCRIBE, ROW_DEVELOPER_MODE],
+        table: [ROW_OTHER_FOLDER, ROW_NO_UPDATES, ROW_MEDIA, ROW_TRANSCRIBE, ROW_DEVELOPER_MODE],
         when: { ...CHROMIUM, install: 'manual' },
       },
-      { table: [ROW_MEDIA, ROW_TRANSCRIBE], when: { ...CHROMIUM, install: 'store' } },
       {
-        table: [ROW_GONE_AFTER_RESTART, ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX],
+        table: [ROW_AFTER_UPDATE, ROW_STORE_EMPTY, ROW_MEDIA, ROW_TRANSCRIBE],
+        when: { ...CHROMIUM, install: 'store' },
+      },
+      {
+        table: [ROW_GONE_AFTER_RESTART, ROW_NO_UPDATES, ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX],
         when: { ...FIREFOX, install: 'manual' },
       },
-      { table: [ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX], when: { ...FIREFOX, install: 'store' } },
+      {
+        table: [ROW_AFTER_UPDATE, ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX],
+        when: { ...FIREFOX, install: 'store' },
+      },
       {
         p: 'Hilft das alles nicht: Fehler melden unter github.com/phish3144/watis/issues – bitte ohne echte Nachrichten oder Telefonnummern.',
       },

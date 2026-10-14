@@ -152,7 +152,8 @@ beginnt also mit leerem Archiv. Deshalb in der alten Fassung unter **Einstellung
 Sicherung** **Als ZIP herunterladen** (gab es schon ZIP-Sicherungen: **Alle Medien neu**), die
 Store-Fassung installieren, dort **Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen
 auf einmal und erst danach die alte Fassung entfernen – **Entfernen** löscht ihr Archiv. Firefox
-behält die Kennung `watis@phish3144.github.io`; dort bleibt das Archiv beim Umstieg erhalten.
+behält die Kennung `watis@phish3144.github.io`: Firefox einmal neu starten, damit die vorübergehend
+geladene Fassung weg ist, dann aus dem Store installieren, und das Archiv ist wieder da.
 
 |                                     | Chrome, Edge | Firefox                          |
 | ----------------------------------- | ------------ | -------------------------------- |

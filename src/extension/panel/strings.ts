@@ -33,7 +33,7 @@ const de = {
   'status.noTab.explain':
     'WhatsApp Web in einem Tab öffnen, damit mitgeschrieben wird. Suchen geht trotzdem.',
   'status.waiting.explain':
-    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten.',
+    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten. Wurde WatIs? gerade aktualisiert, den WhatsApp-Tab einmal neu laden.',
   'status.problem.explain':
     'Etwas hakt – unten steht, was. Hilft das nicht, den WhatsApp-Tab neu laden.',
   'status.title': 'Zustand',
@@ -171,7 +171,7 @@ const de = {
   'restore.error.notZip': '„{name}“ ist keine lesbare ZIP-Datei.',
   'restore.error.notArchive': 'Das ist keine Sicherung von WatIs?.',
   'restore.error.newer':
-    'Die Sicherung stammt aus einer neueren Version von WatIs?. Erst die Erweiterung aktualisieren.',
+    'Die Sicherung stammt aus einer neueren Version von WatIs?. Erst die Erweiterung aktualisieren – im Add-on-Store kommt eine neue Version manchmal ein paar Tage später an.',
   'settings.storage': 'Belegt: {used} von {limit}',
   'settings.quota': 'Speichergrenze',
 
@@ -268,7 +268,8 @@ const de = {
     'WatIs? schreibt mit, was in WhatsApp Web passiert, und macht es durchsuchbar – auch Text in Bildern und PDFs. Alles bleibt in diesem Browser.',
   'welcome.step1': 'WhatsApp Web öffnen und wie gewohnt anmelden.',
   'welcome.step2': 'Das Archiv füllt sich von selbst, solange der Tab offen ist.',
-  'welcome.step3': 'Über das WatIs?-Symbol in der Symbolleiste suchen.',
+  'welcome.step3':
+    'Über das WatIs?-Symbol suchen. Steht es nicht in der Symbolleiste: unter dem Puzzleteil neben der Adresszeile anheften.',
   'welcome.permission': 'Der Browser braucht noch deine Erlaubnis für web.whatsapp.com.',
   'welcome.grant': 'Erlauben',
   'welcome.dismiss': 'Verstanden',

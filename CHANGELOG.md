@@ -3,6 +3,28 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Hinzugefügt
+
+- **WatIs? steht in den Stores**: im
+  [Chrome Web Store](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd),
+  bei den
+  [Edge-Add-ons](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg)
+  und auf [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/), jeweils mit
+  Version 0.8.1. Von dort installiert, aktualisiert sich die Erweiterung selbst. Landing Page und
+  README führen jetzt dorthin; die ZIP bleibt als Weg ohne Store.
+- **Umstieg von der ZIP-Fassung** in der Hilfe der Erweiterung und auf der Landing Page: In Chrome
+  und Edge ist die Store-Fassung eine andere Erweiterung mit leerem Archiv, deshalb erst sichern,
+  dann zurückspielen, dann die alte entfernen. In Firefox bleibt das Archiv.
+
+### Geändert
+
+- **Nach einem Update den WhatsApp-Tab neu laden:** Das sagen jetzt die Erklärung zu „Wartet auf
+  WhatsApp“ und die Hilfe. Nach einem Update aus dem Store kann der offene Tab von der Erweiterung
+  getrennt sein.
+- Die Willkommenskarte sagt, wo das Symbol einer neuen Erweiterung liegt: unter dem Puzzleteil.
+
 ## [0.8.1] — 2026-10-05
 
 ### Hinzugefügt
