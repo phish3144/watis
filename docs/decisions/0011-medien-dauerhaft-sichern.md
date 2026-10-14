@@ -109,8 +109,9 @@ das Format dasselbe ist, geht auch eine Sicherung der Desktop-App.
 aus dem Store. In Chrome und Edge hat die Store-Fassung eine andere Kennung und beginnt mit leerem
 Archiv ([ADR 0010](0010-browser-erweiterung.md), Nachtrag): in der alten **Als ZIP herunterladen**
 (gab es schon ZIP-Sicherungen: **Alle Medien neu**), den WhatsApp-Tab neu laden, in der neuen
-**Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen auf einmal, erst dann die alte
-entfernen.
+**Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen auf einmal, die Einstellungen
+von Hand übernehmen (sie stecken nicht in der Sicherung, die nur `archive.sqlite` und `blobs/`
+trägt), erst dann die alte entfernen.
 
 ## Größenordnung
 

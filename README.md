@@ -145,7 +145,8 @@ als Release-Anhang `WatIs-Browser-Chrome-Edge.zip` / `WatIs-Browser-Firefox.zip`
   wählen – bei der Release-ZIP den Ordner, in den du sie an einem festen Ort entpackt hast. Diesen
   Ordner nicht verschieben und Updates in denselben Ordner entpacken: Ein anderer Ordner ist für den
   Browser eine andere Erweiterung mit leerem Archiv. So geladen, aktualisiert sie sich nicht; nach
-  jedem **Neu laden** auf der Erweiterungsseite auch den WhatsApp-Tab neu laden.
+  jedem **Neu laden** (Edge: **Erneut laden**) auf der Erweiterungsseite auch den WhatsApp-Tab neu
+  laden.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
   `out/extension/firefox/manifest.json` wählen, bei der Release-ZIP die ZIP selbst (nicht entpacken).
   Temporär heißt: Nach einem Neustart von Firefox ist es weg; das Archiv bleibt.
