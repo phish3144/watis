@@ -144,7 +144,8 @@ als Release-Anhang `WatIs-Browser-Chrome-Edge.zip` / `WatIs-Browser-Firefox.zip`
   **Entpackte Erweiterung laden** (Edge: **Entpackte Dateien laden**) und `out/extension/chromium`
   wählen – bei der Release-ZIP den Ordner, in den du sie an einem festen Ort entpackt hast. Diesen
   Ordner nicht verschieben und Updates in denselben Ordner entpacken: Ein anderer Ordner ist für den
-  Browser eine andere Erweiterung mit leerem Archiv. So geladen, aktualisiert sie sich nicht.
+  Browser eine andere Erweiterung mit leerem Archiv. So geladen, aktualisiert sie sich nicht; nach
+  jedem **Neu laden** auf der Erweiterungsseite auch den WhatsApp-Tab neu laden.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
   `out/extension/firefox/manifest.json` wählen, bei der Release-ZIP die ZIP selbst (nicht entpacken).
   Temporär heißt: Nach einem Neustart von Firefox ist es weg; das Archiv bleibt.
@@ -152,9 +153,10 @@ als Release-Anhang `WatIs-Browser-Chrome-Edge.zip` / `WatIs-Browser-Firefox.zip`
 **Von der ZIP-Fassung umsteigen:** Chrome und Edge geben der Store-Fassung eine eigene Kennung, sie
 beginnt also mit leerem Archiv. Deshalb in der alten Fassung unter **Einstellungen → Archiv und
 Sicherung** **Als ZIP herunterladen** (gab es schon ZIP-Sicherungen: **Alle Medien neu**), die
-Store-Fassung installieren, den WhatsApp-Tab einmal neu laden, in der neuen Fassung **Sicherung
-zurückspielen → ZIP-Dateien wählen …** mit allen Teilen auf einmal und erst danach die alte Fassung
-entfernen – **Entfernen** löscht ihr Archiv. Firefox behält die Kennung `watis@phish3144.github.io`:
+Store-Fassung installieren (sie öffnet einen Tab **Willkommen bei WatIs?**), den WhatsApp-Tab
+einmal neu laden, in der neuen Fassung **Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen
+Teilen auf einmal, die Einstellungen von Hand übernehmen (sie stecken nicht in der Sicherung) und
+erst danach die alte Fassung entfernen – **Entfernen** löscht ihr Archiv. Firefox behält die Kennung `watis@phish3144.github.io`:
 sicherheitshalber genauso als ZIP sichern, Firefox einmal neu starten, damit die vorübergehend
 geladene Fassung weg ist, dann aus dem Store installieren. Das Archiv ist wieder da; wenn nicht, die
 Sicherung zurückspielen.

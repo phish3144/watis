@@ -123,7 +123,7 @@ const ROW_AFTER_UPDATE: [string, string] = [
 ]
 const ROW_STORE_EMPTY: [string, string] = [
   'Das Archiv ist leer, obwohl WatIs? schon mitgeschrieben hat',
-  'Hattest du WatIs? vorher selbst geladen? Für den Browser ist das eine andere Erweiterung mit eigenem Archiv. Dort [[Als ZIP herunterladen]] (gab es schon ZIP-Sicherungen: [[Alle Medien neu]]), den WhatsApp-Tab einmal neu laden, hier [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]] und alle Teile auf einmal markieren. Das alte WatIs? erst entfernen, wenn hier Nachrichten und Medien zurück sind.',
+  'Hattest du WatIs? vorher selbst geladen? Für den Browser ist das eine andere Erweiterung mit eigenem Archiv. Dort [[Als ZIP herunterladen]] (gab es schon ZIP-Sicherungen: [[Alle Medien neu]]), den WhatsApp-Tab einmal neu laden, hier [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]] und alle Teile auf einmal markieren. Die Einstellungen kommen nicht mit: dort nachsehen, hier setzen. Das alte WatIs? erst entfernen, wenn hier Nachrichten und Medien zurück sind.',
 ]
 
 export { SEARCH_SYNTAX }
@@ -371,9 +371,10 @@ export const HELP: readonly HelpArticle[] = [
         when: { browser: ['chrome'], install: 'manual' },
         steps: [
           'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
-          'WatIs? im **Chrome Web Store** suchen und **Zu Chrome hinzufügen**. Für Chrome ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'WatIs? im **Chrome Web Store** suchen und **Zu Chrome hinzufügen**. Für Chrome ist das eine zweite Erweiterung mit leerem Archiv. Dabei öffnet sich ein Tab mit [[Willkommen bei WatIs?]]: Das ist das neue WatIs?.',
           'Den WhatsApp-Tab einmal neu laden, damit das neue WatIs? ihn erreicht.',
-          'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Im neuen WatIs?, im Tab [[Willkommen bei WatIs?]]: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Die Einstellungen kommen mit der Sicherung nicht mit: im alten WatIs? – über sein Symbol in der Symbolleiste – unter [[Einstellungen]] nachsehen und im neuen genauso setzen, vor allem [[Medien automatisch sichern]], [[Speichergrenze]] und [[Enter macht einen Zeilenumbruch, Strg+Enter sendet]]. Ein Sprachmodell lädt das neue beim ersten Mal noch einmal.',
           'Findet die Suche dort deine alten Nachrichten, unter chrome://extensions dieses WatIs? entfernen – das mit dem runden Pfeil **Neu laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
         ],
       },
@@ -382,9 +383,10 @@ export const HELP: readonly HelpArticle[] = [
         when: { browser: ['edge'], install: 'manual' },
         steps: [
           'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
-          'WatIs? bei den **Edge-Add-ons** suchen und **Abrufen**. Für Edge ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'WatIs? bei den **Edge-Add-ons** suchen und **Abrufen**. Für Edge ist das eine zweite Erweiterung mit leerem Archiv. Dabei öffnet sich ein Tab mit [[Willkommen bei WatIs?]]: Das ist das neue WatIs?.',
           'Den WhatsApp-Tab einmal neu laden, damit das neue WatIs? ihn erreicht.',
-          'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Im neuen WatIs?, im Tab [[Willkommen bei WatIs?]]: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
+          'Die Einstellungen kommen mit der Sicherung nicht mit: im alten WatIs? – über sein Symbol in der Symbolleiste – unter [[Einstellungen]] nachsehen und im neuen genauso setzen, vor allem [[Medien automatisch sichern]], [[Speichergrenze]] und [[Enter macht einen Zeilenumbruch, Strg+Enter sendet]]. Ein Sprachmodell lädt das neue beim ersten Mal noch einmal.',
           'Findet die Suche dort deine alten Nachrichten, unter edge://extensions dieses WatIs? entfernen – das mit **Erneut laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
         ],
       },
@@ -405,6 +407,7 @@ export const HELP: readonly HelpArticle[] = [
           'Die neue ZIP herunterladen.',
           'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
           'Unter chrome://extensions bei WatIs? auf den runden Pfeil **Neu laden** klicken.',
+          'Den WhatsApp-Tab einmal neu laden, damit WatIs? weiter mitschreibt.',
         ],
       },
       {
@@ -413,10 +416,11 @@ export const HELP: readonly HelpArticle[] = [
           'Die neue ZIP herunterladen.',
           'In **denselben Ordner** entpacken wie beim ersten Mal und vorhandene Dateien ersetzen.',
           'Unter edge://extensions bei WatIs? auf **Erneut laden** klicken.',
+          'Den WhatsApp-Tab einmal neu laden, damit WatIs? weiter mitschreibt.',
         ],
       },
       {
-        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig. Dein Archiv bleibt dabei erhalten.',
+        p: 'Die neue ZIP unter about:debugging über **Temporäres Add-on laden …** laden. Das ist auch nach jedem Neustart von Firefox nötig. Dein Archiv bleibt dabei erhalten. Steht danach oben [[Wartet auf WhatsApp]], den WhatsApp-Tab einmal neu laden.',
         when: { browser: ['firefox'], install: 'manual' },
       },
       { h: 'Nie' },
@@ -483,7 +487,14 @@ export const HELP: readonly HelpArticle[] = [
       { generated: 'status' },
       { h: 'Typische Fälle' },
       {
-        table: [ROW_OTHER_FOLDER, ROW_NO_UPDATES, ROW_MEDIA, ROW_TRANSCRIBE, ROW_DEVELOPER_MODE],
+        table: [
+          ROW_OTHER_FOLDER,
+          ROW_AFTER_UPDATE,
+          ROW_NO_UPDATES,
+          ROW_MEDIA,
+          ROW_TRANSCRIBE,
+          ROW_DEVELOPER_MODE,
+        ],
         when: { ...CHROMIUM, install: 'manual' },
       },
       {
@@ -491,7 +502,13 @@ export const HELP: readonly HelpArticle[] = [
         when: { ...CHROMIUM, install: 'store' },
       },
       {
-        table: [ROW_GONE_AFTER_RESTART, ROW_NO_UPDATES, ROW_MEDIA, ROW_TRANSCRIBE_FIREFOX],
+        table: [
+          ROW_GONE_AFTER_RESTART,
+          ROW_AFTER_UPDATE,
+          ROW_NO_UPDATES,
+          ROW_MEDIA,
+          ROW_TRANSCRIBE_FIREFOX,
+        ],
         when: { ...FIREFOX, install: 'manual' },
       },
       {

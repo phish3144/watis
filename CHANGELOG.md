@@ -16,7 +16,8 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
   README führen jetzt dorthin; die ZIP bleibt als Weg ohne Store.
 - **Umstieg von der ZIP-Fassung** in der Hilfe der Erweiterung und auf der Landing Page: In Chrome
   und Edge ist die Store-Fassung eine andere Erweiterung mit leerem Archiv, deshalb erst sichern,
-  dann zurückspielen, dann die alte entfernen. In Firefox bleibt das Archiv.
+  dann zurückspielen und die Einstellungen von Hand übernehmen, dann die alte entfernen. In Firefox
+  bleibt beides.
 
 ### Geändert
 
