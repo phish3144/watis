@@ -129,8 +129,8 @@ Installiert wird sie aus dem Store des Browsers:
 | Edge    | [Edge-Add-ons](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg) | `nhdchmgbjmkjkpgbignglgobimfabkdg` |
 | Firefox | [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/)                                 | `watis@phish3144.github.io`        |
 
-Von dort aktualisiert sie sich selbst. Danach den WhatsApp-Tab einmal neu laden, damit sie weiter
-mitschreibt. Eine neu installierte Erweiterung liegt zuerst unter dem Puzzleteil neben der
+Von dort aktualisiert sie sich selbst. Nach der Installation und nach einem Update den
+WhatsApp-Tab einmal neu laden, damit sie (weiter) mitschreibt. Eine neu installierte Erweiterung liegt zuerst unter dem Puzzleteil neben der
 Adresszeile; dort lässt sie sich an die Symbolleiste heften. Ihr Symbol öffnet das Panel neben
 WhatsApp (Seitenleiste); daraus geht es auch als großes Fenster in einem eigenen Tab. Auf verwalteten
 Rechnern kann die IT sie mit diesen Kennungen freigeben oder verteilen
@@ -142,18 +142,22 @@ als Release-Anhang `WatIs-Browser-Chrome-Edge.zip` / `WatIs-Browser-Firefox.zip`
 
 - **Chrome / Edge:** `chrome://extensions` bzw. `edge://extensions` öffnen, **Entwicklermodus** an,
   **Entpackte Erweiterung laden** (Edge: **Entpackte Dateien laden**) und `out/extension/chromium`
-  wählen. So geladen, aktualisiert sie sich nicht.
+  wählen – bei der Release-ZIP den Ordner, in den du sie an einem festen Ort entpackt hast. Diesen
+  Ordner nicht verschieben und Updates in denselben Ordner entpacken: Ein anderer Ordner ist für den
+  Browser eine andere Erweiterung mit leerem Archiv. So geladen, aktualisiert sie sich nicht.
 - **Firefox:** `about:debugging#/runtime/this-firefox` öffnen, **Temporäres Add-on laden** und
-  `out/extension/firefox/manifest.json` wählen. Temporär heißt: Nach einem Neustart von Firefox ist
-  es weg; das Archiv bleibt.
+  `out/extension/firefox/manifest.json` wählen, bei der Release-ZIP die ZIP selbst (nicht entpacken).
+  Temporär heißt: Nach einem Neustart von Firefox ist es weg; das Archiv bleibt.
 
 **Von der ZIP-Fassung umsteigen:** Chrome und Edge geben der Store-Fassung eine eigene Kennung, sie
 beginnt also mit leerem Archiv. Deshalb in der alten Fassung unter **Einstellungen → Archiv und
 Sicherung** **Als ZIP herunterladen** (gab es schon ZIP-Sicherungen: **Alle Medien neu**), die
-Store-Fassung installieren, dort **Sicherung zurückspielen → ZIP-Dateien wählen …** mit allen Teilen
-auf einmal und erst danach die alte Fassung entfernen – **Entfernen** löscht ihr Archiv. Firefox
-behält die Kennung `watis@phish3144.github.io`: Firefox einmal neu starten, damit die vorübergehend
-geladene Fassung weg ist, dann aus dem Store installieren, und das Archiv ist wieder da.
+Store-Fassung installieren, den WhatsApp-Tab einmal neu laden, in der neuen Fassung **Sicherung
+zurückspielen → ZIP-Dateien wählen …** mit allen Teilen auf einmal und erst danach die alte Fassung
+entfernen – **Entfernen** löscht ihr Archiv. Firefox behält die Kennung `watis@phish3144.github.io`:
+sicherheitshalber genauso als ZIP sichern, Firefox einmal neu starten, damit die vorübergehend
+geladene Fassung weg ist, dann aus dem Store installieren. Das Archiv ist wieder da; wenn nicht, die
+Sicherung zurückspielen.
 
 |                                     | Chrome, Edge | Firefox                          |
 | ----------------------------------- | ------------ | -------------------------------- |

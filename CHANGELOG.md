@@ -20,9 +20,9 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
 
 ### Geändert
 
-- **Nach einem Update den WhatsApp-Tab neu laden:** Das sagen jetzt die Erklärung zu „Wartet auf
-  WhatsApp“ und die Hilfe. Nach einem Update aus dem Store kann der offene Tab von der Erweiterung
-  getrennt sein.
+- **Nach der Installation und nach einem Update den WhatsApp-Tab neu laden:** Ein Tab, der schon
+  offen war, kennt die neue Erweiterung erst danach. Das sagen jetzt die Willkommenskarte, die
+  Erklärung zu „Wartet auf WhatsApp“, die Meldung „Der WhatsApp-Tab antwortet nicht“ und die Hilfe.
 - Die Willkommenskarte sagt, wo das Symbol einer neuen Erweiterung liegt: unter dem Puzzleteil.
 
 ## [0.8.1] — 2026-10-05

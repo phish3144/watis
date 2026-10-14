@@ -123,7 +123,7 @@ const ROW_AFTER_UPDATE: [string, string] = [
 ]
 const ROW_STORE_EMPTY: [string, string] = [
   'Das Archiv ist leer, obwohl WatIs? schon mitgeschrieben hat',
-  'Hattest du WatIs? vorher selbst geladen? Für den Browser ist das eine andere Erweiterung mit eigenem Archiv. Dort [[Als ZIP herunterladen]], hier [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]]. Das alte WatIs? erst danach entfernen.',
+  'Hattest du WatIs? vorher selbst geladen? Für den Browser ist das eine andere Erweiterung mit eigenem Archiv. Dort [[Als ZIP herunterladen]] (gab es schon ZIP-Sicherungen: [[Alle Medien neu]]), den WhatsApp-Tab einmal neu laden, hier [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]] und alle Teile auf einmal markieren. Das alte WatIs? erst entfernen, wenn hier Nachrichten und Medien zurück sind.',
 ]
 
 export { SEARCH_SYNTAX }
@@ -139,7 +139,7 @@ export const HELP: readonly HelpArticle[] = [
       },
       {
         steps: [
-          '**WhatsApp Web öffnen** und wie gewohnt anmelden.',
+          '**WhatsApp Web öffnen** und wie gewohnt anmelden. War es schon offen, als du WatIs? installiert hast, den Tab einmal neu laden.',
           'Den Tab offen lassen. Solange er offen ist, schreibt WatIs? mit. Oben steht dann [[Archiv läuft]].',
           'Über das **WatIs?-Symbol** öffnest du dieses Panel: Suche, Chats, Medien und Einstellungen. Steht es nicht in der Symbolleiste, liegt es unter dem Puzzleteil neben der Adresszeile; dort lässt es sich anheften.',
         ],
@@ -372,6 +372,7 @@ export const HELP: readonly HelpArticle[] = [
         steps: [
           'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
           'WatIs? im **Chrome Web Store** suchen und **Zu Chrome hinzufügen**. Für Chrome ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'Den WhatsApp-Tab einmal neu laden, damit das neue WatIs? ihn erreicht.',
           'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
           'Findet die Suche dort deine alten Nachrichten, unter chrome://extensions dieses WatIs? entfernen – das mit dem runden Pfeil **Neu laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
         ],
@@ -382,6 +383,7 @@ export const HELP: readonly HelpArticle[] = [
         steps: [
           'Hier sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
           'WatIs? bei den **Edge-Add-ons** suchen und **Abrufen**. Für Edge ist das eine zweite Erweiterung: Sie beginnt mit einem leeren Archiv.',
+          'Den WhatsApp-Tab einmal neu laden, damit das neue WatIs? ihn erreicht.',
           'Im neuen WatIs?: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
           'Findet die Suche dort deine alten Nachrichten, unter edge://extensions dieses WatIs? entfernen – das mit **Erneut laden**. Erst dann, denn **Entfernen** löscht sein Archiv.',
         ],
@@ -390,10 +392,10 @@ export const HELP: readonly HelpArticle[] = [
       {
         when: { browser: ['firefox'], install: 'manual' },
         steps: [
-          'Sicherheitshalber sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]].',
+          'Sicherheitshalber sichern: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Als ZIP herunterladen]]. Hast du schon einmal als ZIP gesichert, nimm [[Alle Medien neu]] – dann steckt alles in dieser einen Sicherung.',
           'Firefox beenden und wieder starten. Dieses WatIs? ist danach weg, sein Archiv nicht.',
           'WatIs? auf **addons.mozilla.org** suchen und **Zu Firefox hinzufügen**. Es ist dieselbe Erweiterung: Dein Archiv ist wieder da, und ab jetzt übersteht WatIs? jeden Neustart und aktualisiert sich selbst.',
-          'Ist das Archiv doch leer: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]].',
+          'Ist das Archiv doch leer: [[Einstellungen]] → [[Archiv und Sicherung]] → [[Sicherung zurückspielen]] → [[ZIP-Dateien wählen …]], alle Teile der Sicherung auf einmal markieren und [[Zurückspielen]].',
         ],
       },
       { h: 'Ohne Store aktualisieren', when: { install: 'manual' } },

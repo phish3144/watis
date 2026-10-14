@@ -3163,12 +3163,14 @@
                 Linux kann <code>noexec</code> auf dem Home-Dateisystem dasselbe tun. Erweiterungen
                 kann die IT ebenso sperren oder nur freigegebene zulassen. Weil WatIs? in den Stores
                 steht, kann sie es auch gezielt freigeben oder per Richtlinie verteilen: in Chrome und
-                Edge über <code>ExtensionInstallForcelist</code> mit der Store-Kennung (Chrome
+                Edge über <code>ExtensionInstallAllowlist</code> (freigeben) beziehungsweise
+                <code>ExtensionInstallForcelist</code> (verteilen) mit der Store-Kennung (Chrome
                 <code>egnfhalkjamlhhkpgpenamjdbfjikigd</code>, Edge
                 <code>nhdchmgbjmkjkpgbignglgobimfabkdg</code>), in Firefox über
                 <code>ExtensionSettings</code> mit der Kennung <code>watis@phish3144.github.io</code>.
                 Wie, steht in
-                <a href="https://github.com/phish3144/watis/blob/HEAD/docs/managed-deployment.md"
+                <a
+                  href="https://github.com/phish3144/watis/blob/HEAD/docs/managed-deployment.md#die-erweiterung-per-richtlinie"
                   >docs/managed-deployment.md</a
                 >. Und ein lokales Archiv
                 privater Nachrichten auf einem verwalteten Gerät liegt auf fremder Infrastruktur –
@@ -3360,7 +3362,8 @@
                           <li>
                             <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
                             und auf das WatIs?-Symbol klicken. Rechts öffnet sich die Seitenleiste
-                            mit Suche, Chats, Medien und Einstellungen.
+                            mit Suche, Chats, Medien und Einstellungen. War WhatsApp Web schon offen,
+                            den Tab vorher einmal neu laden.
                           </li>
                         </ol>
 
@@ -3397,8 +3400,9 @@
                             <li>
                               <strong>Entwicklermodus einschalten:</strong> der Schalter oben rechts.
                               <p class="step-note">
-                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann bleibt der Chrome Web
-                                Store.
+                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann geht es nur über den
+                                Chrome Web Store: Frag die IT, ob sie WatIs? dort freigibt
+                                (<a href="#grenzen">Auf Firmengeräten</a>).
                               </p>
                             </li>
                             <li>
@@ -3445,6 +3449,7 @@
                           <li>
                             <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
                             und auf das WatIs?-Symbol klicken. Rechts öffnet sich die Seitenleiste.
+                            War WhatsApp Web schon offen, den Tab vorher einmal neu laden.
                           </li>
                         </ol>
 
@@ -3481,8 +3486,9 @@
                               <strong>Entwicklermodus einschalten:</strong> der Schalter in der linken
                               Spalte.
                               <p class="step-note">
-                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann bleiben die
-                                Edge-Add-ons.
+                                Ist er ausgegraut, hat die IT ihn gesperrt. Dann geht es nur über die
+                                Edge-Add-ons: Frag die IT, ob sie WatIs? dort freigibt
+                                (<a href="#grenzen">Auf Firmengeräten</a>).
                               </p>
                             </li>
                             <li>
@@ -3530,6 +3536,7 @@
                           <li>
                             <strong>Loslegen:</strong> <code>web.whatsapp.com</code> öffnen, anmelden
                             und auf das WatIs?-Symbol klicken. Links öffnet sich die Seitenleiste.
+                            War WhatsApp Web schon offen, den Tab vorher einmal neu laden.
                           </li>
                         </ol>
 
@@ -3598,7 +3605,10 @@
                           du dort früher schon so gesichert, nimm <em>Alle Medien neu</em>, dann steckt
                           alles in dieser einen Sicherung.
                         </li>
-                        <li>WatIs? aus dem Store installieren.</li>
+                        <li>
+                          WatIs? aus dem Store installieren und den WhatsApp-Tab einmal neu laden,
+                          damit die neue Fassung ihn erreicht.
+                        </li>
                         <li>
                           In der neuen Fassung:
                           <em
@@ -3615,10 +3625,11 @@
                         </li>
                       </ol>
                       <p>
-                        <strong>Firefox</strong> behält die Kennung: zur Sicherheit sichern, Firefox
-                        einmal neu starten (das vorübergehend geladene WatIs? ist danach weg, sein
-                        Archiv nicht) und WatIs? von addons.mozilla.org installieren. Dein Archiv ist
-                        wieder da; wenn nicht, spielst du die Sicherung zurück.
+                        <strong>Firefox</strong> behält die Kennung: zur Sicherheit wie in Schritt 1
+                        sichern, Firefox einmal neu starten (das vorübergehend geladene WatIs? ist
+                        danach weg, sein Archiv nicht) und WatIs? von addons.mozilla.org installieren.
+                        Dein Archiv ist wieder da; wenn nicht, spielst du die Sicherung zurück, alle
+                        Teile auf einmal.
                       </p>
                     </div>
 

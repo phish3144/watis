@@ -33,7 +33,7 @@ const de = {
   'status.noTab.explain':
     'WhatsApp Web in einem Tab öffnen, damit mitgeschrieben wird. Suchen geht trotzdem.',
   'status.waiting.explain':
-    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten. Wurde WatIs? gerade aktualisiert, den WhatsApp-Tab einmal neu laden.',
+    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten. Wurde WatIs? gerade installiert oder aktualisiert, den WhatsApp-Tab einmal neu laden.',
   'status.problem.explain':
     'Etwas hakt – unten steht, was. Hilft das nicht, den WhatsApp-Tab neu laden.',
   'status.title': 'Zustand',
@@ -266,7 +266,8 @@ const de = {
   'welcome.title': 'Willkommen bei WatIs?',
   'welcome.body':
     'WatIs? schreibt mit, was in WhatsApp Web passiert, und macht es durchsuchbar – auch Text in Bildern und PDFs. Alles bleibt in diesem Browser.',
-  'welcome.step1': 'WhatsApp Web öffnen und wie gewohnt anmelden.',
+  'welcome.step1':
+    'WhatsApp Web öffnen und wie gewohnt anmelden. Ist es schon offen: den Tab einmal neu laden.',
   'welcome.step2': 'Das Archiv füllt sich von selbst, solange der Tab offen ist.',
   'welcome.step3':
     'Über das WatIs?-Symbol suchen. Steht es nicht in der Symbolleiste: unter dem Puzzleteil neben der Adresszeile anheften.',
