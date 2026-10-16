@@ -105,7 +105,7 @@ async function handle(payload: unknown): Promise<unknown> {
     case 'storeBlob': {
       if ((await usedBytes()) >= quotaBytes) {
         // Refusing a file is recoverable; filling the disk is not (§3.1).
-        repo.markMedia(request.mediaId, 'skipped')
+        repo.markMedia(request.mediaId, 'skipped', 'blob store quota reached')
         return { stored: false, reason: 'blob store quota reached' }
       }
       const stored = await blobs.put(fromBase64(request.data), {

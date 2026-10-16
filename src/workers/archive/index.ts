@@ -44,7 +44,7 @@ async function handle(payload: unknown): Promise<unknown> {
       if (quota.exceeded) {
         // Refusing a file is recoverable; filling the disk is not. The refusal is recorded on the
         // row so the reason survives beyond a log line.
-        repo.markMedia(request.mediaId, 'skipped')
+        repo.markMedia(request.mediaId, 'skipped', 'blob store quota reached')
         return { stored: false, reason: 'blob store quota reached' }
       }
       const bytes = Buffer.from(request.data, 'base64')

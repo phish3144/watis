@@ -57,7 +57,13 @@ async function toArchive(message: unknown): Promise<Reply> {
   if (tab?.id !== undefined) {
     const reply = await sendToTab<Reply>(tab.id, message)
     if (reply) return reply
-    return { ok: false, error: 'Der WhatsApp-Tab antwortet nicht. Vielleicht lädt er gerade neu.' }
+    // A tab that was open before WatIs? was installed or updated has no content script of this
+    // copy until it is reloaded.
+    return {
+      ok: false,
+      error:
+        'Der WhatsApp-Tab antwortet nicht. Lädt er gerade neu, kurz warten; sonst den Tab einmal neu laden.',
+    }
   }
   if (!ownHost) await hostLocally(true)
   const host = ownHost

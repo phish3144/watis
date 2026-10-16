@@ -88,8 +88,10 @@ function answer(repo: ArchiveRepository, request: ArchiveRequest): unknown {
     case 'stats':
       return repo.stats() satisfies ArchiveStats
     case 'markMedia':
-      repo.markMedia(request.mediaId, request.status)
+      repo.markMedia(request.mediaId, request.status, request.reason)
       return { ok: true }
+    case 'mediaProblems':
+      return { problems: repo.mediaProblems() }
     case 'pendingMedia':
       return { media: repo.pendingMedia(request.limit) }
     case 'media':

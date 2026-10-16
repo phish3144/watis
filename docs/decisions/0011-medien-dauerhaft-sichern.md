@@ -105,6 +105,15 @@ das Format dasselbe ist, geht auch eine Sicherung der Desktop-App.
 - **Nur, was ins Format gehört.** Aus einer Sicherung wird nur `archive.sqlite` gelesen und nur, was
   dem Pfadmuster `blobs/<aa>/<bb>/<sha256>.<ext>` entspricht, geschrieben.
 
+**Nachtrag (2026-10-14):** Derselbe Weg trägt den Umstieg aus einer von Hand geladenen Fassung in die
+aus dem Store. In Chrome und Edge hat die Store-Fassung eine andere Kennung und beginnt mit leerem
+Archiv ([ADR 0010](0010-browser-erweiterung.md), Nachtrag): in der alten **Als ZIP herunterladen**
+(gab es schon ZIP-Sicherungen: **Alle Medien neu**), die Store-Fassung installieren (sie öffnet einen
+Tab **Willkommen bei WatIs?**), den WhatsApp-Tab neu laden, in diesem Tab **Sicherung zurückspielen →
+ZIP-Dateien wählen …** mit allen Teilen auf einmal, die Einstellungen
+von Hand übernehmen (sie stecken nicht in der Sicherung, die nur `archive.sqlite` und `blobs/`
+trägt), erst dann die alte entfernen.
+
 ## Größenordnung
 
 Fotos: einige hundert Kilobyte. Sprachnachrichten: rund 100 KB pro Minute. Videos: einige Megabyte
@@ -118,3 +127,4 @@ Speichergrenze bleibt einstellbar.
   herunterladen", den Stand der letzten Sicherung und den Fortschritt.
 - Eine Wiederherstellung **in** die Erweiterung gibt es noch nicht. Die Sicherung ist lesbar
   (SQLite und Dateien) und hat das Desktop-Format. Das Zurückspielen ist ein eigener Schritt.
+  _Überholt am 2026-10-14: Seit 0.8.0 gibt es das Zurückspielen (Abschnitt 5)._

@@ -113,8 +113,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The browser extension rides along on every release, under names that never change, so the
-      # landing page can link /releases/latest/download/ to it (ADR 0010). The stores take the same
-      # files once there are listings.
+      # landing page can link /releases/latest/download/ to it for installs without a store
+      # (ADR 0010). The same two ZIPs go by hand to addons.mozilla.org, the Chrome Web Store and
+      # Edge Add-ons (docs/store-eintraege.md), which update store installs; nothing here talks to a
+      # store.
       - name: Attach the browser extension
         shell: bash
         env:

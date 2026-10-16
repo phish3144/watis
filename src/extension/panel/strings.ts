@@ -33,7 +33,7 @@ const de = {
   'status.noTab.explain':
     'WhatsApp Web in einem Tab öffnen, damit mitgeschrieben wird. Suchen geht trotzdem.',
   'status.waiting.explain':
-    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten.',
+    'WhatsApp Web lädt noch oder ist nicht angemeldet. Anmelden und kurz warten. Wurde WatIs? gerade installiert oder aktualisiert, den WhatsApp-Tab einmal neu laden.',
   'status.problem.explain':
     'Etwas hakt – unten steht, was. Hilft das nicht, den WhatsApp-Tab neu laden.',
   'status.title': 'Zustand',
@@ -52,6 +52,12 @@ const de = {
   'status.media.detail': '{fetched} geholt · {skipped} übersprungen · {failed} Fehler',
   'status.openWhatsApp': 'WhatsApp Web öffnen',
   'status.close': 'Schließen',
+  'status.problems': 'Warum Medien fehlen',
+  'status.problems.unknown': 'Ohne gespeicherten Grund (vor diesem Update)',
+  'status.report.copy': 'Fehlerbericht kopieren',
+  'status.report.copied': 'Kopiert',
+  'status.report.hint':
+    'Der Fehlerbericht enthält nur diese Gründe, die Zahlen und die Version, keine Namen und keine Nachrichten. Füg ihn in eine Fehlermeldung ein.',
   'status.counts': '{messages} Nachrichten · {chats} Chats · {media} Medien',
 
   'search.placeholder': 'In allen Chats suchen …',
@@ -171,7 +177,7 @@ const de = {
   'restore.error.notZip': '„{name}“ ist keine lesbare ZIP-Datei.',
   'restore.error.notArchive': 'Das ist keine Sicherung von WatIs?.',
   'restore.error.newer':
-    'Die Sicherung stammt aus einer neueren Version von WatIs?. Erst die Erweiterung aktualisieren.',
+    'Die Sicherung stammt aus einer neueren Version von WatIs?. Erst die Erweiterung aktualisieren – im Add-on-Store kommt eine neue Version manchmal ein paar Tage später an.',
   'settings.storage': 'Belegt: {used} von {limit}',
   'settings.quota': 'Speichergrenze',
 
@@ -266,9 +272,11 @@ const de = {
   'welcome.title': 'Willkommen bei WatIs?',
   'welcome.body':
     'WatIs? schreibt mit, was in WhatsApp Web passiert, und macht es durchsuchbar – auch Text in Bildern und PDFs. Alles bleibt in diesem Browser.',
-  'welcome.step1': 'WhatsApp Web öffnen und wie gewohnt anmelden.',
+  'welcome.step1':
+    'WhatsApp Web öffnen und wie gewohnt anmelden. Ist es schon offen: den Tab einmal neu laden.',
   'welcome.step2': 'Das Archiv füllt sich von selbst, solange der Tab offen ist.',
-  'welcome.step3': 'Über das WatIs?-Symbol in der Symbolleiste suchen.',
+  'welcome.step3':
+    'Über das WatIs?-Symbol suchen. Steht es nicht in der Symbolleiste: unter dem Puzzleteil neben der Adresszeile anheften.',
   'welcome.permission': 'Der Browser braucht noch deine Erlaubnis für web.whatsapp.com.',
   'welcome.grant': 'Erlauben',
   'welcome.dismiss': 'Verstanden',

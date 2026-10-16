@@ -1,9 +1,18 @@
 # Die Erweiterung in die Stores bringen
 
-Schritt für Schritt für addons.mozilla.org (Firefox), den Chrome Web Store und Microsoft Edge
-Add-ons. Mit allen Links und allen Texten zum Kopieren. Stand: **5. Oktober 2026**, geprüft an den
-offiziellen Seiten der drei Stores (Quellen am Ende). Die Formulare ändern sich gelegentlich; heißt
-ein Feld anders, gilt der Text hier sinngemäß.
+**Stand 14. Oktober 2026: WatIs? 0.8.1 ist in allen drei Stores öffentlich.**
+
+| Store            | Eintrag                                                                                                                                   | Kennung                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Firefox (AMO)    | [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/), seit 8. Oktober 2026                                            | `watis@phish3144.github.io`        |
+| Chrome Web Store | [chromewebstore.google.com](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd)                              | `egnfhalkjamlhhkpgpenamjdbfjikigd` |
+| Edge Add-ons     | [microsoftedge.microsoft.com](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg), Eintrag englisch | `nhdchmgbjmkjkpgbignglgobimfabkdg` |
+
+Für jede neue Version gilt [Jede neue Version](#jede-neue-version). Darunter steht die Anleitung, mit
+der die Einträge entstanden sind, Schritt für Schritt für addons.mozilla.org (Firefox), den Chrome
+Web Store und Microsoft Edge Add-ons, mit allen Texten zum Kopieren. Geprüft sind die Formulare an
+den offiziellen Seiten der drei Stores, Stand 5. Oktober 2026 (Quellen am Ende). Sie ändern sich
+gelegentlich; heißt ein Feld anders, gilt der Text hier sinngemäß.
 
 ## Überblick
 
@@ -13,8 +22,8 @@ ein Feld anders, gilt der Text hier sinngemäß.
 | Chrome Web Store | Google-Konto    | einmalig 5 US-Dollar | einige Tage, selten bis zu drei Wochen |
 | Edge Add-ons     | Microsoft-Konto | keine                | bis zu sieben Werktage                 |
 
-**Empfohlene Reihenfolge:** erst Firefox (schnell, kostenlos), dann Chrome. Edge zuletzt oder gar
-nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (siehe
+**So ist es gelaufen:** erst Firefox (öffentlich am 8. Oktober 2026), dann Chrome und Edge. Edge hat
+einen eigenen Eintrag bekommen, obwohl es auch aus dem Chrome Web Store installieren kann (siehe
 [Edge](#3-microsoft-edge-add-ons)).
 
 ### Vorher einmal erledigen
@@ -65,8 +74,9 @@ nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (sieh
 6. **Prüfergebnis lesen.** Erwartbar sind einige **Warnungen**, keine Fehler:
    - `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`: Die Angabe zur Datensammlung versteht Firefox erst ab
      140, WatIs? läuft ab 128. Harmlos; ältere Versionen ignorieren die Angabe.
-   - Hinweise etwa auf `innerHTML` oder `eval` in Dateien unter `ocr/`, `whisper/` oder in
-     `assets/pdf-*.js`: Das ist Code von Tesseract, whisper.cpp und pdf.js, unverändert übernommen.
+   - Hinweise auf `innerHTML`, `Function` oder `import` in `assets/` und `ocr/`: Das sind React,
+     pdf.js, Tesseract und deren Hilfsbibliotheken. Die Notiz für die Prüfer (Text G) erklärt jede
+     einzelne Warnung.
 7. **Quelltext:** Die Frage, ob Code erzeugt oder gebündelt wurde, mit **Ja** beantworten und die
    **Source code (zip)** derselben Version hochladen. Die Prüfer bauen damit nach; der Build ist
    reproduzierbar (Anleitung für sie: [`BUILDING.md`](../BUILDING.md)).
@@ -75,22 +85,25 @@ nicht: Edge installiert Erweiterungen auch direkt aus dem Chrome Web Store (sieh
    - Adresse (Slug): `watis`
    - Zusammenfassung: [Text A](#text-a--kurzbeschreibung)
    - Beschreibung: [Text B](#text-b--beschreibung) (Englisch zusätzlich: [Text C](#text-c--english-description))
-   - Kategorien (höchstens zwei): **Social & Communication** und **Search Tools** (in der deutschen
-     Oberfläche entsprechend übersetzt)
-   - Support-E-Mail: die Store-Adresse aus „Vorher“
-   - Support-Website: `https://github.com/phish3144/watis/issues`
+   - Kategorien: **Suchwerkzeuge** und **Tauschen und Veröffentlichen** (englisch: Search Tools,
+     Social & Communication)
+   - E-Mail-Adresse für Hilfestellungen: die Store-Adresse aus „Vorher“
+   - Hilfeseite: `https://github.com/phish3144/watis/issues`
    - Homepage: `https://phish3144.github.io/watis/`
    - Lizenz: **MIT**
    - „Experimentell“ und „Erfordert Bezahlung“: nicht anhaken
-   - Datenschutzerklärung: verlangt Firefox nur, wenn Daten das Gerät verlassen. Sie steht trotzdem
-     am Ende der Beschreibung (Text B).
-9. **Anmerkungen für Prüfer:** [Text G](#text-g--notes-for-reviewers).
-10. **Einreichen.** Firefox signiert und veröffentlicht automatisch, meist innerhalb von 24 Stunden.
+   - „Dieses Add-on hat eine Datenschutzrichtlinie“: nicht anhaken. Firefox verlangt sie nur, wenn
+     Daten das Gerät verlassen; der Link steht am Ende der Beschreibung (Text B). Angehakt müsste der
+     ganze Text ein zweites Mal hinein.
+9. **Anmerkungen für Kontrolleure:** [Text G](#text-g--notes-for-reviewers). Er enthält die
+   Bauanleitung, die Firefox für den Quelltext verlangt.
+10. **Version übermitteln.** Firefox signiert und veröffentlicht automatisch, meist innerhalb von 24 Stunden.
     Eine Prüfung durch Menschen kann auch später noch kommen.
 11. **Screenshots nachtragen:** In der Verwaltung des Add-ons unter „Eintrag bearbeiten“ die fünf
     Screenshots hochladen (1280×800, Reihenfolge wie die Dateinamen).
 
-Danach steht WatIs? unter `https://addons.mozilla.org/de/firefox/addon/watis/`.
+WatIs? steht seit dem 8. Oktober 2026 unter <https://addons.mozilla.org/de/firefox/addon/watis/>,
+Kennung `watis@phish3144.github.io`.
 
 > **Zur Datensammlung:** Das Manifest sagt Firefox „sammelt keine Daten“
 > (`data_collection_permissions: none`). Das stimmt nach Mozillas Definition: Gemeint ist, was
@@ -150,18 +163,25 @@ Danach steht WatIs? unter `https://addons.mozilla.org/de/firefox/addon/watis/`.
 10. **Zur Überprüfung einreichen.** Wer erst nach der Freigabe selbst veröffentlichen will, entfernt
     im Dialog den Haken bei „automatisch veröffentlichen“; dann bleiben 30 Tage dafür. Neue
     Entwickler werden gründlicher geprüft; einige Tage sind normal.
-11. **Nach der Freigabe:** Im Reiter „Paket“ auf **Öffentlichen Schlüssel ansehen** klicken und mir
-    den Text schicken. Ich trage ihn ins Manifest ein. Dann hat die entpackte Fassung dieselbe
-    Kennung wie die aus dem Store, und das Archiv bleibt beim Wechsel erhalten.
+11. **Nach der Freigabe:** WatIs? steht unter
+    <https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd>, Kennung
+    `egnfhalkjamlhhkpgpenamjdbfjikigd`. Den öffentlichen Schlüssel aus dem Reiter „Paket“ ins
+    Manifest zu übernehmen, war hier einmal vorgesehen, ist aber nicht geschehen: Er gliche die
+    entpackte Fassung nur an diesen Store an, nicht an Edge mit seiner eigenen Kennung, und beide
+    Stores bekommen dieselbe ZIP. Wer von der entpackten Fassung kommt, zieht deshalb über eine
+    Sicherung um ([Nach der Freischaltung](#nach-der-freischaltung)).
 
 ---
 
 ## 3. Microsoft Edge Add-ons
 
-**Vorab: Lohnt sich der eigene Eintrag?** Edge-Nutzer können WatIs? direkt aus dem Chrome Web Store
-installieren. Edge fragt einmal, ob es **„Erweiterungen aus anderen Stores zulassen“** soll, dann
-geht es mit einem Klick. Ein eigener Edge-Eintrag lohnt sich vor allem für Firmenrechner, auf denen
-die IT nur den Edge-Store freigibt.
+**Der eigene Eintrag** steht unter
+<https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg>, Kennung
+`nhdchmgbjmkjkpgbignglgobimfabkdg`. Edge kann WatIs? auch aus dem Chrome Web Store installieren,
+nach **„Erweiterungen aus anderen Stores zulassen“**. Das ist aber die Kennung des Chrome Web Store
+und damit eine andere Erweiterung mit eigenem Archiv. Für Edge gilt deshalb: aus Edge-Add-ons. Auf
+Firmenrechnern, auf denen die IT nur den Edge-Store freigibt, ist das ohnehin der einzige Weg. Der
+Eintrag ist englisch, weil das Paket keine `_locales` hat und Edge die Sprache daraus ableitet.
 
 **Andere Browser:** Edge verlangt, dass eine Erweiterung keine anderen Browser erwähnt (Richtlinie
 1.1.2). Ab 0.8.1 zeigt die eingebaute Hilfe nur den Browser, in dem sie läuft. Wer WatIs? aus einem
@@ -190,52 +210,80 @@ Store installiert hat, liest dort auch nichts über ZIP-Dateien und Entwicklermo
    - Datennutzung: wie bei Chrome, [Text F](#text-f--datennutzung)
    - Datenschutzerklärung: `https://phish3144.github.io/watis/datenschutz.html`. Sie nennt bewusst
      keinen Browser: Edge verlangt, dass sie sich nicht auf andere Browser bezieht.
-7. **Store-Einträge → Deutsch:**
-   - Beschreibung: [Text B](#text-b--beschreibung). Edge verlangt 250 bis 10.000 Zeichen; Text B
-     nennt keinen anderen Browser.
-   - Logo: `logo-300x300.png`
-   - Kleine Werbekachel: `kachel-klein-440x280.png`
-   - Große Werbekachel: `kachel-gross-1400x560.png`
+7. **Store-Einträge:** Edge bietet nur **English (United States)** an, und „Add a language“ ist grau.
+   Das Paket hat keine eigenen Sprachdateien, also kennt Edge keine andere Sprache. Der Eintrag ist
+   deshalb englisch, und die Beschreibung sagt, dass die Oberfläche deutsch ist. In dieser Zeile
+   „Edit details“:
+   - Description: [Text C](#text-c--english-description). Er hat 250 bis 10.000 Zeichen und nennt
+     keinen anderen Browser.
+   - Extension logo: `logo-300x300.png`
+   - Small promotional tile: `kachel-klein-440x280.png`
+   - Large promotional tile: `kachel-gross-1400x560.png`
    - Screenshots: `1-suche.png` bis `5-hilfe.png`
-   - Suchbegriffe (höchstens sieben): `Chat-Archiv`, `Volltextsuche`, `Nachrichten suchen`,
-     `Texterkennung`, `Sprachnachrichten`, `Backup`, `Archiv`
-8. **Anmerkungen für die Zertifizierung:** [Text G](#text-g--notes-for-reviewers). Edge verlangt
-   ausdrücklich ein Testkonto **oder** eine Begründung, warum es keines gibt; Text G enthält sie.
+   - Search terms (höchstens sieben): `chat archive`, `message search`, `full-text search`, `OCR`,
+     `voice message transcription`, `backup`, `local archive`
+8. **Publish → Submit your extension:** bei „Does a tester need credentials …“ **Yes** wählen. Ins
+   Feld „Notes for certification“ kommt [Text G für Edge](#text-g-für-edge). Edge lässt dort
+   höchstens 2.000 Zeichen zu und verlangt ausdrücklich ein Testkonto oder eine Begründung, warum es
+   keines gibt; der Text enthält sie und nennt keinen anderen Browser.
 9. **Veröffentlichen.** Die Prüfung dauert bis zu sieben Werktage.
 
 ---
 
 ## Nach der Freischaltung
 
-- **Schick mir die Links** zu den Einträgen. Ich stelle Landing Page, Hilfe und README auf „ein
-  Klick im Store“ um.
+- **Erledigt (14. Oktober 2026):** Landing Page, Hilfe und README führen in die Stores; die ZIP steht
+  dort nur noch als Weg ohne Store.
 - **Bisherige Nutzer müssen einmal umziehen.** Chrome und Edge geben der Store-Fassung eine andere
   Kennung als der entpackten, also startet sie mit leerem Archiv. Der Weg:
-  1. in der alten Fassung **Einstellungen → Archiv und Sicherung → Als ZIP herunterladen**
-  2. die Store-Fassung installieren
-  3. dort **Sicherung zurückspielen → ZIP-Dateien wählen …**
-  4. die alte Fassung entfernen
+  1. in der alten Fassung **Einstellungen → Archiv und Sicherung → Als ZIP herunterladen** (gab es
+     schon ZIP-Sicherungen: **Alle Medien neu**)
+  2. die Store-Fassung installieren – sie öffnet einen Tab **Willkommen bei WatIs?** – und den
+     WhatsApp-Tab einmal neu laden
+  3. im Tab **Willkommen bei WatIs?** **Sicherung zurückspielen → ZIP-Dateien wählen …**, alle Teile
+     auf einmal, und die Einstellungen von Hand übernehmen: Sie stecken nicht in der Sicherung
+  4. erst dann die alte Fassung entfernen
 
-  In Firefox bleibt die Kennung gleich; vorher sichern schadet trotzdem nicht.
+  In Firefox bleibt die Kennung gleich: Firefox einmal neu starten, dann aus addons.mozilla.org
+  installieren. Vorher sichern schadet trotzdem nicht.
 
-- **Updates:** Jede neue Version muss in jeden Store hochgeladen werden: dieselben ZIPs, im
-  jeweiligen Dashboard „Neue Version“ bzw. „Paket aktualisieren“. Die Nutzer bekommen sie dann
-  automatisch. Das lässt sich später in den Release-Workflow einbauen; die Stores haben dafür
-  Schnittstellen mit API-Schlüsseln.
+## Jede neue Version
+
+Die Nutzer bekommen eine neue Version erst, wenn der jeweilige Store sie geprüft hat; bis dahin
+haben sie nur die Release-ZIPs. Die Versionsnummer muss höher sein als die im Store.
+
+1. Das Release abwarten. CI hängt `WatIs-Browser-Firefox.zip` und `WatIs-Browser-Chrome-Edge.zip`
+   an.
+2. **Firefox:** im [Developer Hub](https://addons.mozilla.org/de/developers/addons) bei WatIs? eine
+   neue Version hochladen: `WatIs-Browser-Firefox.zip`, dazu „Source code (zip)“ derselben Version
+   von der Release-Seite und [Text G](#text-g--notes-for-reviewers). Die Zeile VALIDATOR WARNINGS in
+   Text G mit dem neuen Prüfergebnis abgleichen.
+3. **Chrome:** im [Developer Dashboard](https://chrome.google.com/webstore/devconsole) bei WatIs?
+   im Reiter „Paket“ ein neues Paket hochladen: `WatIs-Browser-Chrome-Edge.zip`, dann zur
+   Überprüfung einreichen.
+4. **Edge:** im [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge/overview) bei
+   WatIs? „Update“, dieselbe ZIP, in „Notes for certification“ [Text G für Edge](#text-g-für-edge),
+   dann „Publish“. Die Prüfung dauert bis zu sieben Werktage.
+5. Neue Berechtigungen auch in den Datenschutz-Angaben der Stores nachtragen
+   ([Text E](#text-e--permission-justifications), [Text F](#text-f--datennutzung)) und in
+   `site/datenschutz.html`.
+
+Nach dem Update aus dem Store muss ein offener WhatsApp-Tab einmal neu geladen werden; das sagen die
+Hilfe und die Statuszeile. Hochladen aus dem Release-Workflow über die Schnittstellen der Stores ginge
+auch, bräuchte aber API-Schlüssel als CI-Secrets und ist nicht entschieden.
 
 ## Risiken, die du kennen solltest
 
 - **Der Name.**
   - Die Markenrichtlinien von WhatsApp verbieten fremden Produkten Namen, die eine Abwandlung oder
     lautliche Anlehnung an „WhatsApp“ sind.
-  - „WatIs?“ kann so gelesen werden. Ein Store kann den Eintrag deshalb ablehnen, oder Meta kann
-    später eine Beschwerde einreichen.
+  - „WatIs?“ kann so gelesen werden. Alle drei Stores haben den Namen angenommen; Meta kann aber
+    später eine Beschwerde einreichen. Ein neuer Name ginge als neue Version in denselben
+    Einträgen; die Kennungen und damit die Archive der Nutzer blieben.
   - Die Texte hier nennen WhatsApp nur, um zu sagen, wofür WatIs? ist, und stellen klar, dass es
     keine Verbindung gibt. Die Bilder zeigen weder das WhatsApp-Logo noch den Namen.
-  - Ob du das Risiko eingehst oder für die Stores einen anderen Namen willst, entscheidest du.
 - **Ein Testkonto gibt es nicht.** Prüfer brauchen ein eigenes WhatsApp-Konto. Text G erklärt das.
-  Ein Prüfer kann trotzdem nachfragen.
-- **Bei Chrome sind neue Entwickler langsamer.** Die erste Prüfung kann länger dauern als spätere.
+  Bei einer neuen Version kann ein Prüfer trotzdem nachfragen.
 
 ---
 
@@ -295,7 +343,8 @@ WatIs? ist kein offizielles WhatsApp-Produkt und steht in keiner Verbindung zu W
 
 ### Text C – English description
 
-Optional, als zweite Sprache bei Firefox.
+Bei Edge die einzige Beschreibung (der Eintrag ist englisch, Schritt 7); bei Firefox optional als
+zweite Sprache.
 
 ```text
 WatIs? makes WhatsApp Web searchable. What you see in WhatsApp Web goes into an archive on your own computer – and stays there.
@@ -366,8 +415,9 @@ nur auf dem Gerät verarbeitet werden.
 
 ### Text G – Notes for reviewers
 
-Für alle drei Stores; bei Firefox „Notes for Reviewers“, bei Chrome „Testanleitung“, bei Edge
-„Notes for certification“.
+Für Firefox („Notes for Reviewers“) und Chrome („Testanleitung“). Edge nimmt den kürzeren
+[Text G für Edge](#text-g-für-edge). Die Zeile VALIDATOR WARNINGS beschreibt 0.8.1; bei jeder neuen
+Version mit dem Prüfergebnis von addons.mozilla.org abgleichen.
 
 ```text
 WatIs? archives what the user sees in WhatsApp Web, locally, and makes it searchable.
@@ -388,6 +438,41 @@ The extension never sends, deletes or marks messages as read.
 
 SOURCE AND BUILD
 https://github.com/phish3144/watis – build instructions in BUILDING.md: npm ci && npm run build:extension (Node 24). The build is reproducible. Our own code is bundled with Vite and not minified. The minified files in ocr/ and whisper/ and the WebAssembly are copied unmodified from the npm packages tesseract.js 7.0.0, tesseract.js-core 7.0.0, pdfjs-dist 6.3.289, @transcribe/shout 1.0.7 and @sqlite.org/sqlite-wasm 3.53.4-build2, as pinned in package-lock.json.
+
+VALIDATOR WARNINGS (14 warnings, no errors)
+No warning points at code that is fetched from anywhere: every file named is inside the package, and our own code uses no eval, no Function constructor and no innerHTML.
+- data_collection_permissions with strict_min_version 128 (desktop and Android): Firefox 128 to 139 ignore the key. The extension collects nothing, so no consent screen is needed there either.
+- assets/whisper-*.js, import(): our code loads whisper/shout.wasm.js, a file in the package, through runtime.getURL.
+- assets/panel-*.js, innerHTML (2x): React DOM's handling of dangerouslySetInnerHTML. Our code never uses dangerouslySetInnerHTML.
+- assets/archive-worker-*.js, Function: regenerator-runtime's fallback for environments without globalThis. It is never reached.
+- assets/pdf-*.js, Function, activeXDocument.write, iframeDocument.write: core-js polyfills inside pdfjs-dist's legacy build, for global-object detection and an old Internet Explorer fallback. They are never reached in Firefox.
+- assets/pdf-*.js, import(): pdf.js's fake-worker loader. We always hand pdf.js a real worker (GlobalWorkerOptions.workerPort).
+- ocr/worker.min.js, Function (2x), and ocr/pdf.worker.min.mjs, Function and import(): unmodified files from tesseract.js 7.0.0 and pdfjs-dist 6.3.289.
+```
+
+### Text G für Edge
+
+Kürzer, weil Edge höchstens 2.000 Zeichen zulässt (dieser hat 1.319), und ohne andere Browser.
+
+```text
+WatIs? archives what the user sees in WhatsApp Web, locally, and makes it searchable.
+
+HOW TO TEST
+1. Install the extension.
+2. Open https://web.whatsapp.com and log in with any WhatsApp account (scan the QR code with a phone).
+3. Click the toolbar icon: the side panel opens. Search for a word from one of the chats.
+
+TEST ACCOUNT
+We cannot provide one: a WhatsApp account is bound to a phone number and to personal messages. Without logging in, the panel still opens and shows the empty archive, the settings and the built-in help. The repository contains end-to-end tests that run this exact package against a stand-in WhatsApp Web page.
+
+PRIVACY
+Nothing is transmitted: no server, no analytics, no account. All data stays in the extension's local storage. The only other network access is optional: on the user's click, the extension asks for the optional host permission for GitHub and downloads a speech model (weights, no code) from this project's releases.
+
+READ-ONLY
+The extension never sends, deletes or marks messages as read.
+
+SOURCE
+Open source (MIT): https://github.com/phish3144/watis. Build: npm ci && npm run build:extension (see BUILDING.md). Our code is bundled with Vite and not minified; the minified files in ocr/ and whisper/ are unmodified copies from tesseract.js, pdf.js and @transcribe/shout.
 ```
 
 ---

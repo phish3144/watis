@@ -717,11 +717,15 @@ Client anmeldet, wäre ein Protokoll-Client mit Cloud ([ADR 0010](docs/decisions
       (`npm run test:extension:firefox`); eigener CI-Job, Pakete als Artefakt
 - [x] Release `whisper-models` als **Prerelease** anlegen: `npm run models:fetch`, dann die
       ausgegebenen `gh`-Befehle. Bis dahin geht nur der Weg über die Modelldatei
-- [ ] Einträge im Chrome Web Store, bei Edge Add-ons und auf addons.mozilla.org (Konten,
-      Datenschutzangaben, Prüfung). Bis dahin: entpackt laden bzw. temporär in Firefox. Anleitung
-      mit allen Texten: [`docs/store-eintraege.md`](docs/store-eintraege.md); Bilder aus
-      `npm run store:assets`, Datenschutzerklärung `site/datenschutz.html`, Bauanleitung für die
-      Prüfer [`BUILDING.md`](BUILDING.md)
+- [x] Einträge im Chrome Web Store, bei Edge Add-ons und auf addons.mozilla.org (Konten,
+      Datenschutzangaben, Prüfung), öffentlich mit 0.8.1, alle drei geprüft am 2026-10-14:
+      addons.mozilla.org seit 2026-10-08 (`watis@phish3144.github.io`), Chrome Web Store
+      (`egnfhalkjamlhhkpgpenamjdbfjikigd`), Edge Add-ons (`nhdchmgbjmkjkpgbignglgobimfabkdg`,
+      Eintrag englisch, weil das Paket keine `_locales` hat). Landing Page, Hilfe und README führen
+      dorthin; die Release-ZIPs bleiben für die Installation von Hand. Anleitung mit allen Texten
+      und dem Weg für jede neue Version: [`docs/store-eintraege.md`](docs/store-eintraege.md);
+      Bilder aus `npm run store:assets`, Datenschutzerklärung `site/datenschutz.html`, Bauanleitung
+      für die Prüfer [`BUILDING.md`](BUILDING.md)
 - [ ] Smoke-Test gegen eine angemeldete Sitzung, wie für den Desktop ([`docs/bridge-map.md`](docs/bridge-map.md))
 - [ ] Lasttest nach §3.1 gegen die WASM-Engine
 - [ ] Dauer einer Transkription auf einem echten Arbeitsplatzrechner messen. In der Cloud-VM der

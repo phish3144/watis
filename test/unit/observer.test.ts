@@ -88,6 +88,18 @@ describe('toMessageRow', () => {
     expect(toMessageRow(message({ id: 'plain', chatId: 'c9' }))?.id).toBe('plain')
   })
 
+  it('reads the caption of a file, not the preview picture WhatsApp keeps in its body', () => {
+    const thumbnail = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODw4MDBQ'
+    expect(
+      toMessageRow(
+        message({ type: 'image', filehash: 'aGFzaA==', body: thumbnail, caption: 'Hallo' }),
+      )?.body,
+    ).toBe('Hallo')
+    expect(
+      toMessageRow(message({ type: 'ptt', filehash: 'aGFzaA==', body: thumbnail }))?.body,
+    ).toBe(null)
+  })
+
   it('falls back to the caption when a media message has no body', () => {
     expect(toMessageRow(message({ body: undefined, caption: 'Bildunterschrift' }))?.body).toBe(
       'Bildunterschrift',

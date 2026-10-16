@@ -304,6 +304,26 @@ END;
 UPDATE messages SET body = body WHERE revoked = 1 AND body IS NOT NULL AND body <> '';
 `
 
+/**
+ * Files that did not come say why, and captions replace preview pictures.
+ *
+ * A failed or skipped download kept only its status; the reason lived in a counter and was gone
+ * with the next file, so a whole archive of failures could not say what failed. It is on the row
+ * now. And the bridge read a file's `body`, which for a file holds its preview picture as base64,
+ * instead of its `caption`: those messages showed a wall of characters. They get their caption back
+ * from the stored model where it has one, and nothing where it has none.
+ */
+const MEDIA_REASONS_AND_CAPTIONS = `
+ALTER TABLE media ADD COLUMN last_error TEXT;
+
+UPDATE messages
+   SET body = CASE WHEN json_valid(raw_json)
+                   THEN COALESCE(json_extract(raw_json, '$.caption'),
+                                 json_extract(raw_json, '$.__x_caption'))
+              END
+ WHERE media_id IS NOT NULL AND body GLOB '/9j/*';
+`
+
 export const MIGRATIONS: readonly Migration[] = [
   { version: 1, name: 'initial schema', sql: INITIAL },
   { version: 2, name: 'local reminders', sql: REMINDERS },
@@ -313,6 +333,11 @@ export const MIGRATIONS: readonly Migration[] = [
     sql: RETRY_FAILED_MEDIA,
   },
   { version: 4, name: 'messages deleted for everyone stay findable', sql: KEEP_DELETED_MESSAGES },
+  {
+    version: 5,
+    name: 'reasons for media that did not come, captions instead of preview pictures',
+    sql: MEDIA_REASONS_AND_CAPTIONS,
+  },
 ]
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0)

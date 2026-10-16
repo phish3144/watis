@@ -180,8 +180,9 @@ export const archiveRequestSchema = z.discriminatedUnion('op', [
     op: z.literal('markMedia'),
     mediaId: z.string().min(1),
     status: z.enum(['pending', 'done', 'failed', 'skipped']),
-    reason: z.string().optional(),
+    reason: z.string().max(500).optional(),
   }),
+  z.object({ op: z.literal('mediaProblems') }),
   z.object({ op: z.literal('pendingMedia'), limit: z.number().int().min(1).max(500).default(50) }),
   z.object({ op: z.literal('quota') }),
   z.object({

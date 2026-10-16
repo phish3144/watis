@@ -497,8 +497,31 @@ export class ArchiveRepository {
   }
 
   /** Records the outcome of a fetch. A refusal is recorded too, with its reason (§10). */
-  markMedia(mediaId: string, status: 'pending' | 'done' | 'failed' | 'skipped'): void {
-    this.#db.prepare('UPDATE media SET status = ? WHERE id = ?').run(status, mediaId)
+  markMedia(
+    mediaId: string,
+    status: 'pending' | 'done' | 'failed' | 'skipped',
+    reason?: string | null,
+  ): void {
+    this.#db
+      .prepare('UPDATE media SET status = ?, last_error = ? WHERE id = ?')
+      .run(status, status === 'failed' || status === 'skipped' ? (reason ?? null) : null, mediaId)
+  }
+
+  /**
+   * Why files did not come, grouped and counted, the most common first. Reasons only: no names,
+   * no chats, nothing from the messages, so the list can be passed on to report a bug.
+   */
+  mediaProblems(
+    limit = 12,
+  ): { status: 'failed' | 'skipped'; reason: string | null; count: number }[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT status, last_error, COUNT(*) AS n FROM media
+          WHERE status IN ('failed', 'skipped')
+          GROUP BY status, last_error ORDER BY n DESC LIMIT ?`,
+      )
+      .all(limit) as { status: 'failed' | 'skipped'; last_error: string | null; n: number }[]
+    return rows.map((r) => ({ status: r.status, reason: r.last_error, count: r.n }))
   }
 
   /**

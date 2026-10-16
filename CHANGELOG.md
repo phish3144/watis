@@ -3,6 +3,39 @@
 Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
 [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- **Bilder und Sprachnachrichten zeigten Zeichensalat statt der Bildunterschrift.** WhatsApp Web legt
+  bei Dateien ein Vorschaubild als Text ab, und WatIs? hat das statt der Bildunterschrift archiviert.
+  Jetzt kommt die Bildunterschrift; schon archivierte Nachrichten werden beim Update repariert.
+
+### Hinzugefügt
+
+- **Warum Medien fehlen:** Ein Klick auf die Anzeige oben zeigt, aus welchen Gründen Dateien nicht
+  geholt wurden, und „Fehlerbericht kopieren“ gibt diese Gründe als Text weiter – ohne Namen und
+  ohne Nachrichten. Bisher ging der Grund verloren.
+
+- **WatIs? steht in den Stores**: im
+  [Chrome Web Store](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd),
+  bei den
+  [Edge-Add-ons](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg)
+  und auf [addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/watis/), jeweils mit
+  Version 0.8.1. Von dort installiert, aktualisiert sich die Erweiterung selbst. Landing Page und
+  README führen jetzt dorthin; die ZIP bleibt als Weg ohne Store.
+- **Umstieg von der ZIP-Fassung** in der Hilfe der Erweiterung und auf der Landing Page: In Chrome
+  und Edge ist die Store-Fassung eine andere Erweiterung mit leerem Archiv, deshalb erst sichern,
+  dann zurückspielen und die Einstellungen von Hand übernehmen, dann die alte entfernen. In Firefox
+  bleibt beides.
+
+### Geändert
+
+- **Nach der Installation und nach einem Update den WhatsApp-Tab neu laden:** Ein Tab, der schon
+  offen war, kennt die neue Erweiterung erst danach. Das sagen jetzt die Willkommenskarte, die
+  Erklärung zu „Wartet auf WhatsApp“, die Meldung „Der WhatsApp-Tab antwortet nicht“ und die Hilfe.
+- Die Willkommenskarte sagt, wo das Symbol einer neuen Erweiterung liegt: unter dem Puzzleteil.
+
 ## [0.8.1] — 2026-10-05
 
 ### Hinzugefügt
