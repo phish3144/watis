@@ -52,6 +52,12 @@ const de = {
   'status.media.detail': '{fetched} geholt · {skipped} übersprungen · {failed} Fehler',
   'status.openWhatsApp': 'WhatsApp Web öffnen',
   'status.close': 'Schließen',
+  'status.problems': 'Warum Medien fehlen',
+  'status.problems.unknown': 'Ohne gespeicherten Grund (vor diesem Update)',
+  'status.report.copy': 'Fehlerbericht kopieren',
+  'status.report.copied': 'Kopiert',
+  'status.report.hint':
+    'Der Fehlerbericht enthält nur diese Gründe, die Zahlen und die Version, keine Namen und keine Nachrichten. Füg ihn in eine Fehlermeldung ein.',
   'status.counts': '{messages} Nachrichten · {chats} Chats · {media} Medien',
 
   'search.placeholder': 'In allen Chats suchen …',

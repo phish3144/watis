@@ -5,7 +5,17 @@ Nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nac
 
 ## [Unveröffentlicht]
 
+### Behoben
+
+- **Bilder und Sprachnachrichten zeigten Zeichensalat statt der Bildunterschrift.** WhatsApp Web legt
+  bei Dateien ein Vorschaubild als Text ab, und WatIs? hat das statt der Bildunterschrift archiviert.
+  Jetzt kommt die Bildunterschrift; schon archivierte Nachrichten werden beim Update repariert.
+
 ### Hinzugefügt
+
+- **Warum Medien fehlen:** Ein Klick auf die Anzeige oben zeigt, aus welchen Gründen Dateien nicht
+  geholt wurden, und „Fehlerbericht kopieren“ gibt diese Gründe als Text weiter – ohne Namen und
+  ohne Nachrichten. Bisher ging der Grund verloren.
 
 - **WatIs? steht in den Stores**: im
   [Chrome Web Store](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd),

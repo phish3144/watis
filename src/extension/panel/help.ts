@@ -521,7 +521,7 @@ export const HELP: readonly HelpArticle[] = [
         when: { ...FIREFOX, install: 'store' },
       },
       {
-        p: 'Hilft das alles nicht: Fehler melden unter github.com/phish3144/watis/issues – bitte ohne echte Nachrichten oder Telefonnummern.',
+        p: 'Fehlen Medien, steht beim Klick auf die Anzeige oben unter „[[Warum Medien fehlen]]“, woran es liegt. Hilft das alles nicht: [[Fehlerbericht kopieren]] und den Text unter github.com/phish3144/watis/issues in eine Fehlermeldung einfügen. Er enthält keine Namen und keine Nachrichten.',
       },
     ],
     related: ['aktualisieren', 'medien'],
