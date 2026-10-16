@@ -344,7 +344,12 @@ export const HELP: readonly HelpArticle[] = [
           'Die Sicherung **ersetzt** das Archiv in diesem Browser. Was WhatsApp Web gerade zeigt, holt WatIs? danach von selbst wieder dazu.',
           'Medien, die hier schon liegen, bleiben, und kommen nicht doppelt.',
           'Auch eine Sicherung der Desktop-App lässt sich so zurückspielen – sie hat dasselbe Format: die Datenbank archive.sqlite und die Medien im Ordner blobs.',
+          'Die Einstellungen stecken nicht in der Sicherung. Fängt WatIs? hier neu an, setzt du sie unter [[Einstellungen]] von Hand.',
         ],
+      },
+      {
+        note: 'Beim Umstieg in den Add-on-Store spielst du die Sicherung im neuen WatIs? zurück, dem, das den Tab [[Willkommen bei WatIs?]] geöffnet hat. Alle Schritte stehen unter „Aktualisieren, ohne etwas zu verlieren“.',
+        when: { ...CHROMIUM, install: 'manual' },
       },
     ],
     related: ['aktualisieren', 'datenschutz'],
@@ -430,14 +435,14 @@ export const HELP: readonly HelpArticle[] = [
       },
       {
         list: [
-          '**Entfernen** löscht das Archiv. Für ein Update reicht **Neu laden**. Beim Umstieg in den Chrome Web Store dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist.',
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Neu laden** und danach den WhatsApp-Tab einmal neu laden. Beim Umstieg in den Chrome Web Store dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist und du die Einstellungen dort übernommen hast.',
           'In einen **anderen Ordner** entpacken: Chrome hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
         when: { browser: ['chrome'], install: 'manual' },
       },
       {
         list: [
-          '**Entfernen** löscht das Archiv. Für ein Update reicht **Erneut laden**. Beim Umstieg zu den Edge-Add-ons dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist.',
+          '**Entfernen** löscht das Archiv. Für ein Update reicht **Erneut laden** und danach den WhatsApp-Tab einmal neu laden. Beim Umstieg zu den Edge-Add-ons dieses WatIs? erst entfernen, wenn dein Archiv im neuen zurück ist und du die Einstellungen dort übernommen hast.',
           'In einen **anderen Ordner** entpacken: Edge hält das für eine zweite Erweiterung und zeigt ein leeres WatIs?. Dein Archiv ist dann nicht weg – den alten Ordner wieder laden, und es ist zurück.',
         ],
         when: { browser: ['edge'], install: 'manual' },

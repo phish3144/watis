@@ -238,9 +238,10 @@ Store installiert hat, liest dort auch nichts über ZIP-Dateien und Entwicklermo
   Kennung als der entpackten, also startet sie mit leerem Archiv. Der Weg:
   1. in der alten Fassung **Einstellungen → Archiv und Sicherung → Als ZIP herunterladen** (gab es
      schon ZIP-Sicherungen: **Alle Medien neu**)
-  2. die Store-Fassung installieren und den WhatsApp-Tab einmal neu laden
-  3. dort **Sicherung zurückspielen → ZIP-Dateien wählen …**, alle Teile auf einmal, und die
-     Einstellungen von Hand übernehmen: Sie stecken nicht in der Sicherung
+  2. die Store-Fassung installieren – sie öffnet einen Tab **Willkommen bei WatIs?** – und den
+     WhatsApp-Tab einmal neu laden
+  3. im Tab **Willkommen bei WatIs?** **Sicherung zurückspielen → ZIP-Dateien wählen …**, alle Teile
+     auf einmal, und die Einstellungen von Hand übernehmen: Sie stecken nicht in der Sicherung
   4. erst dann die alte Fassung entfernen
 
   In Firefox bleibt die Kennung gleich: Firefox einmal neu starten, dann aus addons.mozilla.org
