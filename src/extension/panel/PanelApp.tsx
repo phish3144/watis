@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  archive,
   openLarge,
   openWhatsApp,
   hasWhatsAppPermission,
@@ -8,6 +9,8 @@ import {
 } from './api'
 import { usePanelStatus, useSettings, type PanelStatus } from './hooks'
 import { count } from './format'
+import { ext } from '../ext'
+import { explainMediaProblem } from './problems'
 import type { HelpTopic } from './help'
 import { HelpLink, HelpProvider } from './helpui'
 import { ChatIcon, ExpandIcon, HelpIcon, ImageIcon, MoreIcon, SearchIcon } from './icons'
@@ -374,6 +377,7 @@ function StatusSheet({
         ))}
       </dl>
       {status.host?.error && <p className="mt-3 text-xs text-wa-danger">{status.host.error}</p>}
+      <MediaProblems status={status} />
       {!status.whatsappOpen && (
         <div className="mt-4 flex justify-center">
           <Button variant="primary" onClick={() => void openWhatsApp()}>
@@ -382,6 +386,78 @@ function StatusSheet({
         </div>
       )}
     </Sheet>
+  )
+}
+
+interface MediaProblem {
+  status: 'failed' | 'skipped'
+  reason: string | null
+  count: number
+}
+
+/**
+ * Why files did not come, counted by reason, and a report to pass on. The report holds the error
+ * texts and the numbers only: no names, no chats, nothing from a message.
+ */
+function MediaProblems({ status }: { status: PanelStatus }): React.JSX.Element | null {
+  const [problems, setProblems] = useState<MediaProblem[]>([])
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    void archive<{ problems: MediaProblem[] }>({ op: 'mediaProblems' })
+      .then((reply) => {
+        setProblems(reply.problems)
+      })
+      .catch(() => undefined)
+  }, [])
+  if (problems.length === 0) return null
+
+  const report = (): string =>
+    [
+      `WatIs? ${ext.runtime.getManifest().version}`,
+      navigator.userAgent,
+      status.media
+        ? t('status.media.detail', {
+            fetched: status.media.fetched,
+            skipped: status.media.skipped,
+            failed: status.media.failed,
+          })
+        : '',
+      ...problems.map((p) => `${String(p.count)} × ${p.status}: ${p.reason ?? '–'}`),
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+  return (
+    <section className="mt-4">
+      <h3 className="mb-2 text-[13px] font-semibold">{t('status.problems')}</h3>
+      <ul className="divide-y divide-wa-hairline rounded-2xl bg-wa-surface px-4">
+        {problems.map((p, i) => (
+          <li key={i} className="flex justify-between gap-3 py-2.5 text-[13px]">
+            <span className="min-w-0">
+              {p.reason ? explainMediaProblem(p.reason).text : t('status.problems.unknown')}
+              {p.reason && (
+                <span className="block truncate font-mono text-[11px] text-wa-muted">
+                  {p.reason}
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 text-wa-muted">{count(p.count)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-wa-muted">{t('status.report.hint')}</p>
+      <div className="mt-2 flex justify-center">
+        <Button
+          onClick={() => {
+            void navigator.clipboard.writeText(report()).then(() => {
+              setCopied(true)
+            })
+          }}
+        >
+          {copied ? t('status.report.copied') : t('status.report.copy')}
+        </Button>
+      </div>
+    </section>
   )
 }
 

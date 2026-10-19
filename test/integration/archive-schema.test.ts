@@ -37,6 +37,39 @@ describe('migrations', () => {
     expect(migrate(db)).toBe(LATEST_VERSION)
   })
 
+  it('puts captions back where the preview picture of a file had been archived as its text', () => {
+    // An archive as it was before version 5: the bridge stored a file's base64 preview as body.
+    const db = openMemory()
+    registerFunctions(db)
+    for (const migration of MIGRATIONS.filter((m) => m.version <= 4)) db.exec(migration.sql)
+    db.pragma('user_version = 4')
+    insertChat(db)
+    const insert = db.prepare(
+      'INSERT INTO messages (id, chat_id, ts, kind, body, media_id, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    )
+    insert.run(
+      'm1',
+      'c1',
+      1,
+      'image',
+      '/9j/4AAQSkZJRg',
+      'h1',
+      JSON.stringify({ caption: 'Quittung' }),
+    )
+    insert.run('m2', 'c1', 2, 'ptt', '/9j/4AAQSkZJRg', 'h2', JSON.stringify({ type: 'ptt' }))
+    insert.run('m3', 'c1', 3, 'chat', 'Ganz normaler Text', null, null)
+
+    migrate(db)
+    const bodies = Object.fromEntries(
+      (
+        db.prepare('SELECT id, body FROM messages').all() as { id: string; body: string | null }[]
+      ).map((r) => [r.id, r.body]),
+    )
+    expect(bodies).toEqual({ m1: 'Quittung', m2: null, m3: 'Ganz normaler Text' })
+    expect(search(db, 'quittung').map((r) => r.msg_id)).toEqual(['m1'])
+    db.prepare("UPDATE media SET last_error = 'x' WHERE id = 'none'").run()
+  })
+
   it('gives media that failed against the changed downloader one more try, once', () => {
     // An archive as it was before version 3, with the rows the broken downloader left behind.
     const db = openMemory()

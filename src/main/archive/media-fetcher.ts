@@ -103,14 +103,14 @@ export class MediaFetcher {
       // silently absent looks like a bug in the archive.
       this.#stats.skipped++
       this.#stats.lastReason = decision.reason
-      await this.#mark(candidate.id, 'skipped')
+      await this.#mark(candidate.id, 'skipped', decision.reason)
       return false
     }
 
     if (!candidate.msgId) {
       this.#stats.skipped++
       this.#stats.lastReason = 'no message to download from'
-      await this.#mark(candidate.id, 'skipped')
+      await this.#mark(candidate.id, 'skipped', this.#stats.lastReason)
       return false
     }
 
@@ -125,7 +125,7 @@ export class MediaFetcher {
         // servers — and says why. Not a failure: retrying would only ask the same question again.
         this.#stats.skipped++
         this.#stats.lastReason = media.skipped
-        await this.#mark(candidate.id, 'skipped')
+        await this.#mark(candidate.id, 'skipped', media.skipped)
         return false
       }
 
@@ -134,7 +134,7 @@ export class MediaFetcher {
         // missing downloader three times per file just burns the queue.
         this.#stats.skipped++
         this.#stats.lastReason = 'WhatsApp did not hand over the file'
-        await this.#mark(candidate.id, 'skipped')
+        await this.#mark(candidate.id, 'skipped', this.#stats.lastReason)
         return false
       }
 
@@ -158,14 +158,19 @@ export class MediaFetcher {
       // The message, not String(error): the error has usually crossed a few contexts already, and
       // each String() would put another "Error: " in front of it.
       this.#stats.lastReason = error instanceof Error ? error.message : String(error)
-      await this.#mark(candidate.id, 'failed')
+      await this.#mark(candidate.id, 'failed', this.#stats.lastReason)
       return false
     }
   }
 
-  async #mark(mediaId: string, status: 'failed' | 'skipped'): Promise<void> {
+  async #mark(mediaId: string, status: 'failed' | 'skipped', reason?: string): Promise<void> {
     try {
-      await this.#options.archive({ op: 'markMedia', mediaId, status })
+      await this.#options.archive({
+        op: 'markMedia',
+        mediaId,
+        status,
+        ...(reason ? { reason: reason.slice(0, 500) } : {}),
+      })
     } catch (error: unknown) {
       this.#options.warn?.(`could not record media status: ${String(error)}`)
     }

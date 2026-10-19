@@ -88,6 +88,15 @@ Browser. `observer.ts` leitet jetzt aus jeder Nachricht mit `filehash` eine Medi
 fehlt ein Feld, bleibt die Spalte leer und die Abrufregeln greifen auf Dateiname bzw. „unbekannter Typ"
 zurück.
 
+**Text einer Mediennachricht (2026-10-16).** Bei Bildern, Videos, Sprachnachrichten, Dokumenten und
+Stickern steht in `body` nicht Text, sondern das Vorschaubild als Base64 (JPEG, beginnt mit `/9j/`);
+was die Absenderin dazu geschrieben hat, steht in `caption`. `observer.ts` las `body` zuerst und
+schrieb damit Zeichensalat ins Archiv. Jetzt gilt: Hat die Nachricht einen `filehash` oder einen
+Medientyp (`image`, `video`, `ptt`, `audio`, `document`, `sticker`, `gif`), wird nur `caption`
+gelesen. Gemeldet von einer Nutzerin gegen eine angemeldete Sitzung (WatIs? 0.8.1 aus dem Chrome Web
+Store); Schema-Migration 5 holt die Bildunterschrift für schon archivierte Nachrichten aus `raw_json`
+zurück. Warum eine Datei nicht kam, steht seit derselben Migration in `media.last_error`.
+
 ## Wie der Code in die Seite kommt
 
 `window.require` existiert **nur in der Seitenwelt**. Das Preload läuft in der isolierten Welt und

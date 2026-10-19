@@ -68,7 +68,8 @@ export const MEDIA_PROBLEMS: readonly MediaProblem[] = [
   {
     match: /did not answer|antwortet nicht|abort/i,
     text: 'WhatsApp hat nicht rechtzeitig geantwortet.',
-    advice: 'Noch einmal versuchen. Lädt der WhatsApp-Tab gerade neu, kurz warten.',
+    advice:
+      'Noch einmal versuchen. Lädt der WhatsApp-Tab gerade neu, kurz warten; hilft das nicht, den Tab einmal neu laden.',
     inHelp: true,
   },
   {

@@ -230,6 +230,8 @@ nachgebaute WhatsApp-Seite der E2E-Tests liefert deshalb die Header pro Browser.
 
 - **Edge** wurde nicht gemessen. Es ist Chromium mit derselben Erweiterungs-Plattform; die Annahme ist,
   dass es sich wie Chromium 141 verhält. Zu bestätigen, sobald ein Edge greifbar ist.
+  **Nachtrag 2026-10-05:** bestätigt. Microsoft Edge 154 (Linux-Build) besteht die E2E-Prüfungen der
+  Erweiterung, geladen aus der entpackten Release-ZIP (PLAN.md Phase 10).
 - Wieder **ohne Anmeldung**. Die Modulauflösung gegen eine angemeldete Sitzung steht weiterhin aus.
 
 ### Reproduzieren

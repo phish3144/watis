@@ -4,6 +4,16 @@ For store reviewers (addons.mozilla.org, Chrome Web Store, Microsoft Edge Add-on
 wants to check that a published package is built from this source. The rest of the project's
 documentation is in German; this file is in English because of who reads it.
 
+## Published packages
+
+| Store                  | Listing                                                                                                                 | Extension id                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| addons.mozilla.org     | [addons.mozilla.org](https://addons.mozilla.org/firefox/addon/watis/)                                                   | `watis@phish3144.github.io`        |
+| Chrome Web Store       | [chromewebstore.google.com](https://chromewebstore.google.com/detail/watis/egnfhalkjamlhhkpgpenamjdbfjikigd)            | `egnfhalkjamlhhkpgpenamjdbfjikigd` |
+| Microsoft Edge Add-ons | [microsoftedge.microsoft.com](https://microsoftedge.microsoft.com/addons/detail/watis/nhdchmgbjmkjkpgbignglgobimfabkdg) | `nhdchmgbjmkjkpgbignglgobimfabkdg` |
+
+Each listing carries the release asset of the same version, unchanged.
+
 ## Environment
 
 - Node.js **24** (the project pins 24.18.1 in `.nvmrc`) with the npm that ships with it.
@@ -28,7 +38,10 @@ This writes two unpacked extensions:
 
 `npm run pack:extension` additionally zips both into `out/extension/watis-<version>-*.zip`; the
 release assets are those ZIPs renamed. The build is reproducible: two builds of the same commit
-produce identical files, so `diff -r` against an unpacked release asset shows no differences.
+produce identical files, so `diff -r` against an unpacked release asset shows no differences. A copy
+installed from the Chrome Web Store or Edge Add-ons also has `_metadata/`, and its `manifest.json`
+gains the fields the store and the browser add, such as `update_url` and `key`. A copy from
+addons.mozilla.org adds `META-INF/` with the signature. Everything else matches.
 
 Everything happens in one script, `scripts/build-extension.mjs`, with comments for each step.
 

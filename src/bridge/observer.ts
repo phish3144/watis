@@ -118,7 +118,7 @@ export function toMessageRow(
     senderJid: readId(m.author ?? m.from),
     ts,
     kind: typeof m.type === 'string' ? m.type : null,
-    body: typeof m.body === 'string' ? m.body : typeof m.caption === 'string' ? m.caption : null,
+    body: messageText(m),
     // quotedMsgId first: it is a MsgKey and serialises to the same form message ids are stored in,
     // so the link resolves. quotedStanzaID is the bare stanza id — a string readId happily returns
     // and which can never match a stored `fromMe_remote_id`, so it is only a last resort.
@@ -129,6 +129,23 @@ export function toMessageRow(
     fromMe: Boolean((m.id as Record<string, unknown> | undefined)?.fromMe ?? m.fromMe),
     rawJson: safeStringify(m),
   }
+}
+
+/** Message types that carry a file. Their `body` is not text. */
+const MEDIA_TYPES = new Set(['image', 'video', 'ptt', 'audio', 'document', 'sticker', 'gif'])
+
+/**
+ * The words of a message. For a file, WhatsApp Web keeps the preview picture in `body`, as base64,
+ * and the words the sender typed in `caption`; reading `body` there put a wall of characters into
+ * the archive and lost the caption.
+ */
+function messageText(m: Record<string, unknown>): string | null {
+  const isMedia =
+    (typeof m.filehash === 'string' && m.filehash !== '') ||
+    (typeof m.type === 'string' && MEDIA_TYPES.has(m.type))
+  if (isMedia) return typeof m.caption === 'string' ? m.caption : null
+  if (typeof m.body === 'string') return m.body
+  return typeof m.caption === 'string' ? m.caption : null
 }
 
 export function toChatRow(model: unknown): ChatRow | undefined {
